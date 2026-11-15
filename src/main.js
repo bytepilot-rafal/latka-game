@@ -20,6 +20,8 @@ const TXT = {
     over: 'Zaginiona świątynia w kanionie', start: 'Zacznij przygodę', again: 'Zagraj ponownie',
     story: 'Zachodzi słońce. Łatka dotarła do zaginionej świątyni w głębi dżungli. Znajdź pięć reliktów ukrytych w ruinach i otwórz wrota, zanim zgaśnie światło — za nimi czekają szczeniaki!',
     keys: 'WASD / strzałki — ruch · Spacja — skok · Shift — bieg · przeciągnij myszą lub Q / E — kamera · H — hau! · M — muzyka',
+    keys_t: 'Lewy kciuk — ruch (do końca = bieg) · przycisk z łapą — skok · przeciągnij po ekranie — kamera · dwa palce — przybliżenie · najlepiej w poziomie',
+    h_stairs_t: 'Kazikowe Schody się kruszą — przeskakuj wyrwy (przycisk z łapą).',
     sun: 'Do zmroku', h_start: 'Idź ulicą Pogodną przez ruiny do Mostu Serockiego.', h_bridge: 'Most Serocki skrzypi i kołysze się… Uważaj na dziury!',
     h_break: 'Uff! Most Serocki runął do rzeki tuż za tobą!', h_stairs: 'Kazikowe Schody się kruszą — przeskakuj wyrwy (Spacja).', h_tunnel: 'W Tunelu Stasia jest ciemno… Latarenka na obroży rozświetla drogę.',
     h_court: 'Świątynia! Lustro Oli śle promienie do nieba — poszukaj go w ruinach.', h_need: (n) => `Roszczeńskie Wrota potrzebują pięciu reliktów (masz ${n}/5). Rozejrzyj się za kolorowymi słupami światła.`, h_door: 'Relikty wracają na swoje miejsce…',
@@ -33,6 +35,8 @@ const TXT = {
     over: 'The lost temple in the canyon', start: 'Begin the adventure', again: 'Play again',
     story: 'The sun is setting. Łatka has reached a lost temple deep in the jungle. Find the five relics hidden in the ruins and open the door before the light is gone — the puppies are waiting behind it!',
     keys: 'WASD / arrows — move · Space — jump · Shift — run · drag the mouse or Q / E — camera · H — woof! · M — music',
+    keys_t: 'Left thumb — move (push all the way = run) · paw button — jump · drag the screen — camera · two fingers — zoom · best in landscape',
+    h_stairs_t: 'Kazikowe Schody are crumbling — jump the gaps (paw button).',
     sun: 'Until dark', h_start: 'Follow Pogodna Street through the ruins to Most Serocki.', h_bridge: 'Most Serocki creaks and sways… Mind the gaps!',
     h_break: 'Phew! Most Serocki fell into the river right behind you!', h_stairs: 'Kazikowe Schody are crumbling — jump the gaps (Space).', h_tunnel: 'Tunel Stasia is dark… The little lantern on your collar lights the way.',
     h_court: 'The temple! Lustro Oli sends rays to the sky — look for it in the ruins.', h_need: (n) => `Roszczeńskie Wrota need five relics (you have ${n}/5). Look for the coloured beams of light.`, h_door: 'The relics return to their places…',
@@ -44,7 +48,8 @@ const TXT = {
   },
 };
 let lang = 'pl';
-const T = (k, ...a) => { const v = TXT[lang][k]; return typeof v === 'function' ? v(...a) : v; };
+const touch = { x: 0, y: 0, sprint: false, on: false };   // on-screen controls for phones and tablets
+const T = (k, ...a) => { const v = (touch.on && TXT[lang][k + '_t']) || TXT[lang][k]; return typeof v === 'function' ? v(...a) : v; };
 const $ = (id) => document.getElementById(id);
 function applyLang() { document.querySelectorAll('[data-t]').forEach((e) => { e.textContent = T(e.dataset.t); }); $('sunlabel').textContent = T('sun'); $('lang').textContent = lang === 'pl' ? 'EN' : 'PL'; }
 
@@ -97,15 +102,50 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-let drag = false;
-canvas.addEventListener('pointerdown', (e) => { drag = true; canvas.setPointerCapture(e.pointerId); });
-canvas.addEventListener('pointerup', () => { drag = false; });
-canvas.addEventListener('pointermove', (e) => { if (!drag || G.mode !== 'play') return; cam.yaw -= e.movementX * 0.005; cam.pitch = clamp(cam.pitch + e.movementY * 0.004, -0.25, 1.1); cam.manual = 2.5; });
+// camera: drag with the mouse or one finger, pinch with two fingers to zoom (tracked per pointer – movementX is unreliable on phones)
+const ptrs = new Map(); let pinch = 0;
+canvas.addEventListener('pointerdown', (e) => { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); pinch = 0; try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* synthetic pointer */ } });
+const ptrEnd = (e) => { ptrs.delete(e.pointerId); pinch = 0; };
+canvas.addEventListener('pointerup', ptrEnd); canvas.addEventListener('pointercancel', ptrEnd);
+canvas.addEventListener('pointermove', (e) => {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+  if (G.mode !== 'play') return;
+  if (ptrs.size >= 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch) cam.dist = clamp(cam.dist - (d - pinch) * 0.012, 2.4, 8); pinch = d; return; }
+  const k = e.pointerType === 'touch' ? 1.5 : 1;
+  cam.yaw -= dx * 0.005 * k; cam.pitch = clamp(cam.pitch + dy * 0.004 * k, -0.25, 1.1); cam.manual = 2.5;
+});
 canvas.addEventListener('wheel', (e) => { cam.dist = clamp(cam.dist + e.deltaY * 0.004, 2.4, 8); }, { passive: true });
 function readInput() {
-  const x = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + syn.x;
-  const y = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + syn.y;
-  return { x: clamp(x, -1, 1), y: clamp(y, -1, 1), sprint: !!(keys.ShiftLeft || keys.ShiftRight || syn.sprint), cy: (keys.KeyQ ? 1 : 0) - (keys.KeyE ? 1 : 0) + syn.camYaw };
+  const x = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + syn.x + touch.x;
+  const y = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + syn.y + touch.y;
+  return { x: clamp(x, -1, 1), y: clamp(y, -1, 1), sprint: !!(keys.ShiftLeft || keys.ShiftRight || syn.sprint || touch.sprint), cy: (keys.KeyQ ? 1 : 0) - (keys.KeyE ? 1 : 0) + syn.camYaw };
+}
+
+// touch controls: a floating stick under the left thumb, buttons under the right one
+function enableTouch() { if (touch.on) return; touch.on = true; document.body.classList.add('touch'); applyLang(); }
+if (matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && matchMedia('(hover: none)').matches)) enableTouch();
+window.addEventListener('touchstart', enableTouch, { once: true, passive: true });
+{
+  const zone = $('joyZone'), base = $('joy'), knob = $('joyKnob'), R = 50; let id = null, ox = 0, oy = 0;
+  const set = (dx, dy) => {
+    const l = Math.hypot(dx, dy), k = l > R ? R / l : 1, m = Math.min(1, l / R); dx *= k; dy *= k;
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    touch.x = m < 0.18 ? 0 : dx / R; touch.y = m < 0.18 ? 0 : -dy / R; touch.sprint = m > 0.86; base.classList.toggle('run', touch.sprint);
+  };
+  zone.addEventListener('pointerdown', (e) => {
+    if (id !== null) return; id = e.pointerId; try { zone.setPointerCapture(id); } catch (_) { /* synthetic pointer */ }
+    const r = zone.getBoundingClientRect(); ox = e.clientX; oy = e.clientY;
+    base.style.left = (ox - r.left) + 'px'; base.style.top = (oy - r.top) + 'px'; base.classList.add('act'); set(0, 0); e.preventDefault();
+  });
+  zone.addEventListener('pointermove', (e) => { if (e.pointerId === id) set(e.clientX - ox, e.clientY - oy); });
+  const end = (e) => { if (e.pointerId !== id) return; id = null; base.classList.remove('act'); base.style.left = base.style.top = ''; set(0, 0); };
+  zone.addEventListener('pointerup', end); zone.addEventListener('pointercancel', end);
+  const tap = (el, fn) => $(el).addEventListener('pointerdown', (e) => { e.preventDefault(); fn(); });
+  tap('bJump', () => { P.jumpBuf = 0.14; });
+  tap('bBark', () => { if (G.mode === 'play') { audio.bark(); dog.bark(); } });
+  tap('bMusic', () => { if (audio.on) $('bMusic').classList.toggle('off', !audio.toggleMusic()); });
+  $('touch').addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
 // ------------------------------------------------------------------ HUD
@@ -467,6 +507,7 @@ function updateCamera(dt, inp) {
 // ------------------------------------------------------------------ frame
 let last = performance.now(), fpsT = 0, fpsN = 0, fpsAcc = 0;
 function frame(now, simDt) {
+  if (touch.on) $('touch').classList.toggle('on', G.mode === 'play');
   if (!simDt && G.dtLog.length < 900) G.dtLog.push(Math.round(now - last));
   let dt = Math.min(0.1, (now - last) / 1000); last = now; if (dt <= 0) dt = 0.016;
   if (simDt) dt = simDt;

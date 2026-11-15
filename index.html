@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Przygody zaginionej Łatki</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
   :root { --gold: #ffd27a; --ink: rgba(12, 9, 6, .55); }
   html, body { margin: 0; height: 100%; background: #0b0a09; overflow: hidden; font-family: Georgia, 'Palatino Linotype', Palatino, serif; color: #fff4dd; user-select: none; -webkit-user-select: none; }
-  canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
   .ui { position: fixed; pointer-events: none; transition: opacity .8s; }
   body.clean .ui, body.clean #title, body.clean #end { opacity: 0 !important; }
   #relics { top: 18px; left: 20px; display: flex; gap: 8px; opacity: 0; }
@@ -44,6 +44,38 @@
   #end { justify-content: center; padding: 0; background: radial-gradient(ellipse at center, rgba(8, 5, 3, .15), rgba(8, 5, 3, .7)); }
   #end h1 { font-size: clamp(30px, 5vw, 70px); }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #0b0a09; font-size: 20px; letter-spacing: .3em; color: var(--gold); transition: opacity 1s; z-index: 5; }
+  /* touch controls (shown only on phones / tablets) */
+  #touch { position: fixed; inset: 0; display: none; opacity: 0; pointer-events: none; transition: opacity .6s; touch-action: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  body.touch #touch { display: block; }
+  body.touch #touch.on { opacity: 1; }
+  body.clean #touch { opacity: 0 !important; }
+  #touch.on > * { pointer-events: auto; }
+  #joyZone { position: absolute; left: 0; bottom: 0; width: 46%; height: 64%; touch-action: none; }
+  #joy { position: absolute; left: calc(88px + env(safe-area-inset-left)); top: calc(100% - 92px - env(safe-area-inset-bottom)); width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; background: radial-gradient(circle, rgba(12, 9, 6, .2), rgba(12, 9, 6, .5)); border: 1.5px solid rgba(255, 210, 122, .4); backdrop-filter: blur(3px); opacity: .6; transition: opacity .2s, border-color .2s, box-shadow .2s; }
+  #joy.act { opacity: 1; }
+  #joy.run { border-color: var(--gold); box-shadow: 0 0 22px rgba(255, 200, 90, .5); }
+  #joyKnob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff1c4, #f0aa45); box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
+  .tb { position: absolute; display: grid; place-items: center; border-radius: 50%; background: var(--ink); border: 1.5px solid rgba(255, 210, 122, .5); backdrop-filter: blur(3px); color: var(--gold); touch-action: none; transition: transform .08s, background .08s; }
+  .tb:active { transform: scale(.9); background: rgba(255, 200, 90, .35); }
+  .tb svg { width: 52%; height: 52%; fill: currentColor; }
+  #bJump { right: calc(26px + env(safe-area-inset-right)); bottom: calc(34px + env(safe-area-inset-bottom)); width: 92px; height: 92px; }
+  #bBark { right: calc(132px + env(safe-area-inset-right)); bottom: calc(22px + env(safe-area-inset-bottom)); width: 62px; height: 62px; font-size: 15px; font-style: italic; }
+  #bMusic { right: calc(16px + env(safe-area-inset-right)); top: calc(14px + env(safe-area-inset-top)); width: 44px; height: 44px; font-size: 21px; }
+  #bMusic.off { opacity: .45; text-decoration: line-through; }
+  body.touch #relics { top: calc(12px + env(safe-area-inset-top)); left: calc(14px + env(safe-area-inset-left)); gap: 5px; }
+  body.touch .slot { width: 36px; height: 36px; }
+  body.touch .slot svg { width: 22px; height: 22px; }
+  body.touch #sun { top: calc(18px + env(safe-area-inset-top)); width: min(240px, 26vw); }
+  body.touch #sunlabel { font-size: 10px; margin-top: 6px; }
+  body.touch #hint { left: 0; right: 0; margin: 0 auto; width: fit-content; transform: none; bottom: calc(12px + env(safe-area-inset-bottom)); max-width: 40vw; padding: 7px 14px; font-size: 13px; }
+  body.touch .keys { max-width: 92vw; font-size: 11.5px; margin-top: 12px; }
+  body.touch .overlay { padding-bottom: calc(4vh + env(safe-area-inset-bottom)); }
+  body.touch .story { margin: 10px 20px 14px; }
+  @media (orientation: portrait) {
+    body.touch #sun { top: calc(62px + env(safe-area-inset-top)); width: 62vw; }
+    body.touch #hint { bottom: calc(190px + env(safe-area-inset-bottom)); max-width: 84vw; font-size: 14px; }
+    body.touch #place { top: 17vh; }
+  }
 </style>
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
@@ -63,6 +95,12 @@
 <div id="place" class="ui"><div class="orn"><span id="placeKind"></span></div><div class="name" id="placeName"></div></div>
 <div id="pick" class="ui"></div>
 <div id="hint" class="ui"></div>
+<div id="touch">
+  <div id="joyZone"><div id="joy"><div id="joyKnob"></div></div></div>
+  <div class="tb" id="bBark">Hau!</div>
+  <div class="tb" id="bJump"><svg viewBox="0 0 32 32"><ellipse cx="16" cy="21.5" rx="7.2" ry="6"/><ellipse cx="6.6" cy="14" rx="3" ry="3.9"/><ellipse cx="12.4" cy="8.4" rx="3" ry="4"/><ellipse cx="19.6" cy="8.4" rx="3" ry="4"/><ellipse cx="25.4" cy="14" rx="3" ry="3.9"/></svg></div>
+  <div class="tb" id="bMusic">♪</div>
+</div>
 
 <div id="title" class="overlay hidden">
   <h1><small data-t="over"></small>Przygody zaginionej Łatki</h1>
