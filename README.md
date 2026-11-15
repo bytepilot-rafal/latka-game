@@ -3,6 +3,8 @@
 Przygodowa gra 3D w przeglądarce. Łatka, młoda dalmatynka, ma czas do zachodu słońca, żeby znaleźć pięć reliktów
 i otworzyć Roszczeńskie Wrota Świątyni Piszczykowskiej, za którymi czekają szczeniaki.
 
+**Zagraj w przeglądarce: <https://bytepilot-rafal.github.io/latka-game/>**
+
 Wszystko (teren, tekstury, modele, dźwięki, muzyka) jest generowane w kodzie — nie ma plików graficznych ani audio.
 Silnik: [Three.js](https://threejs.org) 0.170 ładowany z CDN, więc do gry potrzebny jest internet.
 
