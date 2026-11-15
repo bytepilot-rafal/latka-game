@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Przygody zaginionej Łatki</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --gold: #ffd27a; --ink: rgba(12, 9, 6, .55); }
+  html, body { margin: 0; height: 100%; background: #0b0a09; overflow: hidden; font-family: Georgia, 'Palatino Linotype', Palatino, serif; color: #fff4dd; user-select: none; -webkit-user-select: none; }
+  canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .ui { position: fixed; pointer-events: none; transition: opacity .8s; }
+  body.clean .ui, body.clean #title, body.clean #end { opacity: 0 !important; }
+  #relics { top: 18px; left: 20px; display: flex; gap: 8px; opacity: 0; }
+  .slot { width: 48px; height: 48px; border-radius: 50%; background: var(--ink); border: 1.5px solid rgba(255, 210, 122, .35); display: grid; place-items: center; backdrop-filter: blur(4px); transition: all .5s; }
+  .slot svg { width: 29px; height: 29px; opacity: .28; filter: grayscale(1); transition: all .5s; }
+  .slot.got { border-color: var(--gold); box-shadow: 0 0 18px rgba(255, 200, 90, .55); transform: scale(1.06); }
+  .slot.got svg { opacity: 1; filter: none; }
+  #sun { top: 22px; left: 50%; transform: translateX(-50%); width: min(300px, 34vw); opacity: 0; text-align: center; }
+  #sunbar { position: relative; height: 7px; border-radius: 4px; background: linear-gradient(90deg, #ffd874, #ff9a3c 45%, #d9506a 68%, #3b3f9e 86%, #121638); box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), 0 2px 10px rgba(0, 0, 0, .4); }
+  #sundot { position: absolute; top: 50%; left: 0; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: radial-gradient(circle, #fff 0 30%, #ffd874 60%, rgba(255, 190, 80, 0) 72%); box-shadow: 0 0 14px 4px rgba(255, 200, 100, .7); }
+  #sunlabel { margin-top: 8px; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; text-shadow: 0 1px 4px #000; opacity: .85; }
+  #hint { bottom: 7vh; left: 50%; transform: translateX(-50%); max-width: 80vw; padding: 10px 22px; border-radius: 22px; background: var(--ink); backdrop-filter: blur(5px); font-size: clamp(15px, 1.7vw, 20px); text-align: center; opacity: 0; text-shadow: 0 1px 3px #000; }
+  #pick { top: 28vh; left: 50%; transform: translateX(-50%); font-size: clamp(22px, 3.2vw, 40px); color: var(--gold); text-shadow: 0 2px 14px rgba(0, 0, 0, .9), 0 0 30px rgba(255, 190, 80, .5); opacity: 0; white-space: nowrap; font-style: italic; }
+  #place { top: 13vh; left: 0; right: 0; text-align: center; opacity: 0; }
+  #place .orn { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--gold); font-size: 15px; letter-spacing: .5em; text-transform: uppercase; text-shadow: 0 1px 6px #000; }
+  #place .orn::before, #place .orn::after { content: ''; height: 1.5px; width: 0; background: linear-gradient(90deg, transparent, var(--gold)); box-shadow: 0 0 8px rgba(255, 200, 100, .6); }
+  #place .orn::after { transform: scaleX(-1); }
+  #place .name { margin-top: 6px; font-size: clamp(30px, 5.4vw, 74px); font-style: italic; letter-spacing: .5em; margin-right: -.5em; background: linear-gradient(180deg, #fff6d8 10%, #ffd27a 55%, #c9822f 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 12px rgba(0, 0, 0, .85)) blur(6px); }
+  #place.show { animation: placeIn 5s ease forwards; }
+  #place.show .name { animation: placeName 5s cubic-bezier(.2, .7, .2, 1) forwards; }
+  #place.show .orn::before, #place.show .orn::after { animation: placeLine 5s ease forwards; }
+  @keyframes placeIn { 0% { opacity: 0; } 14% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes placeName { 0% { letter-spacing: .5em; margin-right: -.5em; filter: drop-shadow(0 3px 12px rgba(0, 0, 0, .85)) blur(6px); } 30% { letter-spacing: .08em; margin-right: -.08em; filter: drop-shadow(0 3px 12px rgba(0, 0, 0, .85)) blur(0); } 100% { letter-spacing: .12em; margin-right: -.12em; filter: drop-shadow(0 3px 12px rgba(0, 0, 0, .85)) blur(0); } }
+  @keyframes placeLine { 0% { width: 0; } 35% { width: min(16vw, 190px); } 100% { width: min(18vw, 210px); } }
+  .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 7vh; box-sizing: border-box; text-align: center; transition: opacity 1.2s; background: linear-gradient(180deg, rgba(8, 5, 3, .1) 0%, rgba(8, 5, 3, 0) 35%, rgba(8, 5, 3, .7) 100%); }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  h1 { margin: 0; font-weight: 400; font-size: clamp(34px, 6.4vw, 92px); letter-spacing: .02em; line-height: 1.02; background: linear-gradient(180deg, #fff6d8 10%, #ffd27a 55%, #c9822f 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 14px rgba(0, 0, 0, .75)); }
+  h1 small { display: block; font-size: .3em; letter-spacing: .5em; text-transform: uppercase; margin-bottom: .5em; }
+  .story { max-width: 720px; margin: 18px 24px 22px; font-size: clamp(14px, 1.5vw, 19px); line-height: 1.5; text-shadow: 0 1px 6px #000; }
+  button { pointer-events: auto; font: inherit; font-size: clamp(16px, 1.7vw, 21px); color: #2a1706; background: linear-gradient(180deg, #ffe7a8, #f0aa45); border: 0; border-radius: 30px; padding: 13px 34px; cursor: pointer; letter-spacing: .06em; box-shadow: 0 6px 24px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .7); transition: transform .15s; }
+  button:hover { transform: translateY(-2px) scale(1.03); }
+  button.ghost { background: var(--ink); color: #fff4dd; font-size: 13px; padding: 7px 14px; box-shadow: none; border: 1px solid rgba(255, 210, 122, .4); margin-left: 12px; }
+  .keys { margin-top: 18px; font-size: 13px; opacity: .8; letter-spacing: .05em; text-shadow: 0 1px 4px #000; font-family: system-ui, sans-serif; }
+  #end { justify-content: center; padding: 0; background: radial-gradient(ellipse at center, rgba(8, 5, 3, .15), rgba(8, 5, 3, .7)); }
+  #end h1 { font-size: clamp(30px, 5vw, 70px); }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #0b0a09; font-size: 20px; letter-spacing: .3em; color: var(--gold); transition: opacity 1s; z-index: 5; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="relics" class="ui">
+  <div class="slot" id="s-bone" title="Kość Alicji"><svg viewBox="0 0 32 32"><g fill="#ffcf5a" stroke="#a86a12" stroke-width="1"><rect x="8" y="13.5" width="16" height="5" transform="rotate(-35 16 16)"/><circle cx="8.2" cy="19.3" r="3.6"/><circle cx="11" cy="23" r="3.6"/><circle cx="21" cy="9" r="3.6"/><circle cx="23.8" cy="12.7" r="3.6"/></g></svg></div>
+  <div class="slot" id="s-sock" title="Skarpeta Lesława"><svg viewBox="0 0 32 32"><path d="M11 4h9v13l6 5a4 4 0 0 1-3 7h-7c-4 0-5-3-5-6z" fill="#9fbf5a" stroke="#3f6a1a" stroke-width="1.2"/><rect x="11" y="6" width="9" height="2.4" fill="#b8382c"/><rect x="11" y="10" width="9" height="2" fill="#b8382c"/></svg></div>
+  <div class="slot" id="s-mirror" title="Lustro Oli"><svg viewBox="0 0 32 32"><circle cx="16" cy="12" r="8.5" fill="#d8f1ff" stroke="#ffcf5a" stroke-width="2.4"/><path d="M11 9l4-3M12 13l7-6" stroke="#fff" stroke-width="1.6"/><rect x="14.2" y="20" width="3.6" height="10" rx="1.6" fill="#ffcf5a" stroke="#a86a12" stroke-width=".8"/></svg></div>
+  <div class="slot" id="s-brush" title="Zmiotka Agaty"><svg viewBox="0 0 32 32"><g transform="rotate(-30 16 16)"><rect x="14.4" y="2" width="3.2" height="13" rx="1.4" fill="#b5651d" stroke="#6b3a10" stroke-width=".8"/><rect x="7" y="14" width="18" height="5" rx="1.5" fill="#c9792a" stroke="#6b3a10" stroke-width=".8"/><path d="M8 19l-1 10M11 19l-.5 10M14 19v10M17 19v10M20 19l.5 10M23 19l1 10" stroke="#e8c66a" stroke-width="2" stroke-linecap="round"/></g></svg></div>
+  <div class="slot" id="s-diaper" title="Pielucha Jasia"><svg viewBox="0 0 32 32"><path d="M4 9h24l-1 7c-5 1-7 5-8 10h-6c-1-5-3-9-8-10z" fill="#fafafa" stroke="#9aa6b8" stroke-width="1.2"/><rect x="4.5" y="10" width="5" height="3" rx="1" fill="#4aa3ff"/><rect x="22.5" y="10" width="5" height="3" rx="1" fill="#4aa3ff"/></svg></div>
+</div>
+<div id="sun" class="ui"><div id="sunbar"><div id="sundot"></div></div><div id="sunlabel"></div></div>
+<div id="place" class="ui"><div class="orn"><span id="placeKind"></span></div><div class="name" id="placeName"></div></div>
+<div id="pick" class="ui"></div>
+<div id="hint" class="ui"></div>
+
+<div id="title" class="overlay hidden">
+  <h1><small data-t="over"></small>Przygody zaginionej Łatki</h1>
+  <p class="story" data-t="story"></p>
+  <div><button id="start" data-t="start"></button><button id="lang" class="ghost">EN</button></div>
+  <div class="keys" data-t="keys"></div>
+</div>
+<div id="end" class="overlay hidden">
+  <h1 id="endTitle"></h1>
+  <p class="story" id="endText"></p>
+  <button id="again" data-t="again"></button>
+</div>
+<div id="loading">ŁATKA…</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
