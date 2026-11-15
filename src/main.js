@@ -102,19 +102,21 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-// camera: drag with the mouse or one finger, pinch with two fingers to zoom (tracked per pointer – movementX is unreliable on phones)
+// camera: drag with the mouse (pointer events) or one finger, pinch with two fingers to zoom (touch events – see below)
 const ptrs = new Map(); let pinch = 0;
-canvas.addEventListener('pointerdown', (e) => { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); pinch = 0; try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* synthetic pointer */ } });
-const ptrEnd = (e) => { ptrs.delete(e.pointerId); pinch = 0; };
-canvas.addEventListener('pointerup', ptrEnd); canvas.addEventListener('pointercancel', ptrEnd);
-canvas.addEventListener('pointermove', (e) => {
-  const p = ptrs.get(e.pointerId); if (!p) return;
-  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+function lookStart(id, x, y) { ptrs.set(id, { x, y }); pinch = 0; }
+function lookEnd(id) { ptrs.delete(id); pinch = 0; }
+function lookMove(id, x, y, k) {
+  const p = ptrs.get(id); if (!p) return;
+  const dx = x - p.x, dy = y - p.y; p.x = x; p.y = y;
   if (G.mode !== 'play') return;
   if (ptrs.size >= 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch) cam.dist = clamp(cam.dist - (d - pinch) * 0.012, 2.4, 8); pinch = d; return; }
-  const k = e.pointerType === 'touch' ? 1.5 : 1;
   cam.yaw -= dx * 0.005 * k; cam.pitch = clamp(cam.pitch + dy * 0.004 * k, -0.25, 1.1); cam.manual = 2.5;
-});
+}
+canvas.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') return; lookStart(e.pointerId, e.clientX, e.clientY); try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* synthetic pointer */ } });
+canvas.addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') lookMove(e.pointerId, e.clientX, e.clientY, 1); });
+const ptrEnd = (e) => { if (e.pointerType !== 'touch') lookEnd(e.pointerId); };
+canvas.addEventListener('pointerup', ptrEnd); canvas.addEventListener('pointercancel', ptrEnd);
 canvas.addEventListener('wheel', (e) => { cam.dist = clamp(cam.dist + e.deltaY * 0.004, 2.4, 8); }, { passive: true });
 function readInput() {
   const x = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + syn.x + touch.x;
@@ -126,26 +128,38 @@ function readInput() {
 function enableTouch() { if (touch.on) return; touch.on = true; document.body.classList.add('touch'); applyLang(); }
 if (matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && matchMedia('(hover: none)').matches)) enableTouch();
 window.addEventListener('touchstart', enableTouch, { once: true, passive: true });
+// Everything here uses touch events, not pointer events: every finger keeps reporting to the element it landed on,
+// so the stick, a button and the camera can be held at the same time on every phone browser.
 {
-  const zone = $('joyZone'), base = $('joy'), knob = $('joyKnob'), R = 50; let id = null, ox = 0, oy = 0;
+  const zone = $('joyZone'), base = $('joy'), knob = $('joyKnob'), R = 50, NP = { passive: false }; let id = null, ox = 0, oy = 0;
+  const each = (e, fn) => { e.preventDefault(); for (const t of e.changedTouches) fn(t); };
   const set = (dx, dy) => {
     const l = Math.hypot(dx, dy), k = l > R ? R / l : 1, m = Math.min(1, l / R); dx *= k; dy *= k;
     knob.style.transform = `translate(${dx}px, ${dy}px)`;
     touch.x = m < 0.18 ? 0 : dx / R; touch.y = m < 0.18 ? 0 : -dy / R; touch.sprint = m > 0.86; base.classList.toggle('run', touch.sprint);
   };
-  zone.addEventListener('pointerdown', (e) => {
-    if (id !== null) return; id = e.pointerId; try { zone.setPointerCapture(id); } catch (_) { /* synthetic pointer */ }
-    const r = zone.getBoundingClientRect(); ox = e.clientX; oy = e.clientY;
-    base.style.left = (ox - r.left) + 'px'; base.style.top = (oy - r.top) + 'px'; base.classList.add('act'); set(0, 0); e.preventDefault();
-  });
-  zone.addEventListener('pointermove', (e) => { if (e.pointerId === id) set(e.clientX - ox, e.clientY - oy); });
-  const end = (e) => { if (e.pointerId !== id) return; id = null; base.classList.remove('act'); base.style.left = base.style.top = ''; set(0, 0); };
-  zone.addEventListener('pointerup', end); zone.addEventListener('pointercancel', end);
-  const tap = (el, fn) => $(el).addEventListener('pointerdown', (e) => { e.preventDefault(); fn(); });
+  zone.addEventListener('touchstart', (e) => each(e, (t) => {
+    if (id !== null) return; id = t.identifier;
+    const r = zone.getBoundingClientRect(); ox = t.clientX; oy = t.clientY;
+    base.style.left = (ox - r.left) + 'px'; base.style.top = (oy - r.top) + 'px'; base.classList.add('act'); set(0, 0);
+  }), NP);
+  zone.addEventListener('touchmove', (e) => each(e, (t) => { if (t.identifier === id) set(t.clientX - ox, t.clientY - oy); }), NP);
+  const end = (e) => each(e, (t) => { if (t.identifier !== id) return; id = null; base.classList.remove('act'); base.style.left = base.style.top = ''; set(0, 0); });
+  zone.addEventListener('touchend', end, NP); zone.addEventListener('touchcancel', end, NP);
+  const tap = (el, fn) => {
+    const b = $(el), up = (e) => { e.preventDefault(); b.classList.remove('down'); };
+    b.addEventListener('touchstart', (e) => { e.preventDefault(); b.classList.add('down'); fn(); }, NP);
+    b.addEventListener('touchend', up, NP); b.addEventListener('touchcancel', up, NP);
+  };
   tap('bJump', () => { P.jumpBuf = 0.14; });
   tap('bBark', () => { if (G.mode === 'play') { audio.bark(); dog.bark(); } });
   tap('bMusic', () => { if (audio.on) $('bMusic').classList.toggle('off', !audio.toggleMusic()); });
+  canvas.addEventListener('touchstart', (e) => each(e, (t) => lookStart('t' + t.identifier, t.clientX, t.clientY)), NP);
+  canvas.addEventListener('touchmove', (e) => each(e, (t) => lookMove('t' + t.identifier, t.clientX, t.clientY, 1.5)), NP);
+  const lEnd = (e) => each(e, (t) => lookEnd('t' + t.identifier));
+  canvas.addEventListener('touchend', lEnd, NP); canvas.addEventListener('touchcancel', lEnd, NP);
   $('touch').addEventListener('contextmenu', (e) => e.preventDefault());
+  for (const g of ['gesturestart', 'gesturechange']) document.addEventListener(g, (e) => e.preventDefault());   // iOS page zoom
 }
 
 // ------------------------------------------------------------------ HUD

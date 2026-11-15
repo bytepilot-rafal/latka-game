@@ -56,7 +56,8 @@
   #joy.run { border-color: var(--gold); box-shadow: 0 0 22px rgba(255, 200, 90, .5); }
   #joyKnob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff1c4, #f0aa45); box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
   .tb { position: absolute; display: grid; place-items: center; border-radius: 50%; background: var(--ink); border: 1.5px solid rgba(255, 210, 122, .5); backdrop-filter: blur(3px); color: var(--gold); touch-action: none; transition: transform .08s, background .08s; }
-  .tb:active { transform: scale(.9); background: rgba(255, 200, 90, .35); }
+  .tb.down { transform: scale(.9); background: rgba(255, 200, 90, .35); }
+  body.touch { touch-action: none; }
   .tb svg { width: 52%; height: 52%; fill: currentColor; }
   #bJump { right: calc(26px + env(safe-area-inset-right)); bottom: calc(34px + env(safe-area-inset-bottom)); width: 92px; height: 92px; }
   #bBark { right: calc(132px + env(safe-area-inset-right)); bottom: calc(22px + env(safe-area-inset-bottom)); width: 62px; height: 62px; font-size: 15px; font-style: italic; }
