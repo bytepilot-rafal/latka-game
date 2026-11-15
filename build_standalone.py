@@ -11,11 +11,24 @@ from the internet (CDN), so the player needs to be online.
 import os
 import re
 import shutil
+import time
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 NAME = "Przygody-zaginionej-Latki"
 OUT = os.path.join(ROOT, "dist", NAME)
+WEB = os.path.join(ROOT, "docs")   # what GitHub Pages serves
 ORDER = ["textures", "fx", "dog", "sky", "audio", "world", "main"]  # dependencies first
+
+# Runs first on the hosted page: asks the server (bypassing every cache) which build is current and,
+# if this copy is older, reloads under a new address so the browser cannot answer from its cache.
+VERSION_CHECK = """<script>
+  window.BUILD = '%s';
+  if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
+    v = v.trim();
+    if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v);
+  }).catch(function () {});
+</script>
+"""
 
 LOADER = """
 <script type="module">
@@ -71,6 +84,10 @@ def main():
         for dep in re.findall(r"from '\./(\w+)\.js'", open(os.path.join(ROOT, "src", n + ".js"), encoding="utf-8").read()):
             assert ORDER.index(dep) < ORDER.index(n), "%s must come before %s in ORDER" % (dep, n)
     html = html.replace(tag, "\n".join(parts) + LOADER % repr(ORDER))
+    build = time.strftime("%Y%m%d-%H%M%S")
+    meta = '<meta charset="utf-8">'
+    assert meta in html
+    html = html.replace(meta, meta + "\n" + VERSION_CHECK % build, 1)
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
     os.makedirs(OUT)
@@ -80,6 +97,12 @@ def main():
     if os.path.exists(zip_base + ".zip"):
         os.remove(zip_base + ".zip")
     shutil.make_archive(zip_base, "zip", os.path.join(ROOT, "dist"), NAME)
+    # the same single file is what gets published (GitHub Pages serves docs/)
+    os.makedirs(WEB, exist_ok=True)
+    open(os.path.join(WEB, "index.html"), "w", encoding="utf-8").write(html)
+    open(os.path.join(WEB, "version.txt"), "w", encoding="utf-8").write(build + "\n")
+    open(os.path.join(WEB, ".nojekyll"), "w").close()
+    print("OK:", WEB, "build", build)
     print("OK:", OUT, "(%d KB)" % (os.path.getsize(os.path.join(OUT, "index.html")) // 1024))
     print("OK:", zip_base + ".zip")
 

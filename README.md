@@ -24,6 +24,18 @@ python3 build_standalone.py
 
 tworzy `dist/Przygody-zaginionej-Latki/` z jednym plikiem `index.html`, który działa po dwukliku, oraz gotowy `.zip`.
 
+## Publikowanie nowej wersji
+
+Strona <https://bytepilot-rafal.github.io/latka-game/> pokazuje zawartość folderu `docs/`, który tworzy ten sam skrypt:
+
+```bash
+python3 build_standalone.py
+git add -A && git commit -m "opis zmian" && git push
+```
+
+Każde zbudowanie dostaje numer wersji (`docs/version.txt`). Gra przy otwarciu sprawdza ten numer z pominięciem pamięci
+podręcznej i, jeśli jest nowszy, sama przeładowuje się do nowej wersji — znajomi nie muszą niczego czyścić.
+
 ## Sterowanie
 
 | Klawisz | Akcja |
@@ -32,6 +44,7 @@ tworzy `dist/Przygody-zaginionej-Latki/` z jednym plikiem `index.html`, który d
 | Spacja | skok |
 | Shift | bieg |
 | przeciągnięcie myszą, Q / E | kamera |
+| telefon / tablet | drążek i przyciski na ekranie pojawiają się same |
 | kółko myszy | przybliżenie |
 | H | hau! |
 | M | muzyka wł./wył. |
