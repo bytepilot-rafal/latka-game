@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261121-190436';
+  window.BUILD = '20261121-190852';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) { try { if (window.LEVEL && LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) {} location.replace(location.pathname + '?v=' + v); }
@@ -4438,14 +4438,35 @@ function buildCourse() {
 // Wujek Artur: roars past on a jet ski every now and then – overtaking, or coming back up the river – waves, calls out,
 // and leaves a line of bones in his wake. He swerves round whatever is in the water and never holes the raft.
 function buildArtur() {
-  const g = new THREE.Group(), b = new Builder(1500);
-  b.blob(1, 0, 0.22, 0, 0xf4f4f0, 0.3, 0.46, 1.5); b.blob(0.8, 0, 0.3, 0.35, 0x1f6fd0, 0.32, 0.4, 1.0); b.box(0.42, 0.2, 0.9, 0, 0.42, -0.25, 0x23262c); b.box(0.16, 0.36, 0.16, 0, 0.5, 0.55, 0x23262c); b.box(0.8, 0.05, 0.06, 0, 0.88, 0.55, 0x3a3d42);
-  b.box(0.44, 0.56, 0.28, 0, 0.62, -0.25, 0xe2402f); b.box(0.46, 0.3, 0.3, 0, 0.74, -0.25, 0xf2c230, 0, 0.02);                    // rider: red jacket, yellow life vest
-  for (const x of [-0.14, 0.14]) { b.box(0.14, 0.16, 0.5, x, 0.5, 0.0, 0x34507a); }
-  b.box(0.1, 0.1, 0.5, -0.27, 1.02, 0.12, 0xe2402f);                                                                              // the arm on the handlebar
-  b.blob(0.16, 0, 1.4, -0.22, 0xe8b890, 1.05); b.blob(0.175, 0, 1.47, -0.25, 0x1f6fd0, 0.7); b.box(0.3, 0.03, 0.2, 0, 1.44, -0.08, 0x1f6fd0); b.box(0.26, 0.07, 0.03, 0, 1.4, -0.06, 0x111114, 0, 0); b.box(0.2, 0.05, 0.03, 0, 1.3, -0.07, 0x6b4a32, 0, 0);    // head, cap with a peak, sunglasses, moustache
+  const g = new THREE.Group(), b = new Builder(1500), WHITE = 0xf2f3f5, BLACK = 0x16181c, LIME = 0xb6f23a, GREY = 0x2a2d33;
+  // A sit-down, three-seater personal watercraft in the modern style: a long V hull with a pointed bow, a tall hood with
+  // the handlebar pod, a stepped saddle, footwells, a boarding platform and a jet nozzle at the stern.
+  {
+    const sh = new THREE.Shape(); sh.moveTo(-0.5, -1.55); sh.lineTo(0.5, -1.55); sh.lineTo(0.58, -0.6); sh.quadraticCurveTo(0.6, 0.6, 0.34, 1.2); sh.quadraticCurveTo(0.14, 1.62, 0, 1.72); sh.quadraticCurveTo(-0.14, 1.62, -0.34, 1.2); sh.quadraticCurveTo(-0.6, 0.6, -0.58, -0.6); sh.lineTo(-0.5, -1.55);
+    const hg = new THREE.ExtrudeGeometry(sh, { depth: 0.42, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2, curveSegments: 12 }); hg.rotateX(Math.PI / 2); hg.translate(0, 0.3, 0); hg.deleteAttribute('uv');
+    const p = hg.attributes.position, col = new Float32Array(p.count * 3), cW = new THREE.Color(WHITE), cB = new THREE.Color(BLACK), cL = new THREE.Color(LIME);
+    for (let k = 0; k < p.count; k++) {
+      let x = p.getX(k), y = p.getY(k); const z = p.getZ(k), t = clamp((y + 0.17) / 0.52, 0, 1);            // 0 at the keel, 1 at the deck
+      x *= lerp(0.3, 1, sm(0, 0.8, t)); y += 0.2 * sm(0.5, 1.72, z) * (1 - t) + 0.07 * sm(0.9, 1.72, z);      // V bottom, bow sweeping up
+      p.setXYZ(k, x, y, z); const c = t < 0.5 ? cB : t < 0.66 && z > -1.2 ? cL : cW; col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
+    }
+    hg.setAttribute('color', new THREE.BufferAttribute(col, 3)); hg.computeVertexNormals(); b.g.push(hg);
+  }
+  b.blob(1, 0, 0.5, 0.78, BLACK, 0.27, 0.43, 0.88); b.blob(1, 0, 0.6, 0.84, WHITE, 0.2, 0.3, 0.62); b.blob(1, 0, 0.5, 1.42, LIME, 0.1, 0.16, 0.3);       // hood, its white top panel, the nose
+  b.box(0.3, 0.36, 0.34, 0, 0.5, 0.2, BLACK, 0, 0); b.box(0.36, 0.08, 0.22, 0, 0.86, 0.3, GREY, 0, 0);                                                    // steering column and gauge pod
+  { const hb = new THREE.CylinderGeometry(0.026, 0.026, 0.8, 8); hb.rotateZ(Math.PI / 2); b.add(hb, BLACK, 0, 0.95, 0.18, 0, 0); }
+  for (const x of [-0.36, 0.36]) { b.box(0.12, 0.06, 0.06, x, 0.92, 0.18, LIME, 0, 0); b.box(0.12, 0.09, 0.05, x * 1.05, 0.78, 0.52, BLACK, 0, 0); }        // grips and mirrors
+  b.box(0.42, 0.2, 0.8, 0, 0.44, -0.25, GREY, 0, 0); b.box(0.44, 0.26, 0.62, 0, 0.47, -0.9, GREY, 0, 0); b.blob(0.2, 0, 0.72, -1.22, GREY, 0.6, 1.05, 0.6);   // stepped saddle with a bolster
+  for (const x of [-0.215, 0.215]) { b.box(0.02, 0.06, 1.3, x, 0.56, -0.5, LIME, 0, 0); b.box(0.13, 0.13, 1.5, x * 2.25, 0.34, -0.55, WHITE, 0, 0); b.box(0.07, 0.08, 0.95, x * 2.85, 0.1, -0.95, BLACK, 0, 0); }   // seat piping, gunwales, sponsons
+  b.box(0.92, 0.05, 0.42, 0, 0.34, -1.33, 0x55595f, 0, 0); b.box(0.5, 0.05, 0.05, 0, 0.62, -1.42, BLACK, 0, 0); for (const x of [-0.24, 0.24]) b.box(0.05, 0.26, 0.05, x, 0.38, -1.42, BLACK, 0, 0);            // boarding platform and grab handle
+  { const nz = new THREE.CylinderGeometry(0.1, 0.12, 0.24, 10); nz.rotateX(Math.PI / 2); b.add(nz, 0x3a3d42, 0, 0.1, -1.62, 0, 0); }
+  // the rider
+  b.box(0.44, 0.56, 0.28, 0, 0.66, -0.25, 0xe2402f); b.box(0.46, 0.3, 0.3, 0, 0.78, -0.25, 0xf2c230, 0, 0.02);
+  for (const x of [-0.17, 0.17]) { b.box(0.15, 0.16, 0.52, x * 1.5, 0.52, 0.0, 0x34507a); b.box(0.13, 0.3, 0.14, x * 1.9, 0.3, 0.22, 0x34507a); }
+  b.box(0.1, 0.1, 0.5, -0.29, 1.04, 0.0, 0xe2402f);
+  b.blob(0.16, 0, 1.44, -0.22, 0xe8b890, 1.05); b.blob(0.175, 0, 1.51, -0.25, 0x1f6fd0, 0.7); b.box(0.3, 0.03, 0.2, 0, 1.48, -0.08, 0x1f6fd0); b.box(0.26, 0.07, 0.03, 0, 1.44, -0.06, 0x111114, 0, 0); b.box(0.2, 0.05, 0.03, 0, 1.34, -0.07, 0x6b4a32, 0, 0);
   g.add(b.mesh());
-  const ab = new Builder(1501); ab.box(0.1, 0.5, 0.1, 0, 0, 0, 0xe2402f); ab.blob(0.075, 0, 0.56, 0, 0xe8b890); A.arm = ab.mesh(); A.arm.position.set(0.27, 1.12, -0.25); g.add(A.arm);
+  const ab = new Builder(1501); ab.box(0.1, 0.5, 0.1, 0, 0, 0, 0xe2402f); ab.blob(0.075, 0, 0.56, 0, 0xe8b890); A.arm = ab.mesh(); A.arm.position.set(0.29, 1.16, -0.25); g.add(A.arm);
   // his name floats above him and is drawn over everything, so it can always be read while he is in view
   const t = canvasTex(384, 88, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(12,9,6,.72)'; c.beginPath(); if (c.roundRect) c.roundRect(4, 4, w - 8, h - 8, 34); else c.rect(4, 4, w - 8, h - 8); c.fill(); c.strokeStyle = '#ffd27a'; c.lineWidth = 3; c.stroke(); c.fillStyle = '#ffd27a'; c.font = 'italic 50px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(TXT.pl.arturName, w / 2, h / 2 + 3); });
   A.label = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, depthWrite: false, fog: false })); A.label.renderOrder = 50; A.label.position.y = 2.5; g.add(A.label);
