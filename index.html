@@ -60,6 +60,11 @@
   #rTrack i { position: absolute; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: var(--ink); border: 1.5px solid var(--gold); display: grid; place-items: center; font: normal 14px/1 system-ui, sans-serif; transition: left .25s linear; }
   #rDog { left: 0; }
   #rLabel { margin-top: 13px; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; text-shadow: 0 1px 4px #000; }
+  #rPow { top: calc(84px + env(safe-area-inset-top)); left: calc(18px + env(safe-area-inset-left)); display: flex; gap: 7px; opacity: 0; }
+  #rPow span { display: none; position: relative; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); border: 1.5px solid var(--gold); place-items: center; overflow: hidden; box-shadow: 0 0 14px rgba(255, 200, 90, .45); }
+  #rPow span.on { display: grid; }
+  #rPow i { font: normal 19px/1 system-ui, sans-serif; color: var(--gold); }
+  #rPow b { position: absolute; left: 0; bottom: 0; height: 5px; background: var(--gold); transition: width .25s linear; }
   #turn { top: 27vh; left: 0; right: 0; display: flex; justify-content: center; gap: min(34vw, 300px); opacity: 0; font: normal clamp(46px, 9vw, 92px)/1 system-ui, sans-serif; color: var(--gold); text-shadow: 0 3px 14px rgba(0, 0, 0, .8), 0 0 30px rgba(255, 190, 80, .6); transition: opacity .2s; }
   #turn.ask, #turn.left, #turn.right { opacity: 1; }
   #turn.ask span { animation: turnPulse .5s ease-in-out infinite alternate; }
@@ -104,6 +109,7 @@
     body.touch #hint { bottom: calc(190px + env(safe-area-inset-bottom)); max-width: 84vw; font-size: 14px; }
     body.touch #place { top: 17vh; }
     #rMila { top: calc(74px + env(safe-area-inset-top)); width: 62vw; }
+    #rPow { top: calc(122px + env(safe-area-inset-top)); }
     #turn { top: 22vh; gap: 46vw; }
   }
 </style>
@@ -128,6 +134,7 @@
 <div id="rTop" class="ui"><div id="rScore">0</div><div id="rSub"></div></div>
 <div id="rLives" class="ui"></div>
 <div id="rMila" class="ui"><div id="rTrack"><i id="rDog">🐶</i><i id="rCat">🐱</i></div><div id="rLabel"></div></div>
+<div id="rPow" class="ui"></div>
 <div id="turn" class="ui"><span id="tL">◀</span><span id="tR">▶</span></div>
 <div id="flash"></div>
 <div id="touch">

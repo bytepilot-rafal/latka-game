@@ -21,6 +21,10 @@ const TXT = {
     k_street: 'Ulica', turn: 'Skrzyżowanie! Wybierz kierunek — jeśli nie zdążysz, wybierze los.', caught: (p) => `Mam cię! +${p}`, away: 'Mila ucieka dalej!', ouch: 'Auć!',
     winT: 'Mila złapana!', winX: (s, b, best) => `Mila ma dość uciekania — od dziś biegacie razem. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
     loseT: 'Mila uciekła…', loseX: (s, b, best) => `Tym razem była szybsza. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
+    p_magnet: 'Magnes na kości!', p_shield: 'Tarcza!', p_turbo: 'Turbo-łapy!', p_x2: 'Podwójne punkty!', shieldPop: 'Tarcza cię uratowała!', splash: 'Chlup!', smash: 'Bum! +20',
+    cheers: ['Brawo, Łatka!', 'Łap ją!', 'Dalej, dalej!', 'Szybciej, szybciej!', 'Hau hau!'],
+    w_rain: 'Zaczyna padać!', w_fog: 'Nadciąga mgła…', w_snow: 'Sypie śnieg!', w_clear: 'Przejaśnia się.',
+    fin1: 'Mila: „No dobrze… wygrałaś!”', fin2: 'Od dziś biegają razem.',
     r_bone: 'Kość dr. Alicji! +100', r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
   },
   en: {
@@ -33,6 +37,10 @@ const TXT = {
     k_street: 'Street', turn: 'Junction! Pick a way — if you are too slow, chance decides.', caught: (p) => `Gotcha! +${p}`, away: 'Mila is off again!', ouch: 'Ouch!',
     winT: 'Mila is caught!', winX: (s, b, best) => `Mila is done running — from now on you run together. Score: ${s} · bones: ${b} · best: ${best}`,
     loseT: 'Mila got away…', loseX: (s, b, best) => `She was faster this time. Score: ${s} · bones: ${b} · best: ${best}`,
+    p_magnet: 'Bone magnet!', p_shield: 'Shield!', p_turbo: 'Turbo paws!', p_x2: 'Double points!', shieldPop: 'The shield saved you!', splash: 'Splash!', smash: 'Boom! +20',
+    cheers: ['Bravo, Łatka!', 'Get her!', 'Go, go, go!', 'Faster, faster!', 'Woof woof!'],
+    w_rain: 'It starts to rain!', w_fog: 'Fog rolls in…', w_snow: 'It is snowing!', w_clear: 'It clears up.',
+    fin1: 'Mila: "All right… you win!"', fin2: 'From now on they run together.',
     r_bone: 'Kość dr. Alicji! +100', r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
   },
 };
@@ -60,7 +68,11 @@ const Pl = { lane: 1, x: 0, y: 0, vy: 0, slide: 0, grounded: true };
 const Mi = { lane: 1, x: 0, y: 0, vy: 0, crouch: 0 };
 let R = rng(7);
 const audio = new AudioSys();
-let dog, cat, pAdd, pAlpha, sun, hemi, skyU, tex;
+let dog, cat, pAdd, pAlpha, sun, hemi, skyU, tex, roadM, grassM, bubble, rainFx, snowFx;
+G.pw = { magnet: 0, shield: 0, turbo: 0, x2: 0 };
+const POWERS = ['magnet', 'shield', 'turbo', 'x2'], POW_TIME = { magnet: 9, shield: 25, turbo: 4, x2: 12 }, POW_COL = { magnet: 0xff5a48, shield: 0x4ab4ff, turbo: 0xffd23a, x2: 0xc77dff };
+const W = { rain: 0, fog: 0, snow: 0, eve: 0, target: 'clear', order: ['rain', 'fog', 'snow'] };     // weather, each 0..1
+const buzz = (p) => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(p); } catch (_) { /* not supported */ } };
 try { G.best = +localStorage.getItem('latka-run-best') || 0; } catch (_) { /* private mode */ }
 
 // ------------------------------------------------------------------ bends and hills
@@ -123,13 +135,13 @@ function canvasTex(w, h, draw, rx, ry) {
 }
 
 // ------------------------------------------------------------------ scenery
-const chunks = [], plateMats = []; let junction, ground, jn = null;
+const chunks = [], plateMats = [], lampBits = []; let junction, ground, jn = null, lampM, poolM;
 function buildScenery() {
   // sky
-  skyU = { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSun: { value: new THREE.Color() }, uSunDir: { value: new THREE.Vector3() }, uTime: { value: 0 } };
+  skyU = { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSun: { value: new THREE.Color() }, uSunDir: { value: new THREE.Vector3() }, uTime: { value: 0 }, uCover: { value: 0 } };
   const dome = new THREE.Mesh(new THREE.SphereGeometry(600, 32, 16), new THREE.ShaderMaterial({ uniforms: skyU, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: 'varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: `uniform vec3 uTop, uHor, uSun, uSunDir; uniform float uTime; varying vec3 vDir;
+    fragmentShader: `uniform vec3 uTop, uHor, uSun, uSunDir; uniform float uTime, uCover; varying vec3 vDir;
       float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
       float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }
       float fb(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.07 + 7.1; a *= 0.5; } return s / 0.9375; }
@@ -138,8 +150,8 @@ function buildScenery() {
         vec3 c = mix(uHor, uTop, pow(h, 0.5)); c = mix(c, uTop * 0.72, pow(h, 1.7) * 0.55);                  // deeper blue overhead
         float sd = max(dot(d, uSunDir), 0.0), sa = max(dot(normalize(d.xz + 1e-5), normalize(uSunDir.xz + 1e-5)), 0.0);
         c += uSun * pow(sa, 5.0) * exp(-h * 5.5) * 0.4;                                                      // warm band of sky under the sun
-        c += uSun * (pow(sd, 40.0) * 0.45 + pow(sd, 5.0) * 0.2);                                             // halo
-        float disc = smoothstep(0.9993, 0.99965, sd);
+        c += uSun * (pow(sd, 40.0) * 0.45 + pow(sd, 5.0) * 0.2) * (1.0 - uCover * 0.85);                                             // halo
+        float disc = smoothstep(0.9993, 0.99965, sd) * (1.0 - uCover);
         if (d.y > 0.0) {
           vec2 p = d.xz / (d.y + 0.11); float up = smoothstep(0.0, 0.16, d.y);
           // thin streaks of high cloud
@@ -147,12 +159,13 @@ function buildScenery() {
           c = mix(c, vec3(0.97) + uSun * 0.12, ci);
           // drifting heaps of cumulus, lit from the sun's side, grey underneath
           vec2 q = p * 0.7 + vec2(uTime * 0.009, uTime * 0.002);
-          float n = fb(q) * 0.68 + fb(q * 3.1 + 5.0) * 0.32, cov = smoothstep(0.55, 0.74, n);
+          float n = fb(q) * 0.68 + fb(q * 3.1 + 5.0) * 0.32, cov = mix(smoothstep(0.55, 0.74, n), 1.0, uCover);
           vec2 ld = normalize(uSunDir.xz + 1e-4) * 0.16; float n2 = fb(q + ld);
           float lit = clamp((fb(q) - n2) * 3.2 + 0.55, 0.0, 1.0), thick = smoothstep(0.55, 0.95, n);
           vec3 bright = mix(vec3(1.0), uSun, 0.45) * 1.12, under = mix(uTop, uHor, 0.55) * 0.62 + uSun * 0.1;
           vec3 cc = mix(under, bright, clamp(lit * (1.0 - thick * 0.55) + 0.18, 0.0, 1.0));
           cc += uSun * pow(sd, 10.0) * (1.0 - thick) * 0.9;                                                  // glowing edges where the sun shines through
+          cc = mix(cc, mix(under, uHor, 0.6) * (0.82 + 0.18 * n), uCover * 0.85);                             // overcast: one grey sheet
           c = mix(c, cc, cov * up * 0.94); disc *= 1.0 - cov * 0.9;
         }
         c += uSun * disc * 9.0;
@@ -183,7 +196,7 @@ function buildScenery() {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const n = fbm(x * 0.05, y * 0.05, 4, 9), k = 0.7 + n * 0.45 + r() * 0.22, i = (y * w + x) * 4; d[i] = 74 * k; d[i + 1] = 128 * k; d[i + 2] = 48 * k; d[i + 3] = 255; }
     c.putImageData(im, 0, 0);
   }, 22, 6);
-  const roadM = new THREE.MeshStandardMaterial({ map: roadT, roughness: 0.95 }), grassM = new THREE.MeshStandardMaterial({ map: grassT, roughness: 1 });
+  roadM = new THREE.MeshStandardMaterial({ map: roadT, roughness: 0.95 }); grassM = new THREE.MeshStandardMaterial({ map: grassT, roughness: 1 });
   const roadG = new THREE.PlaneGeometry(ROADW, CL); roadG.rotateX(-Math.PI / 2);
   const grassG = new THREE.PlaneGeometry(190, CL); grassG.rotateX(-Math.PI / 2);
 
@@ -197,6 +210,9 @@ function buildScenery() {
     plateMats.push(new THREE.MeshStandardMaterial({ map: t, roughness: 0.5 }));
   }
   const plateG = new THREE.PlaneGeometry(2.7, 0.675);
+  const lampG = new THREE.SphereGeometry(0.2, 10, 8), poolG = new THREE.CircleGeometry(4.2, 28); poolG.rotateX(-Math.PI / 2);
+  const poolT = canvasTex(128, 128, (c, w) => { const g = c.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); g.addColorStop(0, 'rgba(255,214,140,1)'); g.addColorStop(0.45, 'rgba(255,190,110,.45)'); g.addColorStop(1, 'rgba(255,170,90,0)'); c.fillStyle = g; c.fillRect(0, 0, w, w); }, 1, 1);
+  lampM = new THREE.MeshBasicMaterial({ color: 0xffffff }); poolM = new THREE.MeshBasicMaterial({ map: poolT, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 });
   const WALLS = [0xeadcbe, 0xf3efe4, 0xe7c98c, 0xdcc0a2, 0xcfd8cf], ROOFS = [0x9a3b2e, 0x80402f, 0x55565c, 0x6f3a2c];
   const GREENS = [0x3f7a2c, 0x4f8a34, 0x356b2a, 0x5c9440];
   for (let ci = 0; ci < NC; ci++) {
@@ -246,9 +262,14 @@ function buildScenery() {
       // verge: tufts and flowers along the edge of the road
       for (let i = 0; i < 16; i++) { const z = -r() * CL, x = s * (ROADW / 2 + 0.12 + r() * 0.45); if (r() < 0.75) b.cone(0.09 + r() * 0.07, 0.22 + r() * 0.2, x, 0, z, 0x5f9a3c, 5); else b.blob(0.07, x, 0.2, z, [0xf2d24a, 0xf5f5f0, 0xd95f8a][(r() * 3) | 0]); }
     }
-    if (ci % 2 === 0) { const s = ci % 4 === 0 ? 1 : -1; b = bs[s]; const x = s * (ROADW / 2 + 0.38); b.cyl(0.05, 0.07, 5.2, x, 0, -6, 0x6d7278); b.box(0.9, 0.06, 0.08, x - s * 0.4, 5.15, -6, 0x6d7278); b.box(0.36, 0.1, 0.18, x - s * 0.82, 5.05, -6, 0xe8e2c8); }
+    if (ci % 2 === 0) { const s = ci % 4 === 0 ? 1 : -1; b = bs[s]; const x = s * (ROADW / 2 + 0.38); b.cyl(0.05, 0.07, 5.2, x, 0, -6, 0x6d7278); b.box(0.9, 0.06, 0.08, x - s * 0.4, 5.15, -6, 0x6d7278); b.box(0.36, 0.1, 0.18, x - s * 0.82, 5.05, -6, 0xe8e2c8); grp.userData.lamp = { s, x }; }
     grp.userData.sideL = bs[-1].mesh(); grp.userData.sideR = bs[1].mesh(); grp.add(grp.userData.sideL, grp.userData.sideR);
     if (grp.userData.plate) grp.userData[grp.userData.plateSide < 0 ? 'sideL' : 'sideR'].add(grp.userData.plate);
+    if (grp.userData.lamp) {                 // evening: a glowing lamp head and a pool of light on the road (no real light, so it costs nothing)
+      const { s, x } = grp.userData.lamp, gl = new THREE.Mesh(lampG, lampM), pool = new THREE.Mesh(poolG, poolM);
+      gl.position.set(x - s * 0.82, 4.97, -6); pool.position.set(x - s * 1.5, 0.035, -6); gl.visible = pool.visible = false; lampBits.push(gl, pool);
+      grp.userData[s < 0 ? 'sideL' : 'sideR'].add(gl, pool);
+    }
     grp.traverse((o) => { o.frustumCulled = false; }); grp.userData.k = ci; scene.add(grp); chunks.push(grp);
   }
   // one green sheet under everything, so there is never a hole where no street piece lies
@@ -285,6 +306,7 @@ function planJunction() {
   for (let i = rows.length - 1; i >= 0; i--) if (rows[i].z > J - 32) { freeRow(rows[i]); rows.splice(i, 1); }
   for (let i = items.length - 1; i >= 0; i--) if (items[i].z > J - 32) { if (items[i].mesh) items[i].mesh.visible = false; items.splice(i, 1); }
   gen.z = Math.min(gen.z, rows.length ? rows[rows.length - 1].z : gen.z);
+  for (const f of friends) if (f.on && f.z > J - 45) { f.on = false; f.g.visible = false; }
 }
 function manageChunks() {
   if ((!jn || jn.done) && G.dist > G.nextJ - 190) planJunction();
@@ -320,25 +342,71 @@ function doTurn(dir) {
   rotAbout(junction, J, th);
   G.dist = J + (dir === 'left' ? -Pl.x : Pl.x); Pl.x = 0; Pl.lane = 1; Mi.x = 0; Mi.lane = 1;
   G.yawOff = th; G.yaw += th; jn.done = true; gen.hold = false; gen.z = J + 14; gen.safe = 1; G.genMin = J + 26; G.nextJ = J + 240 + Math.random() * 110;
-  audio.whoosh(); G.score += 25;
+  audio.whoosh(); G.score += 25; buzz(20);
+  for (const f of friends) { f.on = false; f.g.visible = false; } G.friendAt = Math.max(G.friendAt, J + 55);
+  setWeather(jn.id % 2 ? W.order[((jn.id - 1) >> 1) % 3] : 'clear', true);                 // a new street, new weather
 }
 // time of day drifts from a bright afternoon to a warm sunset over the three stages
 const MOODS = [
   { top: [0.03, 0.22, 0.92], hor: [0.5, 0.75, 1.0], sun: [1.0, 0.95, 0.82], si: 3.3, hi: 1.05, el: 0.62, fog: 0.0105 },
   { top: [0.1, 0.27, 0.78], hor: [1.0, 0.8, 0.52], sun: [1.0, 0.8, 0.5], si: 3.1, hi: 0.92, el: 0.38, fog: 0.012 },
-  { top: [0.12, 0.14, 0.5], hor: [1.0, 0.5, 0.3], sun: [1.0, 0.52, 0.26], si: 2.8, hi: 0.9, el: 0.17, fog: 0.0135 },
+  { top: [0.04, 0.06, 0.26], hor: [0.86, 0.4, 0.3], sun: [1.0, 0.5, 0.3], si: 1.6, hi: 0.78, el: 0.1, fog: 0.0135 },     // dusk: the lamps come on
 ];
 const mood = { k: 0 }, sunDir = new THREE.Vector3(), tmpC = new THREE.Color(), YAX = new THREE.Vector3(0, 1, 0);
+function setWeather(k, announce) { if (W.target === k) return; W.target = k; if (announce && G.mode === 'play') hint(T('w_' + k), 2.6); }
+function buildWeather() {
+  const n = 380, rp = new Float32Array(n * 6), rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.BufferAttribute(rp, 3));
+  rainFx = new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: 0xcfdcec, transparent: true, opacity: 0.55, fog: false })); rainFx.frustumCulled = false; rainFx.visible = false; scene.add(rainFx);
+  rainFx.userData.d = Array.from({ length: n }, () => [(Math.random() - 0.5) * 20, Math.random() * 10, 4 - Math.random() * 26]);
+  const m = 520, sp = new Float32Array(m * 3), sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+  const flake = canvasTex(32, 32, (c) => { const g = c.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.6, 'rgba(255,255,255,.85)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, 32, 32); }, 1, 1);
+  snowFx = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, map: flake, size: 0.09, transparent: true, opacity: 0.95, depthWrite: false, fog: false })); snowFx.frustumCulled = false; snowFx.visible = false; scene.add(snowFx);
+  snowFx.userData.d = Array.from({ length: m }, () => [(Math.random() - 0.5) * 22, Math.random() * 9, 4 - Math.random() * 26, Math.random() * 6]);
+}
+function updateWeatherFx(dt) {
+  const c = camera.position;
+  rainFx.visible = W.rain > 0.03;
+  if (rainFx.visible) {
+    const d = rainFx.userData.d, a = rainFx.geometry.attributes.position, p = a.array, n = Math.floor(d.length * W.rain);
+    for (let i = 0; i < n; i++) { const q = d[i]; q[1] -= 26 * dt; q[2] += G.speed * dt * 0.6; if (q[1] < -1.5 || q[2] > 5) { q[0] = (Math.random() - 0.5) * 20; q[1] = 8 + Math.random() * 3; q[2] = 4 - Math.random() * 26; }
+      const j = i * 6; p[j] = c.x + q[0]; p[j + 1] = c.y - 2.4 + q[1]; p[j + 2] = c.z + q[2]; p[j + 3] = p[j] + 0.03; p[j + 4] = p[j + 1] + 0.6; p[j + 5] = p[j + 2] - 0.16; }
+    a.needsUpdate = true; rainFx.geometry.setDrawRange(0, n * 2);
+  }
+  snowFx.visible = W.snow > 0.03;
+  if (snowFx.visible) {
+    const d = snowFx.userData.d, a = snowFx.geometry.attributes.position, p = a.array, n = Math.floor(d.length * W.snow);
+    for (let i = 0; i < n; i++) { const q = d[i]; q[1] -= (1.5 + (i % 5) * 0.25) * dt; q[2] += G.speed * dt * 0.85; q[0] += Math.sin(G.t * 1.3 + q[3]) * dt * 0.5; if (q[1] < -0.5 || q[2] > 5) { const pass = q[2] > 5; q[0] = (Math.random() - 0.5) * 22; q[1] = pass ? Math.random() * 9 : 8.5; q[2] = pass ? -22 + Math.random() * 3 : 4 - Math.random() * 26; }
+      const j = i * 3; p[j] = c.x + q[0]; p[j + 1] = c.y - 2.4 + q[1]; p[j + 2] = c.z + q[2]; }
+    a.needsUpdate = true; snowFx.geometry.setDrawRange(0, n);
+  }
+}
 function updateMood(dt) {
   mood.k += (Math.min(2, G.stage + (G.mode === 'play' ? sm(0, 1, G.stageT / 60) * 0.6 : 0)) - mood.k) * Math.min(1, dt * 0.6);
+  for (const k of ['rain', 'fog', 'snow']) W[k] += ((W.target === k ? 1 : 0) - W[k]) * Math.min(1, dt * 0.45);
+  W.eve = sm(1.3, 2, mood.k);
   const i = Math.min(1, Math.floor(mood.k)), f = mood.k - i, a = MOODS[i], b = MOODS[i + 1], L3 = (p, q) => [lerp(p[0], q[0], f), lerp(p[1], q[1], f), lerp(p[2], q[2], f)];
-  skyU.uTop.value.setRGB(...L3(a.top, b.top)); skyU.uHor.value.setRGB(...L3(a.hor, b.hor)); skyU.uSun.value.setRGB(...L3(a.sun, b.sun));
+  const top = L3(a.top, b.top), hor = L3(a.hor, b.hor), sc = L3(a.sun, b.sun), mix3 = (c, t, k) => { c[0] = lerp(c[0], t[0], k); c[1] = lerp(c[1], t[1], k); c[2] = lerp(c[2], t[2], k); };
+  const dusk = 1 - 0.55 * W.eve;                                                           // weather colours are darker at dusk
+  mix3(top, [0.3 * dusk, 0.34 * dusk, 0.4 * dusk], W.rain * 0.85); mix3(hor, [0.55 * dusk, 0.58 * dusk, 0.62 * dusk], W.rain * 0.85);
+  mix3(top, [0.7 * dusk, 0.72 * dusk, 0.75 * dusk], W.fog * 0.9); mix3(hor, [0.8 * dusk, 0.82 * dusk, 0.84 * dusk], W.fog * 0.95);
+  mix3(top, [0.5 * dusk, 0.58 * dusk, 0.72 * dusk], W.snow * 0.8); mix3(hor, [0.86 * dusk, 0.89 * dusk, 0.94 * dusk], W.snow * 0.9);
+  skyU.uTop.value.setRGB(...top); skyU.uHor.value.setRGB(...hor); skyU.uSun.value.setRGB(...sc); skyU.uCover.value = Math.max(W.rain, W.fog, W.snow * 0.85);
   const el = lerp(a.el, b.el, f); sunDir.set(-0.42 * Math.cos(el), Math.sin(el), -0.91 * Math.cos(el)).normalize(); skyU.uSunDir.value.copy(sunDir); skyU.uTime.value = G.t; sunDir.applyAxisAngle(YAX, G.yaw); G.dome.rotation.y = G.yaw;    // the sky and the light turn with the world
-  sun.color.setRGB(...L3(a.sun, b.sun)); sun.intensity = lerp(a.si, b.si, f); hemi.intensity = lerp(a.hi, b.hi, f);
-  hemi.color.setRGB(...L3(a.top, b.top)).lerp(tmpC.setRGB(1, 1, 1), 0.55); scene.fog.color.setRGB(...L3(a.hor, b.hor)); scene.fog.density = lerp(a.fog, b.fog, f);
+  sun.color.setRGB(...sc); sun.intensity = lerp(a.si, b.si, f) * Math.max(0.22, 1 - 0.6 * W.rain - 0.72 * W.fog - 0.4 * W.snow);
+  hemi.intensity = lerp(a.hi, b.hi, f) * (1 + 0.3 * W.fog + 0.45 * W.snow - 0.05 * W.rain);
+  hemi.color.setRGB(...top).lerp(tmpC.setRGB(1, 1, 1), 0.55); scene.fog.color.setRGB(...hor); scene.fog.density = lerp(a.fog, b.fog, f) * (1 + 0.5 * W.rain + 2.4 * W.fog + 0.8 * W.snow);
   fogUniforms.uFogColor.value.copy(scene.fog.color); fogUniforms.uFogDensity.value = scene.fog.density;
+  // wet road in the rain, white ground in the snow
+  roadM.roughness = lerp(0.95, 0.3, W.rain); roadM.color.setScalar(lerp(1, 0.6, W.rain) * lerp(1, 1.7, W.snow));
+  grassM.color.setRGB(lerp(1, 10, W.snow), lerp(1, 3.5, W.snow), lerp(1, 21, W.snow)); ground.material.color.setHex(0x4f8a36).lerp(tmpC.setHex(0xe9eef4), W.snow);
+  worldMat.emissive.setRGB(0.05 * W.snow, 0.055 * W.snow, 0.07 * W.snow);
+  // street lamps
+  const lit = W.eve > 0.03; if (lampBits.length && lampBits[0].visible !== lit) for (const o of lampBits) o.visible = lit;
+  lampM.color.setRGB(4 * W.eve, 3 * W.eve, 1.6 * W.eve); poolM.opacity = 0.55 * W.eve;
+  if (audio.on) audio.fall.g.gain.setTargetAtTime(W.rain * 0.09, audio.ctx.currentTime, 0.5);
   const pz = -G.dist; sun.target.position.set(0, 0, pz - 6); sun.position.copy(sun.target.position).addScaledVector(sunDir, 60); sun.target.updateMatrixWorld();
   G.dome.position.copy(camera.position); ground.position.set(0, -0.1, pz);
+  updateWeatherFx(dt);
 }
 
 // ------------------------------------------------------------------ obstacles and pickups
@@ -358,9 +426,26 @@ function buildProtos() {
     const cols = [0xf4f1ea, 0xd9534f, 0x4f86c6, 0xf2c94c, 0xf4f1ea, 0x69a86b, 0xe58fb0]; let x = -ROADW / 2 + 0.5;
     for (let i = 0; i < 7; i++) { const w = 0.6 + (i % 3) * 0.1; b.box(w, 1.12 + (i % 2) * 0.06, 0.03, x + w / 2, 0.8 - (i % 2) * 0.06, 0, cols[i], 0, 0.02); x += w + 0.1; }
   });
+  // flowerpots Mila knocks off the fences
+  mk('pot', (b) => { for (const x of [-0.3, 0.28]) { b.cyl(0.2, 0.13, 0.3, x, 0, 0, 0xb5583a, 10); b.cyl(0.22, 0.22, 0.05, x, 0.28, 0, 0xc46a48, 10); b.blob(0.2, x, 0.5, 0, 0x4f8a34); b.blob(0.09, x + 0.08, 0.66, 0.05, 0xe85d8f); b.blob(0.08, x - 0.1, 0.62, -0.04, 0xf4d44a); } });
+  // a rolling ball (built around its centre so it can spin), a neighbour on a bike, a robot mower
+  mk('ball', (b) => { b.add(new THREE.IcosahedronGeometry(0.3, 2), 0xd9412f, 0, 0, 0, 0, 0.02); b.add(new THREE.CylinderGeometry(0.305, 0.305, 0.12, 20), 0xf6f3ec, 0, 0, 0, 0, 0); const g2 = new THREE.CylinderGeometry(0.303, 0.303, 0.12, 20); g2.rotateZ(Math.PI / 2); b.add(g2, 0x2f6fd0, 0, 0, 0, 0, 0); });
+  mk('bike', (b) => {
+    for (const z of [-0.52, 0.52]) { const w = new THREE.TorusGeometry(0.31, 0.035, 6, 18); w.rotateY(Math.PI / 2); b.add(w, 0x1d1d20, 0, 0.345, z, 0, 0); }
+    b.box(0.05, 0.05, 0.95, 0, 0.62, 0, 0xd8362c); b.box(0.05, 0.5, 0.05, 0, 0.36, -0.1, 0xd8362c); b.box(0.05, 0.55, 0.05, 0, 0.36, 0.48, 0xd8362c); b.box(0.5, 0.04, 0.04, 0, 0.93, 0.46, 0x2a2a2e); b.box(0.16, 0.05, 0.26, 0, 0.86, -0.12, 0x2a2a2e);
+    b.box(0.36, 0.52, 0.24, 0, 0.92, -0.05, 0x2f6fb5); b.blob(0.14, 0, 1.6, 0.06, 0xe9b98f, 1); b.blob(0.155, 0, 1.66, 0.04, 0xf2c230, 0.75);       // the rider: jacket, head, helmet
+    for (const x of [-0.11, 0.11]) { b.box(0.11, 0.5, 0.13, x, 0.42, -0.02, 0x3a3f4a); b.box(0.09, 0.09, 0.42, x * 1.7, 1.2, 0.22, 0x2f6fb5); }
+  });
+  mk('mower', (b) => { b.box(0.86, 0.2, 1.0, 0, 0.07, 0, 0xf07a1a); b.box(0.7, 0.14, 0.7, 0, 0.27, -0.05, 0xf59a3a); b.box(0.9, 0.07, 1.04, 0, 0.03, 0, 0x2a2a2e); b.box(0.2, 0.05, 0.12, 0, 0.41, 0.1, 0x33d17a, 0, 0); for (const x of [-0.46, 0.46]) for (const z of [-0.36, 0.36]) b.add(lying(0.08, 0.13), 0x1d1d20, x, 0.13, z, 0, 0); });
+  { const g = new THREE.CircleGeometry(0.78, 24); g.rotateX(-Math.PI / 2); g.scale(0.96, 1, 1.5); PROTO.puddle = g; MATS.puddle = new THREE.MeshStandardMaterial({ color: 0x4a6f93, roughness: 0.08, transparent: true, opacity: 0.86 }); bendPatch(MATS.puddle); }
 }
-const KIND = { log: 'low', crate: 'low', gate: 'high', binG: 'full', binB: 'full', binY: 'full', planter: 'full', biglog: 'low', line: 'high' };
-function getObj(kind) { const p = pools[kind] || (pools[kind] = []); let m = p.pop(); if (!m) { m = new THREE.Mesh(PROTO[kind], worldMat); m.castShadow = true; m.receiveShadow = true; m.userData.kind = kind; m.frustumCulled = false; scene.add(m); } m.visible = true; return m; }
+const KIND = { log: 'low', crate: 'low', gate: 'high', binG: 'full', binB: 'full', binY: 'full', planter: 'full', biglog: 'low', line: 'high', pot: 'low', ball: 'low', mower: 'low', bike: 'full', puddle: 'puddle' };
+const MOVE_V = { ball: 5.5, bike: 6.5, mower: 2.6 }, MATS = {};       // things that come towards Łatka, and their speed
+function getObj(kind) {
+  const p = pools[kind] || (pools[kind] = []); let m = p.pop();
+  if (!m) { m = new THREE.Mesh(PROTO[kind], MATS[kind] || worldMat); m.castShadow = kind !== 'puddle'; m.receiveShadow = true; m.userData.kind = kind; m.frustumCulled = false; scene.add(m); }
+  m.visible = true; m.rotation.set(0, 0, 0); m.userData.tip = 0; return m;
+}
 function freeRow(row) { for (const m of row.objs) { m.visible = false; pools[m.userData.kind].push(m); } row.objs.length = 0; }
 
 const BONES = 110; let boneMesh, relicMeshes = {}; const dummy = new THREE.Object3D();
@@ -377,11 +462,56 @@ function buildPickups() {
     const halo = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.035, 6, 28), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.6) })); g.add(halo);
     g.visible = false; g.userData.col = c; scene.add(g); relicMeshes[id] = g;
   }
+  // power-ups: a horseshoe magnet, a shield orb, a lightning bolt and a ×2 coin
+  for (const id of POWERS) {
+    const g = new THREE.Group(), c = new THREE.Color(POW_COL[id]), spin = new THREE.Group(), mat = (col, e = 0.9) => new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: e, roughness: 0.35 });
+    if (id === 'magnet') {
+      spin.add(new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.075, 10, 20, Math.PI), mat(0xe23a2c)));
+      for (const x of [-0.2, 0.2]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.2, 12), mat(0xe23a2c)); leg.position.set(x, -0.1, 0); const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.078, 0.1, 12), mat(0xf2f2f2, 0.6)); tip.position.set(x, -0.25, 0); spin.add(leg, tip); }
+    } else if (id === 'shield') {
+      spin.add(new THREE.Mesh(new THREE.SphereGeometry(0.27, 18, 14), new THREE.MeshStandardMaterial({ color: 0x8fd0ff, emissive: 0x2f8fe0, emissiveIntensity: 1, roughness: 0.2, transparent: true, opacity: 0.8 })));
+      spin.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.15, 0), mat(0xffffff, 0.8)));
+    } else if (id === 'turbo') {
+      const sh = new THREE.Shape(); [[0.06, 0.34], [-0.16, -0.02], [-0.02, -0.02], [-0.08, -0.34], [0.17, 0.06], [0.03, 0.06]].forEach(([x, y], i) => (i ? sh.lineTo(x, y) : sh.moveTo(x, y)));
+      const bolt = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.09, bevelEnabled: false }), mat(0xffd21f, 1.2)); bolt.position.z = -0.045; spin.add(bolt);
+    } else {
+      const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.29, 0.07, 24), mat(0x9a4fe0)); coin.rotation.x = Math.PI / 2; spin.add(coin);
+      const t = canvasTex(128, 128, (cx, w) => { cx.clearRect(0, 0, w, w); cx.fillStyle = '#fff6d8'; cx.font = 'bold 84px Arial, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('×2', w / 2, w / 2 + 4); }, 1, 1);
+      for (const sd of [1, -1]) { const f = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.46), new THREE.MeshBasicMaterial({ map: t, transparent: true })); f.position.z = sd * 0.04; f.rotation.y = sd > 0 ? 0 : Math.PI; spin.add(f); }
+    }
+    spin.scale.setScalar(1.5); g.add(spin);
+    g.add(new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.035, 6, 28), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.6) })));
+    g.visible = false; g.userData.col = c; scene.add(g); relicMeshes[id] = g;
+  }
+  bubble = new THREE.Mesh(new THREE.SphereGeometry(0.82, 20, 14), new THREE.MeshBasicMaterial({ color: 0x7cc8ff, transparent: true, opacity: 0.24, depthWrite: false })); bubble.visible = false; scene.add(bubble);
 }
+// ---- friends who cheer from the roadside (the owners of the relics)
+const FRIENDS = [['Alicja', 0xf4f4f0, 0x5a3a22, 1.0, 0x3a4660], ['Lesław', 0x3f6b4a, 0x9a9a9a, 1.06, 0x4a4038], ['Ola', 0xe2a03a, 0xd8b45a, 0.96, 0x2f3a55], ['Agata', 0x5b72c9, 0x2b1d14, 1.0, 0x6a4a3a], ['Jaś', 0x7fc4f0, 0xd9b877, 0.52, 0xf6f6f6]];
+const friends = [];
+function buildFriends() {
+  FRIENDS.forEach(([name, shirt, hair, sc, trousers], i) => {
+    const g = new THREE.Group(), b = new Builder(700 + i), skin = 0xe8b890;
+    for (const x of [-0.09, 0.09]) { b.box(0.13, 0.78, 0.15, x, 0, 0, trousers); b.box(0.14, 0.07, 0.24, x, 0, 0.04, 0x2a2420); }
+    b.box(0.42, 0.56, 0.24, 0, 0.78, 0, shirt); b.box(0.1, 0.5, 0.1, -0.27, 0.8, 0, shirt);                      // body and the arm that hangs
+    if (i === 0) b.box(0.44, 0.42, 0.26, 0, 0.42, 0, shirt);                                                      // dr Alicja's white coat
+    b.cyl(0.06, 0.06, 0.08, 0, 1.34, 0, skin); b.blob(0.16, 0, 1.56, 0, skin, 1.05); b.blob(0.172, 0, 1.61, -0.035, hair, 0.9);
+    if (i === 0 || i === 2 || i === 3) b.box(0.3, 0.3, 0.1, 0, 1.3, -0.13, hair);                                 // longer hair
+    for (const x of [-0.06, 0.06]) b.box(0.035, 0.035, 0.02, x, 1.55, 0.15, 0x1c1c1c, 0, 0);
+    b.box(0.08, 0.02, 0.02, 0, 1.47, 0.155, 0x9a3b34, 0, 0);
+    g.add(b.mesh());
+    const ab = new Builder(750 + i); ab.box(0.1, 0.5, 0.1, 0, 0, 0, shirt); ab.blob(0.075, 0, 0.56, 0, skin);
+    const arm = ab.mesh(); arm.position.set(0.27, 1.28, 0); g.add(arm);                                           // the waving arm, hinged at the shoulder
+    const t = canvasTex(256, 72, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(12,9,6,.62)'; c.beginPath(); if (c.roundRect) c.roundRect(4, 4, w - 8, h - 8, 28); else c.rect(4, 4, w - 8, h - 8); c.fill(); c.fillStyle = '#ffd27a'; c.font = 'italic 44px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(name, w / 2, h / 2 + 2); }, 1, 1);
+    const label = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.31), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false })); label.position.y = sc < 0.8 ? 2.5 : 2.08; label.scale.setScalar(1 / sc); g.add(label);
+    g.traverse((o) => { o.frustumCulled = false; }); g.scale.setScalar(sc); g.visible = false; scene.add(g);
+    friends.push({ name, g, arm, label, z: 0, on: false, cheered: false, i });
+  });
+}
+function placeFriend(f, x, z, yaw) { f.z = -z; f.on = true; f.cheered = false; f.g.visible = true; f.g.position.set(x, 0, z); f.g.rotation.y = yaw; f.label.rotation.y = -yaw; }
 const RELICS = ['sock', 'mirror', 'brush', 'diaper', 'bone'];
 
 // ------------------------------------------------------------------ level generation
-const gen = { z: 40, safe: 1, relicAt: 260, relicI: 0 };
+const gen = { z: 40, safe: 1, relicAt: 260, relicI: 0, powAt: 100 };
 // Difficulty climbs steadily with the time actually played (and a little with every catch): Łatka runs faster,
 // obstacles come closer together, fewer lanes are left open and the safe lane more often needs a jump or a slide.
 function difficulty() { return clamp(G.playT / 170 + G.stage * 0.12, 0, 1); }
@@ -390,21 +520,28 @@ function genRow() {
   const d = difficulty(), sp = speedNow(), prev = gen.safe;
   let safe = clamp(prev + (R() < 0.6 ? (R() < 0.5 ? -1 : 1) : 0), 0, 2);
   let dz = sp * lerp(1.3, 0.78, d) + R() * sp * lerp(0.45, 0.25, d); if (safe !== prev) dz += sp * 0.22;
+  const q = R(), pick = (a) => a[(R() * a.length) | 0], a1 = 0.08 + d * 0.1, a2 = a1 + 0.08 + d * 0.1, a3 = a2 + (gen.z > 110 ? 0.1 + d * 0.05 : 0);
+  const mover = q >= a2 && q < a3 ? pick(['ball', 'bike', 'mower']) : null; if (mover) dz += 15;    // it will come to meet her, so leave room
   if (jn && !jn.done && Math.max(gen.z + dz, G.genMin) > jn.J - 32) { gen.hold = true; return; }   // keep the run-up to a junction clear
   const z = Math.max(gen.z + dz, G.genMin), row = { z, cells: [null, null, null], safe, objs: [], hit: false, wide: null };
-  const q = R(), pick = (a) => a[(R() * a.length) | 0];
-  if (q < 0.08 + d * 0.1) { row.wide = 'biglog'; row.cells = ['low', 'low', 'low']; safe = row.safe = prev; }
-  else if (q < 0.16 + d * 0.2) { row.wide = 'line'; row.cells = ['high', 'high', 'high']; safe = row.safe = prev; }
+  if (q < a1) { row.wide = 'biglog'; row.cells = ['low', 'low', 'low']; safe = row.safe = prev; }
+  else if (q < a2) { row.wide = 'line'; row.cells = ['high', 'high', 'high']; safe = row.safe = prev; }
+  else if (mover) { const m = (R() * 3) | 0; row.cells[m] = KIND[mover]; safe = row.safe = prev !== m ? prev : m === 1 ? (R() < 0.5 ? 0 : 2) : 1; row.mover = { kind: mover, v: MOVE_V[mover], on: false, t: 0 }; }
   else {
     let n = 0;
     for (let l = 0; l < 3; l++) {
       if (l === safe) { if (R() < 0.08 + d * 0.45) row.cells[l] = R() < 0.55 ? 'low' : 'high'; continue; }
       const k = R(), open = lerp(0.42, 0.08, d); row.cells[l] = k < open ? null : k < open + (1 - open) * 0.62 ? 'full' : k < open + (1 - open) * 0.82 ? 'low' : 'high'; if (row.cells[l]) n++;
+      if (row.cells[l] === 'low' && R() < lerp(0.3, 0.9, W.target === 'rain' ? 1 : 0)) row.cells[l] = 'puddle';        // puddles slow her down; plenty of them in the rain
     }
     if (!n) row.cells[(safe + 1) % 3] = 'full';
   }
   if (row.wide) { const m = getObj(row.wide); m.position.set(0, 0, -z); row.objs.push(m); }
-  else row.cells.forEach((c, l) => { if (!c) return; const m = getObj(c === 'low' ? pick(['log', 'crate']) : c === 'high' ? 'gate' : pick(['binG', 'binB', 'binY', 'planter'])); m.position.set(LX[l], 0, -z); m.rotation.y = c === 'full' ? (R() - 0.5) * 0.3 : 0; row.objs.push(m); });
+  else row.cells.forEach((c, l) => {
+    if (!c) return;
+    const kind = row.mover ? row.mover.kind : c === 'puddle' ? 'puddle' : c === 'low' ? pick(['log', 'crate']) : c === 'high' ? 'gate' : pick(['binG', 'binB', 'binY', 'planter']), m = getObj(kind);
+    m.position.set(LX[l], kind === 'ball' ? 0.3 : kind === 'puddle' ? 0.02 : 0, -z); m.rotation.y = c === 'full' && !row.mover ? (R() - 0.5) * 0.3 : 0; m.userData.lane = l; row.objs.push(m);
+  });
   rows.push(row);
   // bones lead along the safe lane; they arc over things to jump and stay low under things to slide beneath
   const act = row.cells[safe];
@@ -412,8 +549,20 @@ function genRow() {
     const off = act ? (i - 2) * 1.5 : -7.6 + i * 1.45, y = act === 'low' ? 0.5 + 0.95 * Math.cos((i - 2) / 2 * 1.35) ** 2 * (i === 0 || i === 4 ? 0.35 : 1) : act === 'high' ? 0.3 : 0.55;
     if (z + off > gen.z + 1.2) items.push({ x: LX[safe], y, z: z + off, kind: 'bone' });
   }
-  if (z > gen.relicAt) { items.push({ x: LX[safe], y: 0.85, z: z - dz * 0.5 - (act ? 2 : 0), kind: RELICS[gen.relicI++ % RELICS.length] }); gen.relicAt = z + 230 + R() * 90; }
+  const mid = z - dz * 0.5 - (act ? 2 : 0);
+  if (z > gen.relicAt) { items.push({ x: LX[safe], y: 0.85, z: mid, kind: RELICS[gen.relicI++ % RELICS.length] }); gen.relicAt = z + 230 + R() * 90; }
+  else if (z > gen.powAt) { items.push({ x: LX[safe], y: 0.85, z: mid, kind: POWERS[(R() * POWERS.length) | 0] }); gen.powAt = z + 120 + R() * 90; }
   gen.z = z; gen.safe = safe;
+}
+// Mila's trick from the top of a fence: a pair of flowerpots dropped into the lane below. Only where there is room,
+// and they can always be jumped.
+function dropPot(zc, side) {
+  const lane = side < 0 ? 0 : 2, z = zc + 1.5; let idx = rows.length;
+  if (z < G.dist + 13 || (jn && !jn.done && z > jn.J - 36)) return false;
+  for (let i = 0; i < rows.length; i++) { const r = rows[i]; if (Math.abs(r.z - z) < (r.mover ? 16 : 6.5)) return false; if (r.z > z && idx === rows.length) idx = i; }
+  const before = idx > 0 ? rows[idx - 1].safe : 1, row = { z, cells: [null, null, null], safe: before !== lane ? before : 1, objs: [], hit: false, wide: null, fall: 0.001, fx: side * (ROADW / 2 + 0.72), lane };
+  row.cells[lane] = 'low'; const m = getObj('pot'); m.position.set(row.fx, 1.1, -z); m.userData.lane = lane; row.objs.push(m); rows.splice(idx, 0, row);
+  if (audio.on) audio.tone(520, 0.08, 'square', 0.06); return true;
 }
 function clearAhead(from, to) {
   for (let i = rows.length - 1; i >= 0; i--) if (rows[i].z > from && rows[i].z < to) { freeRow(rows[i]); rows.splice(i, 1); }
@@ -440,6 +589,7 @@ function hud(force) {
   set('rLives', [0, 1, 2].map((i) => `<span class="${i < G.lives ? '' : 'lost'}">${paw}</span>`).join(''), true);
   set('rLabel', T('mila', Math.max(0, Math.round(G.gap))));
   $('rCat').style.left = clamp(G.gap / 42, 0, 1) * 100 + '%';
+  for (const k of POWERS) { const on = G.pw[k] > 0 && G.mode !== 'title', w = on ? Math.ceil(G.pw[k] / POW_TIME[k] * 20) * 5 : -1; if (shown['pw' + k] !== w) { shown['pw' + k] = w; const el = $('pw-' + k); el.className = on ? 'on' : ''; if (on) el.lastChild.style.width = w + '%'; } }
   const tv = G.mode === 'play' && jn && !jn.done && jn.J - G.dist < 30 ? (jn.choice || 'ask') : '';
   if (shown.turn !== tv) { shown.turn = tv; $('turn').className = 'ui ' + tv; if (tv === 'ask' && !G.turnHint) { G.turnHint = true; hint(T('turn'), 4); } }
 }
@@ -477,7 +627,10 @@ function reset() {
   for (const r of rows) freeRow(r); rows.length = 0; items.length = 0; R = rng(G.bot ? G.seed || 7 : 7 + ((Math.random() * 1e6) | 0));
   Object.assign(G, { playT: 0, t: 0, dist: 0, speed: 0, stage: 0, gap: STAGE_GAP[0], lives: 3, score: 0, bones: 0, inv: 0, slow: 0, ct: 0, stageT: 0, shake: 0, streak: 0, blend: 0, genMin: 0, endT: 0 });
   Object.assign(Pl, { lane: 1, x: 0, y: 0, vy: 0, slide: 0, grounded: true }); Object.assign(Mi, { lane: 1, x: 0, y: 0, vy: 0, crouch: 0 });
-  Object.assign(gen, { z: 38, safe: 1, relicAt: 240, relicI: 0 }); mood.k = 0;
+  Object.assign(gen, { z: 38, safe: 1, relicAt: 240, relicI: 0, powAt: 95 }); mood.k = 0;
+  Object.assign(G.pw, { magnet: 0, shield: 0, turbo: 0, x2: 0 }); Mi.trick = null; Mi.wy = 0; G.trickAt = 16; G.friendAt = 75; G.friendI = 0; G.fin = {};
+  Object.assign(W, { rain: 0, fog: 0, snow: 0, target: 'clear' }); W.order.sort(() => Math.random() - 0.5);
+  for (const f of friends) { f.on = false; f.g.visible = false; } bubble.visible = false;
   chunks.forEach((c, i) => placeTrack(c, (i - 1) * CL)); junction.visible = false; jn = null; gen.hold = false;
   Object.assign(G, { yaw: 0, yawOff: 0, nextJ: 185, jCount: 0 }); Mi.lead = 2.3 + (STAGE_GAP[0] - 2.3) * 0.5;
   Object.assign(bend, { x: 0, y: 0, tx: 0, ty: 0, t: 3 }); G.cr = 0; G.ts = 1; Mi.flip = 0;
@@ -487,18 +640,24 @@ function reset() {
 function startGame() {
   if (G.mode !== 'title') return;
   audio.start(); G.mode = 'play'; G.blend = 0;
-  $('title').classList.add('hidden'); for (const id of ['rTop', 'rLives', 'rMila']) $(id).style.opacity = 1;
+  $('title').classList.add('hidden'); for (const id of ['rTop', 'rLives', 'rMila', 'rPow']) $(id).style.opacity = 1;
   setTimeout(() => { if (G.mode === 'play') { place(STREETS[0]); hint(T('hint')); } }, 600);
   audio.bark(); dog.bark(); setTimeout(() => audio.meow(), 500);
 }
-function toTitle() { reset(); G.mode = 'title'; $('end').classList.add('hidden'); $('title').classList.remove('hidden'); for (const id of ['rTop', 'rLives', 'rMila']) $(id).style.opacity = 0; }
+function toTitle() { reset(); G.mode = 'title'; $('end').classList.add('hidden'); $('title').classList.remove('hidden'); for (const id of ['rTop', 'rLives', 'rMila', 'rPow']) $(id).style.opacity = 0; }
 function finish(win) {
   const s = Math.floor(G.score); if (s > G.best) { G.best = s; try { localStorage.setItem('latka-run-best', String(s)); } catch (_) { /* private mode */ } }
   $('endTitle').textContent = T(win ? 'winT' : 'loseT'); $('endText').textContent = T(win ? 'winX' : 'loseX', s, G.bones, G.best);
-  $('end').classList.remove('hidden'); $('menu').style.display = ''; for (const id of ['rTop', 'rLives', 'rMila', 'hint', 'pick']) $(id).style.opacity = 0;
+  $('end').classList.remove('hidden'); $('menu').style.display = ''; for (const id of ['rTop', 'rLives', 'rMila', 'rPow', 'hint', 'pick']) $(id).style.opacity = 0;
 }
 function stumble(row) {
   row.hit = true; if (G.inv > 0) return;
+  if (G.pw.shield > 0) {                                   // the shield takes the knock
+    G.pw.shield = 0; G.inv = 1.2; G.shake = 0.35; pick(T('shieldPop')); buzz(60); if (audio.on) { audio.tone(1320, 0.25, 'triangle', 0.16, 0.5); audio.burst(2600, 2, 0.2, 0.2); }
+    for (let i = 0; i < 40; i++) { const a = Math.random() * 6.28, b = Math.random() * 3.14; pAdd.spawn(Pl.x, Pl.y + 0.5, -G.dist, Math.cos(a) * Math.sin(b) * 4, Math.cos(b) * 4, Math.sin(a) * Math.sin(b) * 4 - G.speed * 0.6, 0.6, 0.25, 0.02, 1.5, 3, 5, 1, 2, 1); }
+    return;
+  }
+  buzz(150);
   G.lives--; G.inv = 1.5; G.slow = 1; G.gap += 7; G.shake = 0.6; G.streak = 0; audio.yelp(); pick(T('ouch'));
   $('flash').style.opacity = 1; setTimeout(() => { $('flash').style.opacity = 0; }, 180);
   for (let i = 0; i < 14; i++) pAlpha.spawn(Pl.x + (Math.random() - 0.5) * 0.6, 0.2 + Math.random() * 0.5, -G.dist - 0.4, (Math.random() - 0.5) * 3, 1 + Math.random() * 2, (Math.random() - 0.5) * 2 - 2, 0.7 + Math.random() * 0.5, 0.3, 1.2, 0.75, 0.7, 0.62, 0.4, 0, 1.5);
@@ -515,10 +674,11 @@ function step(dt) {
   const play = G.mode === 'play', moving = play || G.mode === 'catch';
   // ---- speed and distance
   let target = 0;
-  if (moving) { G.stageT += play ? dt : 0; G.playT += play ? dt : 0; target = speedNow() * (1 - 0.45 * G.slow); }
+  if (moving) { G.stageT += play ? dt : 0; G.playT += play ? dt : 0; target = speedNow() * (1 - 0.45 * G.slow) * (G.pw.turbo > 0 ? 1.45 : 1); }
   G.slow = Math.max(0, G.slow - dt * 1.4); G.inv = Math.max(0, G.inv - dt);
   G.speed += (target - G.speed) * Math.min(1, dt * (moving ? 3.2 : 2.2));
-  const prevDist = G.dist; G.dist += G.speed * dt; if (play) G.score += G.speed * dt;
+  const prevDist = G.dist; G.dist += G.speed * dt; if (play) G.score += G.speed * dt * (G.pw.x2 > 0 ? 2 : 1);
+  if (play) for (const k of POWERS) if (G.pw[k] > 0) { G.pw[k] -= dt; if (G.pw[k] <= 0) { G.pw[k] = 0; if (k === 'turbo') G.inv = Math.max(G.inv, 1.2); } }      // a moment of safety when the sprint ends
   if (G.bot && play) botPlay();
   // ---- player
   Pl.x += (LX[Pl.lane] - Pl.x) * Math.min(1, dt * 15);
@@ -535,24 +695,53 @@ function step(dt) {
     if (G.dist >= jn.J) doTurn(jn.choice);
   }
   if (G.yawOff) { const d = dt * (Math.PI / 2) / 0.36; G.yawOff = Math.abs(G.yawOff) <= d ? 0 : G.yawOff - Math.sign(G.yawOff) * d; }
+  // ---- things that move: balls, bikes and mowers come to meet her once she is near; pots fall; bins tip over
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]; if (row.z > G.dist + 70) break;
+    const mv = row.mover, o = row.objs[0];
+    if (mv && o) {
+      if (!mv.on && row.z - G.dist < 46) { mv.on = true; if (audio.on) { if (mv.kind === 'bike') { audio.tone(1900, 0.22, 'triangle', 0.13); audio.tone(1900, 0.22, 'triangle', 0.13, 0, 0.25); } else if (mv.kind === 'mower') audio.burst(140, 2, 1.6, 0.25, 'lowpass'); else audio.tone(260, 0.2, 'sine', 0.2, 0.5); } }
+      if (mv.on && moving) {
+        mv.t += dt; row.z = Math.max(i > 0 ? rows[i - 1].z + 4 : -1e9, row.z - mv.v * dt); o.position.z = -row.z;
+        if (mv.kind === 'ball') { o.rotation.x += dt * mv.v / 0.3; o.position.y = 0.3 + Math.abs(Math.sin(mv.t * 7)) * 0.1; }
+        else if (mv.kind === 'bike') o.rotation.z = Math.sin(mv.t * 5) * 0.05;
+        else if (Math.random() < dt * 30) pAlpha.spawn(o.position.x + (Math.random() - 0.5) * 0.7, 0.1, o.position.z - 0.4, (Math.random() - 0.5) * 2, 1 + Math.random(), -1 - Math.random(), 0.5, 0.1, 0.3, 0.35, 0.7, 0.25, 0.7, 6, 1);
+      }
+    }
+    if (row.fall > 0 && row.fall < 1 && o) {
+      row.fall = Math.min(1, row.fall + dt / 0.42); const e = row.fall; o.position.x = lerp(row.fx, LX[row.lane], e); o.position.y = 1.1 * (1 - e * e); o.rotation.z = (1 - e) * 2.5 * Math.sign(row.fx);
+      if (e >= 1) { o.rotation.z = 0; if (audio.on) audio.crack(); for (let k = 0; k < 8; k++) pAlpha.spawn(o.position.x, 0.15, o.position.z, (Math.random() - 0.5) * 3, 1 + Math.random(), (Math.random() - 0.5) * 3, 0.5, 0.2, 0.7, 0.7, 0.45, 0.3, 0.5, 3, 1.5); }
+    }
+    for (const b of row.objs) if (b.userData.tip > 0 && b.userData.tip < 1) { b.userData.tip = Math.min(1, b.userData.tip + dt * 3); b.rotation.x = b.userData.tip ** 2 * 1.5; }
+  }
   // ---- collisions
   if (play) {
     const lane = clamp(Math.round(Pl.x / LANE) + 1, 0, 2);
     for (const row of rows) {
       if (row.z > G.dist + 1) break; if (row.hit || row.z < prevDist - 0.3 || row.z > G.dist + 0.35) continue;
       const c = row.cells[lane]; if (!c) continue;
-      if (c === 'full' || (c === 'low' && Pl.y < 0.36) || (c === 'high' && !sliding)) { stumble(row); break; }
+      if (c === 'puddle') {                                // no paw lost, but it slows her and Mila gains a little
+        if (Pl.y < 0.12 && G.pw.turbo <= 0) { row.hit = true; G.slow = 0.9; G.gap += 2.5; pick(T('splash')); buzz(40); if (audio.on) audio.splash(0.35); for (let k = 0; k < 22; k++) pAlpha.spawn(Pl.x + (Math.random() - 0.5) * 0.8, 0.1, -G.dist, (Math.random() - 0.5) * 4, 2 + Math.random() * 3, (Math.random() - 0.5) * 3 - 2, 0.6, 0.12, 0.3, 0.55, 0.7, 0.9, 0.7, 9, 0.5); }
+        continue;
+      }
+      if (c === 'full' || (c === 'low' && Pl.y < 0.36) || (c === 'high' && !sliding)) {
+        if (G.pw.turbo > 0) { row.hit = true; G.score += 20; G.shake = 0.3; pick(T('smash')); if (audio.on) audio.crack(); for (const o of row.objs) if (row.wide || o.userData.lane === lane) o.visible = false; sparkle(Pl.x, 0.6, -G.dist - 0.5, GOLD, 30); }      // turbo paws go straight through
+        else stumble(row);
+        break;
+      }
     }
     for (let i = items.length - 1; i >= 0; i--) {
       const it = items[i]; if (it.z < G.dist - 3) { if (it.mesh) it.mesh.visible = false; items.splice(i, 1); continue; }
+      if (G.pw.magnet > 0 && it.kind === 'bone' && it.z - G.dist < 9 && it.z > G.dist - 1) { const k = Math.min(1, dt * 7); it.x += (Pl.x - it.x) * k; it.y += (Pl.y + 0.5 - it.y) * k; }
       if (Math.abs(it.z - G.dist) < 0.75 && Math.abs(it.x - Pl.x) < 0.75 && Math.abs(it.y - (Pl.y + 0.45)) < 0.85) {
-        if (it.kind === 'bone') { G.bones++; G.score += 10; G.gap -= 0.13; G.streak = G.streakT > 0 ? G.streak + 1 : 0; G.streakT = 0.45; audio.coin(G.streak); sparkle(it.x, it.y, -it.z, GOLD, 5); }
+        if (it.kind === 'bone') { G.bones++; G.score += G.pw.x2 > 0 ? 20 : 10; G.gap -= 0.13; G.streak = G.streakT > 0 ? G.streak + 1 : 0; G.streakT = 0.45; audio.coin(G.streak); sparkle(it.x, it.y, -it.z, GOLD, 5); }
+        else if (POW_TIME[it.kind]) { G.pw[it.kind] = POW_TIME[it.kind]; pick(T('p_' + it.kind)); buzz(30); audio.pickup('mirror'); sparkle(it.x, it.y, -it.z, relicMeshes[it.kind].userData.col, 40); it.mesh.visible = false; }
         else { G.score += 100; G.gap -= 2; audio.pickup(it.kind); pick(T('r_' + it.kind)); sparkle(it.x, it.y, -it.z, relicMeshes[it.kind].userData.col, 40); it.mesh.visible = false; }
         items.splice(i, 1);
       }
     }
     G.streakT -= dt;
-    G.gap -= dt * 0.27;
+    G.gap -= dt * (0.27 + (G.pw.turbo > 0 ? 1.6 : 0));
     if (jn && (jn.done ? G.dist < jn.J + 20 : jn.J - G.dist < 70)) G.gap = Math.max(G.gap, 8);       // no catch in the middle of a junction: she keeps a few metres clear there
     else if (G.gap <= 2.3) catchMila();
   }
@@ -564,27 +753,46 @@ function step(dt) {
   }
   if (G.mode === 'win' || G.mode === 'over') {
     G.endT += dt; if (G.mode === 'over') G.gap += dt * 9; else G.gap += (2.6 - G.gap) * Math.min(1, dt * 3);
-    if (G.endT > (G.mode === 'win' ? 3.4 : 1.7) && $('end').classList.contains('hidden')) finish(G.mode === 'win');
+    if (G.mode === 'win') finale(dt);
+    if (G.endT > (G.mode === 'win' ? 9.2 : 1.7) && $('end').classList.contains('hidden')) finish(G.mode === 'win');
   }
   // ---- Mila: follows the safe lane, hops and ducks like a pro
   const pounce = G.mode === 'catch' ? sm(0, 0.22, G.ct) * (1 - sm(0.4, 0.8, G.ct)) : 0;
   let lead = 2.3 + (G.gap - 2.3) * 0.5 - pounce * 1.25, waits = false;
   if (jn && !jn.done && !jn.choice && lead > jn.J - 0.8 - G.dist) { lead = Math.max(0.7, jn.J - 0.8 - G.dist); waits = true; }       // way still open: she hesitates at the corner
   if (jn && !jn.done && jn.choice && G.dist + Mi.lead > jn.J) jn.locked = true;                                                    // she has gone round the corner: settled
+  if (G.mode === 'win') lead = lerp(2.45, 0.85, sm(2.3, 4.2, G.endT));                 // finale: she walks back to Łatka
   Mi.lead += clamp(lead - Mi.lead, -1e9, dt * 17);
   const mz = G.dist + Mi.lead,          // drawn at half the real lead, so she stays in sight
-     sitM = G.mode === 'win' || G.mode === 'title' ? 1 : 0;
-  if (moving) {
-    for (const row of rows) { if (row.z < mz - 0.3) continue; Mi.lane = row.safe; const c = row.cells[row.safe], dz = row.z - mz;
-      if (c === 'low' && dz < G.speed * 0.27 && Mi.y === 0) Mi.vy = 5.6; Mi.crouch = c === 'high' && dz < G.speed * 0.3 ? 1 : 0; break; }
+     sitM = (G.mode === 'win' && (G.endT < 2.3 || G.endT > 4.4)) || G.mode === 'title' ? 1 : 0;
+  let tr = Mi.trick;
+  if (moving && !tr) {
+    for (const row of rows) {
+      if (row.z < mz - 0.3) {
+        // as she passes, she sometimes shoves over a bin in the lane next to hers (just for show: it still blocks the lane)
+        if (!row.seen) { row.seen = true; if (!row.wide && !row.mover && Math.random() < 0.45) for (const o of row.objs) if (o.userData.kind.startsWith('bin') && Math.abs(o.userData.lane - Mi.lane) === 1) { o.userData.tip = 0.001; if (audio.on) audio.burst(260, 1, 0.2, 0.25, 'lowpass'); break; } }
+        continue;
+      }
+      Mi.lane = row.safe; const c = row.cells[row.safe], dz = row.z - mz;
+      if (c === 'low' && dz < G.speed * 0.27 && Mi.y === 0) Mi.vy = 5.6; Mi.crouch = c === 'high' && dz < G.speed * 0.3 ? 1 : 0; break;
+    }
   }
-  Mi.x += (LX[Mi.lane] - Mi.x) * Math.min(1, dt * 9);
+  // her other trick: up onto the fence, along the top knocking flowerpots down, and back
+  const nearJn = jn && (jn.done ? G.dist < jn.J + 30 : jn.J - G.dist < 60);
+  if (play && !tr && G.playT > G.trickAt && G.gap > 9 && G.gap < 34 && !nearJn && Mi.y === 0) { tr = Mi.trick = { side: Math.random() < 0.5 ? -1 : 1, t: 0, dur: 3.6, next: 0.7, left: 2 + (Math.random() < 0.5 ? 1 : 0) }; audio.meow(1.1); }
+  if (tr) {
+    tr.t += dt; if (!play || nearJn) tr.dur = Math.min(tr.dur, tr.t + 0.4);
+    if (tr.t >= tr.dur) { Mi.trick = tr = null; Mi.wy = 0; G.trickAt = G.playT + 13 + Math.random() * 12; }
+    else { const e = sm(0, 0.4, tr.t) * (1 - sm(tr.dur - 0.4, tr.dur, tr.t)); Mi.wy = 1.12 * e + 0.4 * Math.sin(Math.PI * e); Mi.crouch = 0;
+      if (tr.left > 0 && tr.t > tr.next && tr.t < tr.dur - 0.8) { tr.next = tr.t + 0.8; if (dropPot(mz, tr.side)) tr.left--; } }
+  }
+  Mi.x += ((tr ? tr.side * (ROADW / 2 + 0.72) : G.mode === 'win' && G.endT > 2.3 ? Pl.x + 0.42 : LX[Mi.lane]) - Mi.x) * Math.min(1, dt * (tr ? 6 : 9));
   if (Mi.vy !== 0 || Mi.y > 0) { Mi.vy -= 19 * dt; Mi.y += Mi.vy * dt; if (Mi.y <= 0) { Mi.y = 0; Mi.vy = 0; Mi.flip = 0; } }
   if (Mi.flip > 0 && Mi.y > 0) { Mi.flip += dt; if (Math.random() < rawDt * 60) pAdd.spawn(Mi.x + (Math.random() - 0.5) * 0.3, Mi.y + 0.3, -mz, (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2 - G.speed * 0.6, 0.5, 0.22, 0.02, 4, 3, 1, 1, 3, 1); }
   if (G.mode === 'title') { cat.root.position.set(-1.0, 0, -G.dist - 1.3); cat.root.rotation.y = Math.PI + 0.5; cat.root.visible = true; }
   else if (jn && !jn.done && jn.choice && mz > jn.J) { const sgn = jn.choice === 'left' ? -1 : 1; cat.root.position.set(sgn * (mz - jn.J), Mi.y, -jn.J); cat.root.rotation.set(0, sgn * Math.PI / 2, 0); cat.root.visible = true; }   // already running down the chosen street
-  else { cat.root.position.set(Mi.x, Mi.y + (Mi.flip > 0 ? 0.25 * Math.sin(Math.min(1, Mi.flip / 0.74) * Math.PI) : 0), -mz); cat.root.rotation.y = sitM || (waits && Mi.lead < lead + 0.3) ? 0 : Math.PI; cat.root.rotation.x = Mi.flip > 0 ? Math.min(1, Mi.flip / 0.74) * Math.PI * 2 : 0; cat.root.visible = G.gap < 75; }
-  cat.animate(dt, { speed: sitM || (waits && Mi.lead < lead + 0.3) ? 0 : Math.max(G.speed, moving ? 8 : G.mode === 'over' ? 9 : 0), grounded: Mi.y === 0, vy: Mi.vy, sit: sitM, crouch: Mi.crouch });
+  else { cat.root.position.set(Mi.x, Mi.y + (Mi.wy || 0) + (Mi.flip > 0 ? 0.25 * Math.sin(Math.min(1, Mi.flip / 0.74) * Math.PI) : 0), -mz); cat.root.rotation.y = sitM || G.mode === 'win' || (waits && Mi.lead < lead + 0.3) ? 0 : Math.PI; cat.root.rotation.x = Mi.flip > 0 ? Math.min(1, Mi.flip / 0.74) * Math.PI * 2 : 0; cat.root.visible = G.gap < 75; }
+  cat.animate(dt, { speed: sitM || (waits && Mi.lead < lead + 0.3) ? 0 : G.mode === 'win' ? 1.6 : Math.max(G.speed, moving ? 8 : G.mode === 'over' ? 9 : 0), grounded: Mi.y === 0, vy: Mi.vy, sit: sitM, crouch: Mi.crouch });
   // ---- Łatka
   const sitD = G.mode === 'title' || ((G.mode === 'win' || G.mode === 'over') && G.speed < 1.5) ? 1 : 0;
   dog.root.position.set(Pl.x, Pl.y, -G.dist); { const q = Math.abs(G.yawOff) / (Math.PI / 2); dog.root.rotation.y = Math.PI + G.yawOff * q; dog.root.rotation.z = (LX[Pl.lane] - Pl.x) * 0.22 - G.yawOff * (1 - q) * 0.5; }
@@ -592,6 +800,20 @@ function step(dt) {
   dog.animate(dt, { speed: G.speed, grounded: Pl.grounded, vy: Pl.vy, sit: sitD, slide: sliding ? 1 : 0, happy: G.mode === 'win' ? 1 : 0.15, pant: true });
   if (sliding && Math.random() < dt * 40) pAlpha.spawn(Pl.x + (Math.random() - 0.5) * 0.4, 0.08, -G.dist + 0.3, (Math.random() - 0.5), 0.6, 1.5, 0.5, 0.2, 0.8, 0.78, 0.74, 0.66, 0.35, 0, 1.5);
   if (moving && Pl.grounded && !sliding && Math.random() < dt * 9) pAlpha.spawn(Pl.x + (Math.random() - 0.5) * 0.3, 0.06, -G.dist + 0.35, (Math.random() - 0.5) * 0.6, 0.5, 1.2, 0.45, 0.14, 0.55, 0.78, 0.74, 0.66, 0.22, 0, 1.5);
+  // ---- friends at the roadside
+  if (play && G.dist + 140 > G.friendAt) {
+    if (jn && !jn.done && G.friendAt > jn.J - 45) G.friendAt = jn.J + 60;
+    else { const f = friends[G.friendI++ % friends.length], sd = G.friendI % 2 ? 1 : -1; placeFriend(f, sd * (ROADW / 2 + 0.45), -G.friendAt, -sd * 0.95); G.friendAt += 150 + Math.random() * 110; }
+  }
+  for (const f of friends) if (f.on) {
+    f.arm.rotation.z = -0.35 + Math.sin(G.t * 10 + f.i) * 0.42; f.g.position.y = Math.abs(Math.sin(G.t * 6 + f.i)) * 0.06 * (f.cheered || G.mode === 'win' ? 2.2 : 1);
+    if (play && !f.cheered && f.z - G.dist < 2.5) { f.cheered = true; G.score += 50; hint(f.name + ': ' + T('cheers')[f.i] + ' +50', 2.2); if (audio.on) { audio.tone(784, 0.12, 'triangle', 0.1); audio.tone(1047, 0.2, 'triangle', 0.1, 0, 0.1); } }
+    if (G.mode !== 'win' && f.z < G.dist - 7) { f.on = false; f.g.visible = false; }
+  }
+  // ---- power-up effects on Łatka
+  bubble.visible = G.pw.shield > 0 && (G.pw.shield > 3 || Math.floor(G.t * 8) % 2 === 0); if (bubble.visible) { bubble.position.set(Pl.x, Pl.y + 0.48, -G.dist); bubble.scale.setScalar(1 + Math.sin(G.t * 6) * 0.04); }
+  if (G.pw.turbo > 0 && Math.random() < rawDt * 90) pAdd.spawn(Pl.x + (Math.random() - 0.5) * 0.5, Pl.y + 0.2 + Math.random() * 0.5, -G.dist + 0.6, (Math.random() - 0.5), Math.random(), 3, 0.35, 0.3, 0.02, 5, 2.4, 0.4, 1, 0, 1);
+  if (G.pw.magnet > 0 && Math.random() < rawDt * 14) pAdd.spawn(Pl.x + (Math.random() - 0.5) * 1.6, Pl.y + 0.3 + Math.random() * 0.8, -G.dist - 0.5, 0, 0.6, 0, 0.4, 0.12, 0.02, 4, 0.8, 0.6, 1, 0, 1);
   // ---- pickups
   let n = 0;
   for (const it of items) {
@@ -603,7 +825,7 @@ function step(dt) {
   pAdd.update(dt); pAlpha.update(dt);
   // ---- camera
   G.blend = Math.min(1, G.blend + dt * (G.mode === 'title' ? -3 : 0.9)); if (G.mode === 'title') G.blend = 0;
-  const k = sm(0, 1, G.blend), pz = -G.dist, wide = camera.aspect < 1 ? 1 : 0, end = G.mode === 'win' ? sm(0.2, 2.2, G.endT) : 0;
+  const k = sm(0, 1, G.blend), pz = -G.dist, wide = camera.aspect < 1 ? 1 : 0, end = 0;
   G.shake = Math.max(0, G.shake - dt * 1.8); const sh = G.shake * G.shake * 0.25;
   camP.set(lerp(2.3, Pl.x * 0.6, k) + end * 2.6, lerp(1.25, 2.45 + wide * 0.5 + Pl.y * 0.3, k) - end * 1.1, pz + lerp(-3.4 - wide * 2.4, 4.4 + wide * 0.8, k) - end * 4.5);
   camL.set(lerp(-0.2, Pl.x * 0.8, k), lerp(-0.25 - wide * 0.9, 1.05 - wide * 0.8, k) - end * 0.4, pz + lerp(-1.5, -7.5, k) + end * 6);
@@ -611,9 +833,13 @@ function step(dt) {
   const cc = G.cr > 0 && (G.mode === 'catch' || G.mode === 'win') ? sm(0, 0.22, G.cr) * (1 - sm(1.5, 2.15, G.cr)) : 0;
   if (cc > 0) { const side = Pl.x > 0.5 ? -1 : 1; camP.lerp(tmpV.set(Pl.x + side * 3.3, 0.75, pz - 0.2), cc); camL.lerp(tmpV.set((Pl.x + Mi.x) / 2, 0.85, pz - 1.5), cc); }
   camL.x += bend.x * 420 * (1 - cc);
+  if (G.mode === 'win') {                                  // finale: a slow circle around the two of them
+    const e = sm(1.3, 3, G.endT), a = 0.5 + Math.sin(G.endT * 0.33) * 0.75, r = lerp(5.4, 4.3, sm(3, 8, G.endT)) + wide * 2.2;      // sways from side to side, always between the fences
+    camP.lerp(tmpV.set(clamp(Pl.x * 0.4 + Math.sin(a) * 2.2, -2.3, 2.3), 1.35 + wide * 0.7, pz + Math.cos(a) * r), e); camL.lerp(tmpV.set(Pl.x * 0.6 + 0.2, 0.75, pz - 1.2), e);
+  }
   if (G.yawOff) { const c = Math.cos(G.yawOff), sn = Math.sin(G.yawOff); for (const v of [camP, camL]) { const x = v.x - Pl.x, z = v.z - pz; v.x = Pl.x + x * c + z * sn; v.z = pz - x * sn + z * c; } }
   camera.position.copy(camP); camera.position.x += (Math.random() - 0.5) * sh; camera.position.y += (Math.random() - 0.5) * sh; camera.lookAt(camL); camera.rotateZ(-bend.x * 34 * (1 - cc));
-  const fov = 62 + (wide ? 8 : 0) + clamp((G.speed - 9) * 1.3, 0, 9) - cc * 14; if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
+  const fov = 62 + (wide ? 8 : 0) + clamp((G.speed - 9) * 1.3, 0, 9) - cc * 14 + (G.pw.turbo > 0 ? 7 : 0); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
   updateBend(dt); updateMood(dt);
   // ---- HUD and sound
   hud(); if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.opacity = 0; } if (pickT > 0) { pickT -= dt; if (pickT <= 0) $('pick').style.opacity = 0; }
@@ -622,6 +848,7 @@ function step(dt) {
 }
 let stepAcc = 0; const camP = new THREE.Vector3(), camL = new THREE.Vector3(), tmpV = new THREE.Vector3();
 function catchMila() {
+  buzz([40, 50, 40, 50, 160]); Mi.trick = null; Mi.wy = 0;
   const pts = 500 * (G.stage + 1); G.score += pts; G.mode = 'catch'; G.ct = 0; G.cr = 0; G.gap = 2.3;
   audio.bark(); dog.bark(); audio.meow(1.25); setTimeout(() => audio.hiss(), 500); audio.whoosh(); audio.tone(110, 1.2, 'sine', 0.25, 0.5);
   Mi.vy = 7.2; Mi.y = 0.01; Mi.flip = 0.001; Mi.lane = Pl.lane; Mi.x = Pl.x;
@@ -631,6 +858,22 @@ function catchMila() {
   pick(T('caught', pts)); if (G.stage < 2) setTimeout(() => { if (G.mode === 'catch') pick(T('away')); }, 1300);
   sparkle(Mi.x, 0.6, -(G.dist + 2.3), GOLD, 50); clearAhead(G.dist, G.dist + 62);
 }
+// The ending: everyone who lent Łatka a relic comes out to cheer, confetti falls, Mila walks back, rubs against her and
+// they sit together, while the camera circles them.
+function finale(dt) {
+  const t = G.endT, F = G.fin, cx = Pl.x, cz = -G.dist - 1, once = (k, at, fn) => { if (!F[k] && t > at) { F[k] = true; fn(); } };
+  once('crowd', 1.5, () => {
+    friends.forEach((f, i) => { const a = -1.1 + i * 0.55, x = clamp(cx * 0.5 + Math.sin(a) * 2.9, -2.75, 2.75), z = cz - 1.6 - Math.cos(a) * 2.6; placeFriend(f, x, z, Math.atan2(cx - x, cz - z)); f.cheered = true; });
+    Object.assign(G.pw, { magnet: 0, shield: 0, turbo: 0, x2: 0 }); for (const id of ['rTop', 'rLives', 'rMila', 'rPow', 'hint']) $(id).style.opacity = 0;
+    for (const row of rows) freeRow(row); rows.length = 0; items.length = 0; for (const id in relicMeshes) relicMeshes[id].visible = false;
+    setWeather('clear'); buzz([60, 40, 60]);
+  });
+  once('l1', 2.6, () => { pick(T('fin1')); pickT = 2.3; audio.meow(0.9); });
+  once('bark', 4.5, () => { audio.bark(); dog.bark(); });
+  once('l2', 5.4, () => { pick(T('fin2')); pickT = 3; if (audio.on) audio.pickup('mirror'); });
+  if (t > 1.5 && t < 8) for (let i = 0; i < 2; i++) if (Math.random() < dt * 45) { const c = [[1, 0.3, 0.3], [1, 0.8, 0.2], [0.3, 0.7, 1], [0.5, 0.9, 0.4], [0.9, 0.4, 0.9]][(Math.random() * 5) | 0]; pAlpha.spawn(cx + (Math.random() - 0.5) * 8, 3.6 + Math.random(), cz + (Math.random() - 0.5) * 8, (Math.random() - 0.5), -0.4, (Math.random() - 0.5), 2.6, 0.13, 0.13, c[0], c[1], c[2], 0.95, 1.2, 0.8); }
+  if (t > 4.3 && Math.random() < dt * 7) pAdd.spawn((cx + Mi.x) / 2 + (Math.random() - 0.5) * 0.5, 0.9, -G.dist - Mi.lead * 0.5, (Math.random() - 0.5) * 0.3, 0.9, 0, 1.4, 0.16, 0.3, 5, 0.6, 1.6, 1, -0.2, 0.3);    // hearts, more or less
+}
 // plays the level by itself (used for testing): heads for the safe lane and jumps / slides when needed
 function botPlay() {
   if (jn && !jn.done && jn.J - G.dist < 22 && !jn.choice) act((G.seed + jn.id) % 2 ? 'left' : 'right');
@@ -639,7 +882,7 @@ function botPlay() {
     if (row.z < G.dist - 0.4) { prev = row; continue; }
     if (!prev || G.dist > prev.z + 0.9) { if (Pl.lane < row.safe) act('right'); else if (Pl.lane > row.safe) act('left'); }
     const c = row.cells[row.safe], dz = row.z - G.dist;
-    if (Pl.lane === row.safe && Pl.grounded) { if (c === 'low' && dz < G.speed * 0.3 && dz > 0.3) act('up'); if (c === 'high' && dz < G.speed * 0.26 && Pl.slide <= 0.2) act('down'); }
+    if (Pl.lane === row.safe && Pl.grounded) { if ((c === 'low' || c === 'puddle') && dz < G.speed * 0.3 && dz > 0.3) act('up'); if (c === 'high' && dz < G.speed * 0.26 && Pl.slide <= 0.2) act('down'); }
     break;
   }
 }
@@ -657,7 +900,8 @@ async function boot() {
   document.body.classList.add('run'); if (isTouch) document.body.classList.add('touch');
   await new Promise((r) => setTimeout(r, 30));
   tex = createTextures();
-  buildScenery(); buildProtos(); buildPickups();
+  buildScenery(); buildWeather(); buildProtos(); buildPickups(); buildFriends();
+  $('rPow').innerHTML = [['magnet', '🧲'], ['shield', '🛡️'], ['turbo', '⚡'], ['x2', '×2']].map(([k, ic]) => `<span id="pw-${k}"><i>${ic}</i><b></b></span>`).join('');
   dog = buildDog(tex, {}); scene.add(dog.root);
   cat = buildCat({ scale: 1.45 }); scene.add(cat.root);
   scene.traverse((o) => { if (o.material) bendPatch(o.material); }); for (const m of plateMats) bendPatch(m);
@@ -671,7 +915,7 @@ async function boot() {
   const warm = Object.keys(PROTO).map((k) => { const m = getObj(k); m.position.set(0, 0, -8); return m; });
   step(0.016); renderer.compile(scene, camera); renderer.render(scene, camera);
   for (const m of warm) { m.visible = false; pools[m.userData.kind].push(m); }
-  window.__run = { G, Pl, Mi, rows, items, gen, audio, chunks, get jn() { return jn; }, step, startGame, reset, toTitle, renderer, scene, camera, act,
+  window.__run = { G, Pl, Mi, W, rows, items, gen, audio, chunks, friends, setWeather, get jn() { return jn; }, step, startGame, reset, toTitle, renderer, scene, camera, act,
     sim: (secs, dt = 1 / 60) => { for (let t = 0; t < secs; t += dt) step(dt); renderer.render(scene, camera); return { mode: G.mode, dist: +G.dist.toFixed(1), gap: +G.gap.toFixed(1), stage: G.stage, lives: G.lives, score: Math.floor(G.score), bones: G.bones, t: +G.t.toFixed(1) }; } };
   $('title').classList.remove('hidden'); $('loading').style.opacity = 0; setTimeout(() => $('loading').remove(), 1100);
   last = performance.now(); requestAnimationFrame(frame);
