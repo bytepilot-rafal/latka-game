@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261121-165114';
+  window.BUILD = '20261121-170234';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v + (/[?&]level=2/.test(location.search) ? '&level=2' : ''));
@@ -68,6 +68,12 @@
   #rTrack i { position: absolute; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: var(--ink); border: 1.5px solid var(--gold); display: grid; place-items: center; font: normal 14px/1 system-ui, sans-serif; transition: left .25s linear; }
   #rDog { left: 0; }
   #rLabel { margin-top: 13px; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; text-shadow: 0 1px 4px #000; }
+  #turn { top: 27vh; left: 0; right: 0; display: flex; justify-content: center; gap: min(34vw, 300px); opacity: 0; font: normal clamp(46px, 9vw, 92px)/1 system-ui, sans-serif; color: var(--gold); text-shadow: 0 3px 14px rgba(0, 0, 0, .8), 0 0 30px rgba(255, 190, 80, .6); transition: opacity .2s; }
+  #turn.ask, #turn.left, #turn.right { opacity: 1; }
+  #turn.ask span { animation: turnPulse .5s ease-in-out infinite alternate; }
+  #turn.left #tR, #turn.right #tL { opacity: .18; }
+  #turn.left #tL, #turn.right #tR { transform: scale(1.35); color: #fff6d8; }
+  @keyframes turnPulse { from { transform: scale(.9); opacity: .65; } to { transform: scale(1.12); opacity: 1; } }
   #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s; background: radial-gradient(ellipse at center, rgba(200, 30, 20, 0) 45%, rgba(200, 30, 20, .6)); }
   body.run #hint { bottom: 5vh; }
   body.touch #rLives span { width: 22px; height: 22px; }
@@ -105,6 +111,8 @@
     body.touch #sun { top: calc(62px + env(safe-area-inset-top)); width: 62vw; }
     body.touch #hint { bottom: calc(190px + env(safe-area-inset-bottom)); max-width: 84vw; font-size: 14px; }
     body.touch #place { top: 17vh; }
+    #rMila { top: calc(74px + env(safe-area-inset-top)); width: 62vw; }
+    #turn { top: 22vh; gap: 46vw; }
   }
 </style>
 <script type="importmap">
@@ -128,6 +136,7 @@
 <div id="rTop" class="ui"><div id="rScore">0</div><div id="rSub"></div></div>
 <div id="rLives" class="ui"></div>
 <div id="rMila" class="ui"><div id="rTrack"><i id="rDog">🐶</i><i id="rCat">🐱</i></div><div id="rLabel"></div></div>
+<div id="turn" class="ui"><span id="tL">◀</span><span id="tR">▶</span></div>
 <div id="flash"></div>
 <div id="touch">
   <div id="joyZone"><div id="joy"><div id="joyKnob"></div></div></div>
@@ -2684,7 +2693,7 @@ const TXT = {
     keys_t: 'Przesuń palcem: w lewo / w prawo — tor · w górę — skok · w dół — ślizg',
     hint: 'Kości przybliżają cię do Mili. Każde potknięcie daje jej przewagę!',
     mila: (m) => `Mila: ${m} m`, stage: (n) => `Etap ${n}/3`, bones: (n) => `Kości: ${n}`,
-    k_street: 'Ulica', caught: (p) => `Mam cię! +${p}`, away: 'Mila ucieka dalej!', ouch: 'Auć!',
+    k_street: 'Ulica', turn: 'Skrzyżowanie! Wybierz kierunek: w lewo albo w prawo.', caught: (p) => `Mam cię! +${p}`, away: 'Mila ucieka dalej!', ouch: 'Auć!',
     winT: 'Mila złapana!', winX: (s, b, best) => `Mila ma dość uciekania — od dziś biegacie razem. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
     loseT: 'Mila uciekła…', loseX: (s, b, best) => `Tym razem była szybsza. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
     r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
@@ -2696,7 +2705,7 @@ const TXT = {
     keys_t: 'Swipe: left / right — lane · up — jump · down — slide',
     hint: 'Bones bring you closer to Mila. Every stumble gives her a head start!',
     mila: (m) => `Mila: ${m} m`, stage: (n) => `Stage ${n}/3`, bones: (n) => `Bones: ${n}`,
-    k_street: 'Street', caught: (p) => `Gotcha! +${p}`, away: 'Mila is off again!', ouch: 'Ouch!',
+    k_street: 'Street', turn: 'Junction! Pick a way: left or right.', caught: (p) => `Gotcha! +${p}`, away: 'Mila is off again!', ouch: 'Ouch!',
     winT: 'Mila is caught!', winX: (s, b, best) => `Mila is done running — from now on you run together. Score: ${s} · bones: ${b} · best: ${best}`,
     loseT: 'Mila got away…', loseX: (s, b, best) => `She was faster this time. Score: ${s} · bones: ${b} · best: ${best}`,
     r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
@@ -2719,7 +2728,7 @@ function resize() { const w = Math.max(2, window.innerWidth), h = Math.max(2, wi
 window.addEventListener('resize', resize); resize();
 
 // ------------------------------------------------------------------ constants / state
-const LANE = 1.7, LX = [-LANE, 0, LANE], CL = 24, NC = 8, ROADW = 5.9;
+const LANE = 1.7, LX = [-LANE, 0, LANE], CL = 24, NC = 8, ROADW = 5.9, JH = ROADW / 2 + 0.75;   // JH: half-width of a street with its verge
 const STAGE_GAP = [30, 34, 38], STAGE_SPEED = [9.5, 11.5, 13.3];
 const G = { mode: 'load', t: 0, dist: 0, speed: 0, stage: 0, gap: 30, lives: 3, score: 0, bones: 0, inv: 0, slow: 0, ct: 0, stageT: 0, shake: 0, streak: 0, streakT: 0, blend: 0, bot: false, genMin: 0, endT: 0, best: 0 };
 const Pl = { lane: 1, x: 0, y: 0, vy: 0, slide: 0, grounded: true };
@@ -2756,7 +2765,8 @@ function updateBend(dt) {
     bend.ty = (Math.random() - 0.55) * 0.0009;
   }
   const k = Math.min(1, dt * 0.75);
-  bend.x += ((moving ? bend.tx : 0) - bend.x) * k; bend.y += ((moving ? bend.ty : 0) - bend.y) * k;
+  const ok = moving && !(jn && !jn.done) && !(jn && G.dist < jn.J + 25);        // junctions are approached and left on a straight, level road
+  bend.x += ((ok ? bend.tx : 0) - bend.x) * k * (ok ? 1 : 2); bend.y += ((ok ? bend.ty : 0) - bend.y) * k * (ok ? 1 : 2);
   bendU.value.set(bend.x, bend.y, -G.dist);
 }
 
@@ -2788,7 +2798,7 @@ function canvasTex(w, h, draw, rx, ry) {
 }
 
 // ------------------------------------------------------------------ scenery
-const chunks = [], plateMats = [];
+const chunks = [], plateMats = []; let junction, ground, jn = null;
 function buildScenery() {
   // sky
   skyU = { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSun: { value: new THREE.Color() }, uSunDir: { value: new THREE.Vector3() }, uTime: { value: 0 } };
@@ -2846,13 +2856,13 @@ function buildScenery() {
   const WALLS = [0xeadcbe, 0xf3efe4, 0xe7c98c, 0xdcc0a2, 0xcfd8cf], ROOFS = [0x9a3b2e, 0x80402f, 0x55565c, 0x6f3a2c];
   const GREENS = [0x3f7a2c, 0x4f8a34, 0x356b2a, 0x5c9440];
   for (let ci = 0; ci < NC; ci++) {
-    const b = new Builder(100 + ci), r = b.r, grp = new THREE.Group();
+    const bs = { [-1]: new Builder(300 + ci), 1: new Builder(100 + ci) }, r = bs[1].r, grp = new THREE.Group(); let b = bs[1];   // each side of the street is its own mesh, so one side can be hidden at a junction
     const road = new THREE.Mesh(roadG, roadM); road.position.set(0, 0, -CL / 2); road.receiveShadow = true; grp.add(road);
     const grass = new THREE.Mesh(grassG, grassM); grass.position.set(0, -0.03, -CL / 2); grass.receiveShadow = true; grp.add(grass);
     const spruce = (x, z, h) => { b.cyl(0.1 * h / 5, 0.14 * h / 5, h * 0.25, x, 0, z, 0x5a4030); for (let i = 0; i < 4; i++) b.cone(h * (0.26 - i * 0.045), h * 0.36, x, h * (0.16 + i * 0.2), z, i % 2 ? 0x2f5d33 : 0x27502d, 8); };
     const tree = (x, z, s) => { b.cyl(0.13 * s, 0.2 * s, 2.3 * s, x, 0, z, 0x5d4632); b.blob(1.5 * s, x, 3.2 * s, z, GREENS[(r() * 4) | 0], 0.9); b.blob(1.1 * s, x + 0.9 * s, 2.7 * s, z + 0.4 * s, GREENS[(r() * 4) | 0]); b.blob(1.0 * s, x - 0.8 * s, 2.9 * s, z - 0.5 * s, GREENS[(r() * 4) | 0]); };
     for (const s of [-1, 1]) {
-      const fx = s * (ROADW / 2 + 0.75);
+      b = bs[s]; const fx = s * (ROADW / 2 + 0.75);
       // two 12 m plots per side, each with its own boundary
       for (let seg = 0; seg < 2; seg++) {
         const z0 = -seg * 12, zc = z0 - 6, kind = (r() * 4) | 0;
@@ -2881,7 +2891,7 @@ function buildScenery() {
           const face = hx - s * (w / 2 + 0.02);
           for (const wz of [-d * 0.27, d * 0.27]) for (let fl = 0; fl < (h > 4 ? 2 : 1); fl++) { b.box(0.06, 1.25, 1.15, face - s * 0.01, 1.25 + fl * 2.4, zc + wz, 0xf4f1ea, 0, 0); b.box(0.07, 1.05, 0.95, face - s * 0.03, 1.35 + fl * 2.4, zc + wz, 0x2c3f52, 0, 0); }
           b.box(0.07, 2.0, 0.95, face - s * 0.02, 0.35, zc, 0x6b4630, 0, 0);                                           // door
-          if ((ci === 2 || ci === 6) && !grp.userData.plate) { const pl = new THREE.Mesh(plateG, plateMats[0]); pl.position.set(face - s * 0.07, 2.75, zc); pl.rotation.y = -s * Math.PI / 2; grp.add(pl); grp.userData.plate = pl; }
+          if ((ci === 2 || ci === 6) && !grp.userData.plate) { const pl = new THREE.Mesh(plateG, plateMats[0]); pl.position.set(face - s * 0.07, 2.75, zc); pl.rotation.y = -s * Math.PI / 2; grp.userData.plate = pl; grp.userData.plateSide = s; }
           b.box(Math.abs(face - fx) - 0.3, 0.04, 1.6, (face + fx) / 2, 0, zc, 0xa8a49b, 0, 0.03);                     // path to the gate
           if (r() < 0.6) tree(hx + s * (1 + r() * 3), zc + (r() < 0.5 ? -5 : 5), 0.8 + r() * 0.4);
         } else if (q < 0.82) { tree(hx - s * 1.5, zc + 2, 1 + r() * 0.5); spruce(hx + s * 2, zc - 3, 6 + r() * 3); tree(hx + s * 4, zc + 4, 0.9); }
@@ -2892,9 +2902,81 @@ function buildScenery() {
       // verge: tufts and flowers along the edge of the road
       for (let i = 0; i < 16; i++) { const z = -r() * CL, x = s * (ROADW / 2 + 0.12 + r() * 0.45); if (r() < 0.75) b.cone(0.09 + r() * 0.07, 0.22 + r() * 0.2, x, 0, z, 0x5f9a3c, 5); else b.blob(0.07, x, 0.2, z, [0xf2d24a, 0xf5f5f0, 0xd95f8a][(r() * 3) | 0]); }
     }
-    if (ci % 2 === 0) { const s = ci % 4 === 0 ? 1 : -1, x = s * (ROADW / 2 + 0.38); b.cyl(0.05, 0.07, 5.2, x, 0, -6, 0x6d7278); b.box(0.9, 0.06, 0.08, x - s * 0.4, 5.15, -6, 0x6d7278); b.box(0.36, 0.1, 0.18, x - s * 0.82, 5.05, -6, 0xe8e2c8); }
-    grp.add(b.mesh()); grp.traverse((o) => { o.frustumCulled = false; }); grp.userData.k = ci; grp.position.z = -(ci - 1) * CL; scene.add(grp); chunks.push(grp);
+    if (ci % 2 === 0) { const s = ci % 4 === 0 ? 1 : -1; b = bs[s]; const x = s * (ROADW / 2 + 0.38); b.cyl(0.05, 0.07, 5.2, x, 0, -6, 0x6d7278); b.box(0.9, 0.06, 0.08, x - s * 0.4, 5.15, -6, 0x6d7278); b.box(0.36, 0.1, 0.18, x - s * 0.82, 5.05, -6, 0xe8e2c8); }
+    grp.userData.sideL = bs[-1].mesh(); grp.userData.sideR = bs[1].mesh(); grp.add(grp.userData.sideL, grp.userData.sideR);
+    if (grp.userData.plate) grp.userData[grp.userData.plateSide < 0 ? 'sideL' : 'sideR'].add(grp.userData.plate);
+    grp.traverse((o) => { o.frustumCulled = false; }); grp.userData.k = ci; scene.add(grp); chunks.push(grp);
   }
+  // one green sheet under everything, so there is never a hole where no street piece lies
+  const gg = new THREE.PlaneGeometry(900, 900, 90, 90); gg.rotateX(-Math.PI / 2);
+  ground = new THREE.Mesh(gg, new THREE.MeshStandardMaterial({ color: 0x4f8a36, roughness: 1, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4 })); ground.position.y = -0.1; ground.receiveShadow = true; ground.frustumCulled = false; scene.add(ground);
+  // the T-junction: a square of road, a hedge with a chevron board closing the far side, a house behind it
+  {
+    junction = new THREE.Group(); const b = new Builder(900), r = b.r;
+    const rg = new THREE.PlaneGeometry(2 * JH, ROADW + 0.75); rg.rotateX(-Math.PI / 2); const rd = new THREE.Mesh(rg, roadM); rd.position.set(0, 0.004, 0.375); rd.receiveShadow = true; junction.add(rd);
+    const pg = new THREE.PlaneGeometry(2 * JH, 92); pg.rotateX(-Math.PI / 2); const gp = new THREE.Mesh(pg, grassM); gp.position.set(0, -0.03, -ROADW / 2 - 46); gp.receiveShadow = true; junction.add(gp);
+    b.box(2 * JH + 2.4, 1.5, 0.95, 0, 0, -JH - 0.35, 0x3d6f2b, 0, 0.1); for (let i = 0; i < 8; i++) b.blob(0.66, -4.3 + i * 1.23, 1.55 + r() * 0.3, -JH - 0.35, 0x4a8034, 0.7);
+    for (const x of [-1.9, 1.9]) b.box(0.1, 2.2, 0.1, x, 0, -JH + 0.42, 0x8a8f96);
+    b.box(8.5, 0.35, 7, 0.6, 0, -JH - 8.5, 0x8f8a82); b.box(8.4, 3.0, 6.9, 0.6, 0.35, -JH - 8.5, 0xf0e4c4, 0, 0.03); b.add(roofGeo(7.9, 2.8, 9.4), 0x9a3b2e, 0.6, 3.35, -JH - 8.5, Math.PI / 2, 0.04);
+    for (const x of [-1.6, 2.8]) { b.box(1.15, 1.25, 0.06, x, 1.25, -JH - 5.0, 0xf4f1ea, 0, 0); b.box(0.95, 1.05, 0.07, x, 1.35, -JH - 4.98, 0x2c3f52, 0, 0); }
+    for (const [x, z, h] of [[-6.5, -9, 8], [7.5, -12, 10], [-3, -17, 11], [5, -19, 9]]) { b.cyl(0.02 * h, 0.03 * h, h * 0.25, x, 0, z - JH, 0x5a4030); for (let i = 0; i < 4; i++) b.cone(h * (0.26 - i * 0.045), h * 0.36, x, h * (0.16 + i * 0.2), z - JH, i % 2 ? 0x2f5d33 : 0x27502d, 8); }
+    junction.add(b.mesh());
+    const st = canvasTex(512, 160, (c, w, h) => {
+      c.fillStyle = '#17171a'; c.fillRect(0, 0, w, h); c.fillStyle = '#f6c62d'; c.fillRect(8, 8, w - 16, h - 16); c.fillStyle = '#17171a';
+      for (const d of [-1, 1]) { const cx = w / 2 + d * 128; c.beginPath(); c.moveTo(cx + d * 96, h / 2); c.lineTo(cx + d * 22, h / 2 - 52); c.lineTo(cx + d * 22, h / 2 - 22); c.lineTo(cx - d * 78, h / 2 - 22); c.lineTo(cx - d * 78, h / 2 + 22); c.lineTo(cx + d * 22, h / 2 + 22); c.lineTo(cx + d * 22, h / 2 + 52); c.closePath(); c.fill(); }
+    }, 1, 1);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.31), new THREE.MeshStandardMaterial({ map: st, roughness: 0.5, emissive: 0x33290a })); sign.position.set(0, 1.75, -JH + 0.5); junction.add(sign);
+    junction.traverse((o) => { o.frustumCulled = false; }); junction.visible = false; scene.add(junction);
+  }
+}
+// ---- street pieces: laid along the track, then along both arms of the next junction
+const showSides = (c, l, r) => { c.userData.sideL.visible = l; c.userData.sideR.visible = r; };
+function placeTrack(c, s0) { const u = c.userData; u.role = 'track'; u.s0 = s0; c.position.set(0, 0, -s0); c.rotation.y = 0; showSides(c, true, true); if (u.plate) u.plate.material = plateMats[Math.min(2, G.stage)]; }
+function rotAbout(o, J, th) { const x = o.position.x, z = o.position.z + J, c = Math.cos(th), sn = Math.sin(th); o.position.x = x * c + z * sn; o.position.z = -x * sn + z * c - J; o.rotation.y += th; }
+function trackFar() { let far = -1e9; for (const c of chunks) if (c.userData.role === 'track') far = Math.max(far, c.userData.s0 + CL); return far; }
+function planJunction() {
+  const J = trackFar() + CL + JH; G.jCount = (G.jCount || 0) + 1;
+  jn = { J, arms: 0, done: false, choice: null, id: G.jCount };
+  junction.position.set(0, 0, -J); junction.rotation.y = 0; junction.visible = true;
+  for (let i = rows.length - 1; i >= 0; i--) if (rows[i].z > J - 26) { freeRow(rows[i]); rows.splice(i, 1); }
+  for (let i = items.length - 1; i >= 0; i--) if (items[i].z > J - 26) { if (items[i].mesh) items[i].mesh.visible = false; items.splice(i, 1); }
+  gen.z = Math.min(gen.z, rows.length ? rows[rows.length - 1].z : gen.z);
+}
+function manageChunks() {
+  if ((!jn || jn.done) && G.dist > G.nextJ - 190) planJunction();
+  for (let it = 0; it < 3; it++) {
+    let far = -1e9, back = null, free = null;
+    for (const c of chunks) {
+      const u = c.userData;
+      if (u.role === 'track') { far = Math.max(far, u.s0 + CL); if (u.s0 + CL < G.dist - 8 && (!back || u.s0 < back.userData.s0)) back = c; }
+      else if (u.role === 'spareArm' && G.t > u.ready) free = c;           // the arm that was not taken: out of sight a moment after the turn
+      else if (u.role === 'spareOld' && G.dist > u.ready) free = free || c; // the street we came from: only once it is well behind
+    }
+    free = free || back; if (!free) return;
+    const pending = jn && !jn.done;
+    if (far < (pending ? jn.J - JH : 1e9) - 0.1) { if (far > G.dist + 172) return; placeTrack(free, far); }
+    else if (pending && jn.arms < 6) {
+      const n = jn.arms >> 1, left = jn.arms % 2 === 0, u = free.userData; jn.arms++; u.role = left ? 'armL' : 'armR'; u.n = n;
+      free.position.set((left ? -1 : 1) * (JH + n * CL), 0, -jn.J); free.rotation.y = left ? Math.PI / 2 : -Math.PI / 2;
+      showSides(free, !left, left);                                          // the side facing the street we are on stays empty, or its houses would stand inside ours
+      if (u.plate) u.plate.material = plateMats[Math.min(2, G.stage)];
+    } else return;
+  }
+}
+// The turn itself: the camera never changes its maths. Everything that exists is swung a quarter turn about the middle of
+// the junction so the chosen arm lies straight ahead, and the camera and Łatka are given the opposite offset, which then
+// eases to zero. On the first frame the picture is identical; over the next third of a second it becomes a turn.
+function doTurn(dir) {
+  const th = dir === 'left' ? -Math.PI / 2 : Math.PI / 2, J = jn.J, mine = dir === 'left' ? 'armL' : 'armR';
+  for (const c of chunks) {
+    const u = c.userData;
+    if (u.role === mine) { u.role = 'track'; u.s0 = J + JH + u.n * CL; c.position.set(0, 0, -u.s0); c.rotation.y = 0; if (u.n > 0) showSides(c, true, true); }
+    else { rotAbout(c, J, th); if (u.role === 'track') { u.role = 'spareOld'; u.ready = J + 50; } else { u.role = 'spareArm'; u.ready = G.t + 0.3; } }
+  }
+  rotAbout(junction, J, th);
+  G.dist = J + (dir === 'left' ? -Pl.x : Pl.x); Pl.x = 0; Pl.lane = 1; Mi.x = 0; Mi.lane = 1; Mi.lead = 0.8;
+  G.yawOff = th; G.yaw += th; jn.done = true; gen.hold = false; gen.z = J + 14; gen.safe = 1; G.genMin = J + 26; G.nextJ = J + 240 + Math.random() * 110;
+  audio.whoosh(); G.score += 25;
 }
 // time of day drifts from a bright afternoon to a warm sunset over the three stages
 const MOODS = [
@@ -2902,17 +2984,17 @@ const MOODS = [
   { top: [0.2, 0.36, 0.76], hor: [0.99, 0.82, 0.58], sun: [1.0, 0.82, 0.55], si: 3.1, hi: 0.9, el: 0.5, fog: 0.012 },
   { top: [0.16, 0.2, 0.52], hor: [1.0, 0.56, 0.36], sun: [1.0, 0.56, 0.3], si: 2.8, hi: 0.9, el: 0.28, fog: 0.0135 },
 ];
-const mood = { k: 0 }, sunDir = new THREE.Vector3(), tmpC = new THREE.Color();
+const mood = { k: 0 }, sunDir = new THREE.Vector3(), tmpC = new THREE.Color(), YAX = new THREE.Vector3(0, 1, 0);
 function updateMood(dt) {
   mood.k += (Math.min(2, G.stage + (G.mode === 'play' ? sm(0, 1, G.stageT / 60) * 0.6 : 0)) - mood.k) * Math.min(1, dt * 0.6);
   const i = Math.min(1, Math.floor(mood.k)), f = mood.k - i, a = MOODS[i], b = MOODS[i + 1], L3 = (p, q) => [lerp(p[0], q[0], f), lerp(p[1], q[1], f), lerp(p[2], q[2], f)];
   skyU.uTop.value.setRGB(...L3(a.top, b.top)); skyU.uHor.value.setRGB(...L3(a.hor, b.hor)); skyU.uSun.value.setRGB(...L3(a.sun, b.sun));
-  const el = lerp(a.el, b.el, f); sunDir.set(-0.55 * Math.cos(el), Math.sin(el), -0.84 * Math.cos(el)).normalize(); skyU.uSunDir.value.copy(sunDir); skyU.uTime.value = G.t;
+  const el = lerp(a.el, b.el, f); sunDir.set(-0.55 * Math.cos(el), Math.sin(el), -0.84 * Math.cos(el)).normalize(); skyU.uSunDir.value.copy(sunDir); skyU.uTime.value = G.t; sunDir.applyAxisAngle(YAX, G.yaw); G.dome.rotation.y = G.yaw;    // the sky and the light turn with the world
   sun.color.setRGB(...L3(a.sun, b.sun)); sun.intensity = lerp(a.si, b.si, f); hemi.intensity = lerp(a.hi, b.hi, f);
   hemi.color.setRGB(...L3(a.top, b.top)).lerp(tmpC.setRGB(1, 1, 1), 0.55); scene.fog.color.setRGB(...L3(a.hor, b.hor)); scene.fog.density = lerp(a.fog, b.fog, f);
   fogUniforms.uFogColor.value.copy(scene.fog.color); fogUniforms.uFogDensity.value = scene.fog.density;
   const pz = -G.dist; sun.target.position.set(0, 0, pz - 6); sun.position.copy(sun.target.position).addScaledVector(sunDir, 60); sun.target.updateMatrixWorld();
-  G.dome.position.copy(camera.position);
+  G.dome.position.copy(camera.position); ground.position.set(0, -0.1, pz);
 }
 
 // ------------------------------------------------------------------ obstacles and pickups
@@ -2960,6 +3042,7 @@ function genRow() {
   const d = difficulty(), sp = speedNow(), prev = gen.safe;
   let safe = clamp(prev + (R() < 0.6 ? (R() < 0.5 ? -1 : 1) : 0), 0, 2);
   let dz = sp * lerp(1.2, 0.82, d) + R() * sp * 0.4; if (safe !== prev) dz += sp * 0.22;
+  if (jn && !jn.done && Math.max(gen.z + dz, G.genMin) > jn.J - 26) { gen.hold = true; return; }   // keep the run-up to a junction clear
   const z = Math.max(gen.z + dz, G.genMin), row = { z, cells: [null, null, null], safe, objs: [], hit: false, wide: null };
   const q = R(), pick = (a) => a[(R() * a.length) | 0];
   if (q < 0.12 + d * 0.05) { row.wide = 'biglog'; row.cells = ['low', 'low', 'low']; safe = row.safe = prev; }
@@ -3009,11 +3092,14 @@ function hud(force) {
   set('rLives', [0, 1, 2].map((i) => `<span class="${i < G.lives ? '' : 'lost'}">${paw}</span>`).join(''), true);
   set('rLabel', T('mila', Math.max(0, Math.round(G.gap))));
   $('rCat').style.left = clamp(G.gap / 42, 0, 1) * 100 + '%';
+  const tv = G.mode === 'play' && jn && !jn.done && jn.J - G.dist < 48 ? (jn.choice || 'ask') : '';
+  if (shown.turn !== tv) { shown.turn = tv; $('turn').className = 'ui ' + tv; if (tv === 'ask' && !G.turnHint) { G.turnHint = true; hint(T('turn'), 4); } }
 }
 
 // ------------------------------------------------------------------ input
 function act(a) {
   if (G.mode !== 'play') return;
+  if ((a === 'left' || a === 'right') && jn && !jn.done && jn.J - G.dist < 18) { if (jn.choice !== a) { jn.choice = a; audio.whoosh(); audio.tone(880, 0.12, 'triangle', 0.12); } return; }   // at a junction the swipe picks the way
   if (a === 'left' && Pl.lane > 0) { Pl.lane--; audio.whoosh(); }
   else if (a === 'right' && Pl.lane < 2) { Pl.lane++; audio.whoosh(); }
   else if (a === 'up') { if (Pl.grounded) { Pl.vy = 6.7; Pl.grounded = false; Pl.slide = 0; audio.jump(); } else Pl.jumpBuf = 0.14; }
@@ -3044,7 +3130,8 @@ function reset() {
   Object.assign(G, { t: 0, dist: 0, speed: 0, stage: 0, gap: STAGE_GAP[0], lives: 3, score: 0, bones: 0, inv: 0, slow: 0, ct: 0, stageT: 0, shake: 0, streak: 0, blend: 0, genMin: 0, endT: 0 });
   Object.assign(Pl, { lane: 1, x: 0, y: 0, vy: 0, slide: 0, grounded: true }); Object.assign(Mi, { lane: 1, x: 0, y: 0, vy: 0, crouch: 0 });
   Object.assign(gen, { z: 38, safe: 1, relicAt: 240, relicI: 0 }); mood.k = 0;
-  for (const c of chunks) { c.position.z = -(c.userData.k - 1) * CL; if (c.userData.plate) c.userData.plate.material = plateMats[0]; }
+  chunks.forEach((c, i) => placeTrack(c, (i - 1) * CL)); junction.visible = false; jn = null; gen.hold = false;
+  Object.assign(G, { yaw: 0, yawOff: 0, nextJ: 185, jCount: 0 }); Mi.lead = 2.3 + (STAGE_GAP[0] - 2.3) * 0.5;
   Object.assign(bend, { x: 0, y: 0, tx: 0, ty: 0, t: 3 }); G.cr = 0; G.ts = 1; Mi.flip = 0;
   for (const id in relicMeshes) relicMeshes[id].visible = false;
   dog.root.visible = true;
@@ -3091,9 +3178,14 @@ function step(dt) {
   Pl.jumpBuf = Math.max(0, (Pl.jumpBuf || 0) - dt); Pl.slide = Math.max(0, Pl.slide - dt);
   const sliding = Pl.slide > 0 && Pl.grounded;
   // ---- world generation / recycling
-  while (moving && gen.z < G.dist + 150) genRow();
+  while (moving && !gen.hold && gen.z < G.dist + 150) genRow();
   while (rows.length && rows[0].z < G.dist - 1.3) { freeRow(rows[0]); rows.shift(); }      // gone as soon as it is behind Łatka, so nothing ever hides her from the camera
-  for (const c of chunks) if (-c.position.z + CL < G.dist - 8) { c.position.z -= NC * CL; if (c.userData.plate) c.userData.plate.material = plateMats[Math.min(2, G.stage)]; }
+  if (moving) manageChunks();
+  if (moving && jn && !jn.done) {
+    if (G.dist >= jn.J && jn.choice) doTurn(jn.choice);
+    else if (G.dist >= jn.J + 2.3) { if (play) stumble({}); if (G.mode !== 'over') doTurn(Math.random() < 0.5 ? 'left' : 'right'); }     // ran straight into the hedge
+  }
+  if (G.yawOff) { const d = dt * (Math.PI / 2) / 0.36; G.yawOff = Math.abs(G.yawOff) <= d ? 0 : G.yawOff - Math.sign(G.yawOff) * d; }
   // ---- collisions
   if (play) {
     const lane = clamp(Math.round(Pl.x / LANE) + 1, 0, 2);
@@ -3112,7 +3204,7 @@ function step(dt) {
     }
     G.streakT -= dt;
     G.gap -= dt * 0.27;
-    if (G.gap <= 2.3) catchMila();
+    if (G.gap <= 2.3) { if (jn && (jn.done ? G.dist < jn.J + 30 : jn.J - G.dist < 85)) G.gap = 2.35; else catchMila(); }     // never in the middle of a junction
   }
   // ---- stage transition / endings
   if (G.mode === 'catch') {
@@ -3126,7 +3218,10 @@ function step(dt) {
   }
   // ---- Mila: follows the safe lane, hops and ducks like a pro
   const pounce = G.mode === 'catch' ? sm(0, 0.22, G.ct) * (1 - sm(0.4, 0.8, G.ct)) : 0;
-  const mz = G.dist + 2.3 + (G.gap - 2.3) * 0.5 - pounce * 1.25,          // drawn at half the real lead, so she stays in sight
+  let lead = 2.3 + (G.gap - 2.3) * 0.5 - pounce * 1.25, waits = false;
+  if (jn && !jn.done && lead > jn.J - 0.8 - G.dist) { lead = Math.max(0.7, jn.J - 0.8 - G.dist); waits = true; }       // she stops at the corner and looks back until Łatka picks a way
+  Mi.lead += clamp(lead - Mi.lead, -1e9, dt * 17);
+  const mz = G.dist + Mi.lead,          // drawn at half the real lead, so she stays in sight
      sitM = G.mode === 'win' || G.mode === 'title' ? 1 : 0;
   if (moving) {
     for (const row of rows) { if (row.z < mz - 0.3) continue; Mi.lane = row.safe; const c = row.cells[row.safe], dz = row.z - mz;
@@ -3136,11 +3231,11 @@ function step(dt) {
   if (Mi.vy !== 0 || Mi.y > 0) { Mi.vy -= 19 * dt; Mi.y += Mi.vy * dt; if (Mi.y <= 0) { Mi.y = 0; Mi.vy = 0; Mi.flip = 0; } }
   if (Mi.flip > 0 && Mi.y > 0) { Mi.flip += dt; if (Math.random() < rawDt * 60) pAdd.spawn(Mi.x + (Math.random() - 0.5) * 0.3, Mi.y + 0.3, -mz, (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2 - G.speed * 0.6, 0.5, 0.22, 0.02, 4, 3, 1, 1, 3, 1); }
   if (G.mode === 'title') { cat.root.position.set(-1.0, 0, -G.dist - 1.3); cat.root.rotation.y = Math.PI + 0.5; cat.root.visible = true; }
-  else { cat.root.position.set(Mi.x, Mi.y + (Mi.flip > 0 ? 0.25 * Math.sin(Math.min(1, Mi.flip / 0.74) * Math.PI) : 0), -mz); cat.root.rotation.y = sitM ? 0 : Math.PI; cat.root.rotation.x = Mi.flip > 0 ? Math.min(1, Mi.flip / 0.74) * Math.PI * 2 : 0; cat.root.visible = G.gap < 75; }
-  cat.animate(dt, { speed: sitM ? 0 : Math.max(G.speed, moving ? 8 : G.mode === 'over' ? 9 : 0), grounded: Mi.y === 0, vy: Mi.vy, sit: sitM, crouch: Mi.crouch });
+  else { cat.root.position.set(Mi.x, Mi.y + (Mi.flip > 0 ? 0.25 * Math.sin(Math.min(1, Mi.flip / 0.74) * Math.PI) : 0), -mz); cat.root.rotation.y = sitM || (waits && Mi.lead < lead + 0.3) ? 0 : Math.PI; cat.root.rotation.x = Mi.flip > 0 ? Math.min(1, Mi.flip / 0.74) * Math.PI * 2 : 0; cat.root.visible = G.gap < 75; }
+  cat.animate(dt, { speed: sitM || (waits && Mi.lead < lead + 0.3) ? 0 : Math.max(G.speed, moving ? 8 : G.mode === 'over' ? 9 : 0), grounded: Mi.y === 0, vy: Mi.vy, sit: sitM, crouch: Mi.crouch });
   // ---- Łatka
   const sitD = G.mode === 'title' || ((G.mode === 'win' || G.mode === 'over') && G.speed < 1.5) ? 1 : 0;
-  dog.root.position.set(Pl.x, Pl.y, -G.dist); dog.root.rotation.y = Math.PI; dog.root.rotation.z = (LX[Pl.lane] - Pl.x) * 0.22;
+  dog.root.position.set(Pl.x, Pl.y, -G.dist); { const q = Math.abs(G.yawOff) / (Math.PI / 2); dog.root.rotation.y = Math.PI + G.yawOff * q; dog.root.rotation.z = (LX[Pl.lane] - Pl.x) * 0.22 - G.yawOff * (1 - q) * 0.5; }
   dog.root.visible = G.inv <= 0 || Math.floor(G.t * 14) % 2 === 0;
   dog.animate(dt, { speed: G.speed, grounded: Pl.grounded, vy: Pl.vy, sit: sitD, slide: sliding ? 1 : 0, happy: G.mode === 'win' ? 1 : 0.15, pant: true });
   if (sliding && Math.random() < dt * 40) pAlpha.spawn(Pl.x + (Math.random() - 0.5) * 0.4, 0.08, -G.dist + 0.3, (Math.random() - 0.5), 0.6, 1.5, 0.5, 0.2, 0.8, 0.78, 0.74, 0.66, 0.35, 0, 1.5);
@@ -3164,6 +3259,7 @@ function step(dt) {
   const cc = G.cr > 0 && (G.mode === 'catch' || G.mode === 'win') ? sm(0, 0.22, G.cr) * (1 - sm(1.5, 2.15, G.cr)) : 0;
   if (cc > 0) { const side = Pl.x > 0.5 ? -1 : 1; camP.lerp(tmpV.set(Pl.x + side * 3.3, 0.75, pz - 0.2), cc); camL.lerp(tmpV.set((Pl.x + Mi.x) / 2, 0.85, pz - 1.5), cc); }
   camL.x += bend.x * 420 * (1 - cc);
+  if (G.yawOff) { const c = Math.cos(G.yawOff), sn = Math.sin(G.yawOff); for (const v of [camP, camL]) { const x = v.x - Pl.x, z = v.z - pz; v.x = Pl.x + x * c + z * sn; v.z = pz - x * sn + z * c; } }
   camera.position.copy(camP); camera.position.x += (Math.random() - 0.5) * sh; camera.position.y += (Math.random() - 0.5) * sh; camera.lookAt(camL); camera.rotateZ(-bend.x * 34 * (1 - cc));
   const fov = 62 + (wide ? 8 : 0) + clamp((G.speed - 9) * 1.3, 0, 9) - cc * 14; if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
   updateBend(dt); updateMood(dt);
@@ -3185,6 +3281,7 @@ function catchMila() {
 }
 // plays the level by itself (used for testing): heads for the safe lane and jumps / slides when needed
 function botPlay() {
+  if (jn && !jn.done && jn.J - G.dist < 12 && !jn.choice) act((G.seed + jn.id) % 2 ? 'left' : 'right');
   let prev = null;
   for (const row of rows) {
     if (row.z < G.dist - 0.4) { prev = row; continue; }
@@ -3222,7 +3319,7 @@ async function boot() {
   const warm = Object.keys(PROTO).map((k) => { const m = getObj(k); m.position.set(0, 0, -8); return m; });
   step(0.016); renderer.compile(scene, camera); renderer.render(scene, camera);
   for (const m of warm) { m.visible = false; pools[m.userData.kind].push(m); }
-  window.__run = { G, Pl, Mi, rows, items, gen, audio, step, startGame, reset, toTitle, renderer, scene, camera, act,
+  window.__run = { G, Pl, Mi, rows, items, gen, audio, chunks, get jn() { return jn; }, step, startGame, reset, toTitle, renderer, scene, camera, act,
     sim: (secs, dt = 1 / 60) => { for (let t = 0; t < secs; t += dt) step(dt); renderer.render(scene, camera); return { mode: G.mode, dist: +G.dist.toFixed(1), gap: +G.gap.toFixed(1), stage: G.stage, lives: G.lives, score: Math.floor(G.score), bones: G.bones, t: +G.t.toFixed(1) }; } };
   $('title').classList.remove('hidden'); $('loading').style.opacity = 0; setTimeout(() => $('loading').remove(), 1100);
   last = performance.now(); requestAnimationFrame(frame);

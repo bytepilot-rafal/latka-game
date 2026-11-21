@@ -60,6 +60,12 @@
   #rTrack i { position: absolute; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: var(--ink); border: 1.5px solid var(--gold); display: grid; place-items: center; font: normal 14px/1 system-ui, sans-serif; transition: left .25s linear; }
   #rDog { left: 0; }
   #rLabel { margin-top: 13px; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; text-shadow: 0 1px 4px #000; }
+  #turn { top: 27vh; left: 0; right: 0; display: flex; justify-content: center; gap: min(34vw, 300px); opacity: 0; font: normal clamp(46px, 9vw, 92px)/1 system-ui, sans-serif; color: var(--gold); text-shadow: 0 3px 14px rgba(0, 0, 0, .8), 0 0 30px rgba(255, 190, 80, .6); transition: opacity .2s; }
+  #turn.ask, #turn.left, #turn.right { opacity: 1; }
+  #turn.ask span { animation: turnPulse .5s ease-in-out infinite alternate; }
+  #turn.left #tR, #turn.right #tL { opacity: .18; }
+  #turn.left #tL, #turn.right #tR { transform: scale(1.35); color: #fff6d8; }
+  @keyframes turnPulse { from { transform: scale(.9); opacity: .65; } to { transform: scale(1.12); opacity: 1; } }
   #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s; background: radial-gradient(ellipse at center, rgba(200, 30, 20, 0) 45%, rgba(200, 30, 20, .6)); }
   body.run #hint { bottom: 5vh; }
   body.touch #rLives span { width: 22px; height: 22px; }
@@ -97,6 +103,8 @@
     body.touch #sun { top: calc(62px + env(safe-area-inset-top)); width: 62vw; }
     body.touch #hint { bottom: calc(190px + env(safe-area-inset-bottom)); max-width: 84vw; font-size: 14px; }
     body.touch #place { top: 17vh; }
+    #rMila { top: calc(74px + env(safe-area-inset-top)); width: 62vw; }
+    #turn { top: 22vh; gap: 46vw; }
   }
 </style>
 <script type="importmap">
@@ -120,6 +128,7 @@
 <div id="rTop" class="ui"><div id="rScore">0</div><div id="rSub"></div></div>
 <div id="rLives" class="ui"></div>
 <div id="rMila" class="ui"><div id="rTrack"><i id="rDog">🐶</i><i id="rCat">🐱</i></div><div id="rLabel"></div></div>
+<div id="turn" class="ui"><span id="tL">◀</span><span id="tR">▶</span></div>
 <div id="flash"></div>
 <div id="touch">
   <div id="joyZone"><div id="joy"><div id="joyKnob"></div></div></div>
