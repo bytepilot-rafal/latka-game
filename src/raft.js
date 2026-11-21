@@ -20,6 +20,7 @@ const TXT = {
     time: (t) => `Czas: ${t}`, bones: (n) => `Kości: ${n}`, left: (m) => `Do plaży: ${m} m`, paddle: 'Wiosło',
     h_start: 'Nurt niesie ponton. Steruj na boki; trzymaj wiosło, żeby płynąć szybciej.', h_lane: 'Bystry nurt — tu płynie się szybciej!', h_whirl: 'Wir! Wiosłuj, żeby się wyrwać!',
     h_sand: 'Mielizna — ponton zwalnia.', h_bridge: 'Przepłyń między filarami mostu.', h_kayak: 'Uwaga, kajakarz!', h_beach: 'Widać plażę!',
+    artur: ['Ahoj, Łatka!', 'Trzymajcie się, załogo!', 'Kto pierwszy na plaży?', 'Mila, nie bój się wody!'], arturName: 'Wujek Artur',
     hit: 'Auć! Dziura w pontonie!', patch: 'Łatka na ponton! +1', k_place: 'Narew', p1: 'Most w Serocku', p2: 'Wielkie Zakole', p3: 'Stary Most', p4: 'Plaża',
     winT: 'Dopłynęli!', winX: (t, b, s) => `Łatka i Mila są na plaży. Czas: ${t} · kości: ${b}. ${s}`,
     loseT: 'Ponton zatonął…', loseX: (m) => `Łatka i Mila dopłynęły do brzegu wpław, ${m} m przed plażą. Spróbuj jeszcze raz!`,
@@ -32,6 +33,7 @@ const TXT = {
     time: (t) => `Time: ${t}`, bones: (n) => `Bones: ${n}`, left: (m) => `To the beach: ${m} m`, paddle: 'Paddle',
     h_start: 'The current carries the raft. Steer sideways; hold the paddle to go faster.', h_lane: 'Fast water — the raft speeds up here!', h_whirl: 'A whirlpool! Paddle to break free!',
     h_sand: 'A sandbank — the raft slows down.', h_bridge: 'Pass between the piers of the bridge.', h_kayak: 'Mind the kayaker!', h_beach: 'The beach is in sight!',
+    artur: ['Ahoy, Łatka!', 'Hold on tight, crew!', 'Race you to the beach!', 'Mila, the water is fine!'], arturName: 'Wujek Artur',
     hit: 'Ouch! A hole in the raft!', patch: 'A patch for the raft! +1', k_place: 'Narew', p1: 'Most w Serocku', p2: 'Wielkie Zakole', p3: 'Stary Most', p4: 'Plaża',
     winT: 'They made it!', winX: (t, b, s) => `Łatka and Mila are on the beach. Time: ${t} · bones: ${b}. ${s}`,
     loseT: 'The raft sank…', loseX: (m) => `Łatka and Mila swam ashore ${m} m short of the beach. Try again!`,
@@ -68,6 +70,7 @@ const keys = {}, touch = { x: 0 }, input = { x: 0, paddle: false };
 const audio = new AudioSys();
 let dog, cat, tex, pAdd, pAlpha, sun, hemi, skyU, water, waterU, raft, paddles = [], boneMesh, puppies = [];
 const obs = [], items = [], events = [], lanes = [], whirls = [], kayaks = [];
+const A = { mode: 'off', timer: 9, s: 0, u: 0, side: 1, said: false, drop: 0, n: 0, wave: 0 };       // wujek Artur on his jet ski
 const dummy = new THREE.Object3D(), tmpV = new THREE.Vector3(), tmpC = new THREE.Color();
 
 function buildRiver() {
@@ -213,6 +216,49 @@ function buildCourse() {
   for (const it of items) if (it.kind === 'patch') { it.m = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.15, 10, 24), new THREE.MeshStandardMaterial({ color: 0xe2402f, emissive: 0x5a1008, roughness: 0.5 })); const w = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.155, 10, 6, 0.5), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 })); it.m.add(w); const w2 = w.clone(); w2.rotation.z = Math.PI; it.m.add(w2); scene.add(it.m); }
 }
 
+// Wujek Artur: roars past on a jet ski every now and then – overtaking, or coming back up the river – waves, calls out,
+// and leaves a line of bones in his wake. He swerves round whatever is in the water and never holes the raft.
+function buildArtur() {
+  const g = new THREE.Group(), b = new Builder(1500);
+  b.blob(1, 0, 0.22, 0, 0xf4f4f0, 0.3, 0.46, 1.5); b.blob(0.8, 0, 0.3, 0.35, 0x1f6fd0, 0.32, 0.4, 1.0); b.box(0.42, 0.2, 0.9, 0, 0.42, -0.25, 0x23262c); b.box(0.16, 0.36, 0.16, 0, 0.5, 0.55, 0x23262c); b.box(0.8, 0.05, 0.06, 0, 0.88, 0.55, 0x3a3d42);
+  b.box(0.44, 0.56, 0.28, 0, 0.62, -0.25, 0xe2402f); b.box(0.46, 0.3, 0.3, 0, 0.74, -0.25, 0xf2c230, 0, 0.02);                    // rider: red jacket, yellow life vest
+  for (const x of [-0.14, 0.14]) { b.box(0.14, 0.16, 0.5, x, 0.5, 0.0, 0x34507a); }
+  b.box(0.1, 0.1, 0.5, -0.27, 1.02, 0.12, 0xe2402f);                                                                              // the arm on the handlebar
+  b.blob(0.16, 0, 1.4, -0.22, 0xe8b890, 1.05); b.blob(0.175, 0, 1.47, -0.25, 0x1f6fd0, 0.7); b.box(0.3, 0.03, 0.2, 0, 1.44, -0.08, 0x1f6fd0); b.box(0.26, 0.07, 0.03, 0, 1.4, -0.06, 0x111114, 0, 0); b.box(0.2, 0.05, 0.03, 0, 1.3, -0.07, 0x6b4a32, 0, 0);    // head, cap with a peak, sunglasses, moustache
+  g.add(b.mesh());
+  const ab = new Builder(1501); ab.box(0.1, 0.5, 0.1, 0, 0, 0, 0xe2402f); ab.blob(0.075, 0, 0.56, 0, 0xe8b890); A.arm = ab.mesh(); A.arm.position.set(0.27, 1.12, -0.25); g.add(A.arm);
+  // his name floats above him and is drawn over everything, so it can always be read while he is in view
+  const t = canvasTex(384, 88, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(12,9,6,.72)'; c.beginPath(); if (c.roundRect) c.roundRect(4, 4, w - 8, h - 8, 34); else c.rect(4, 4, w - 8, h - 8); c.fill(); c.strokeStyle = '#ffd27a'; c.lineWidth = 3; c.stroke(); c.fillStyle = '#ffd27a'; c.font = 'italic 50px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(TXT.pl.arturName, w / 2, h / 2 + 3); });
+  A.label = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, depthWrite: false, fog: false })); A.label.renderOrder = 50; A.label.position.y = 2.5; g.add(A.label);
+  g.traverse((o) => { o.frustumCulled = false; }); g.visible = false; scene.add(g); A.g = g;
+}
+function updateArtur(dt, play) {
+  if (A.mode === 'off') {
+    A.timer -= play ? dt : 0;
+    if (play && A.timer <= 0 && G.s > 70 && G.s < END - 240) {
+      A.mode = A.n++ % 2 ? 'back' : 'pass'; A.side = G.u > 0 ? -1 : 1; A.s = A.mode === 'pass' ? G.s - 40 : G.s + 150; A.u = A.side * (half(A.s) - 1.7); A.said = false; A.drop = 0; A.g.visible = true;
+      if (audio.on) audio.burst(170, 3, 1.6, 0.22, 'bandpass', 0, 1.6);
+    }
+    return;
+  }
+  const dir = A.mode === 'pass' ? 1 : -1, sp = A.mode === 'pass' ? G.v + 8.5 : 9, h = half(A.s) - 1.2;
+  A.s += dir * sp * dt;
+  let want = A.side * (h - 0.5);
+  for (const o of obs) { const os = o.k ? o.k.s : o.s, ou = o.k ? o.k.u : o.u, ds = (os - A.s) * dir; if (ds > -2 && ds < 13 && Math.abs(ou - A.u) < o.r + 1.7) want = ou + (A.u >= ou ? 1 : -1) * (o.r + 2.1); }
+  if (Math.abs(A.s - G.s) < 9 && Math.abs(want - G.u) < 3) want = G.u + (A.u >= G.u ? 1 : -1) * 3.2;            // give the raft room
+  want = clamp(want, -h, h); const du = clamp(want - A.u, -8 * dt, 8 * dt); A.u += du;
+  const x = cx(A.s) + A.u, yaw = Math.atan2(dir * slope(A.s) + du / Math.max(1e-3, dt) / sp, -dir);
+  A.g.position.set(x, 0.05 + Math.abs(Math.sin(G.t * 9)) * 0.07, -A.s); A.g.rotation.set(-0.08 + Math.sin(G.t * 9) * 0.03, yaw, -clamp(du / Math.max(1e-3, dt), -8, 8) * 0.04, 'YXZ');
+  const dist = camera.position.distanceTo(A.g.position), k = clamp(dist / 12, 1, 7); A.label.scale.set(3.1 * k, 0.71 * k, 1); A.label.position.y = 2.3 + 0.35 * k;
+  A.wave = Math.max(0, A.wave - dt); A.arm.rotation.z = A.wave > 0 ? -0.4 + Math.sin(G.t * 12) * 0.5 : 2.6;
+  for (let i = 0; i < 3; i++) if (Math.random() < dt * 40) { A.g.localToWorld(tmpV.set((Math.random() - 0.5) * 0.8, 0.1, -1.6)); pAlpha.spawn(tmpV.x, 0.15, tmpV.z, (Math.random() - 0.5) * 2.5, 1.5 + Math.random() * 2.5, dir * (2 + Math.random() * 3), 0.7, 0.2, 0.7, 0.95, 0.98, 1, 0.7, 8, 0.6); }
+  const near = Math.abs(A.s - G.s);
+  if (play && !A.said && near < 7) { A.said = true; A.wave = 2.5; pick(`${T('arturName')}: ${T('artur')[(A.n + ((Math.random() * 2) | 0)) % T('artur').length]}`); pickT = 2.6; buzz(30); if (audio.on) { audio.burst(260, 2, 0.9, 0.3, 'bandpass', 0, 0.6); audio.bark(1.1); dog.bark(); } }
+  if (play && near < 3.2 && Math.abs(A.u - G.u) < 4) G.uv += Math.sign(G.u - A.u || 1) * 7 * dt;                // his wash nudges the raft aside
+  if (play && A.mode === 'pass' && A.s > G.s + 9 && A.drop < 9 && A.s - (A.lastDrop || 0) > 3.2) { A.lastDrop = A.s; A.drop++; items.push({ s: A.s - 2.5, u: A.u, kind: 'bone', got: false, dyn: true }); }
+  if ((A.mode === 'pass' && A.s > G.s + 135) || (A.mode === 'back' && A.s < G.s - 28) || A.s > END - 60 || !play && near > 60) { A.mode = 'off'; A.g.visible = false; A.timer = 16 + Math.random() * 12; A.lastDrop = 0; }
+}
+
 function buildRaft() {
   raft = new THREE.Group();
   const b = new Builder(60), tube = new THREE.TorusGeometry(1, 0.27, 10, 26); tube.rotateX(Math.PI / 2); tube.scale(0.82, 1, 1.32);
@@ -276,7 +322,9 @@ window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; t
 // ------------------------------------------------------------------ game flow
 function reset() {
   Object.assign(G, { t: 0, time: 0, s: 0, u: 0, uv: 0, v: 0, boost: 0, lives: 3, bones: 0, inv: 0, cd: 0, stroke: 0, spin: 0, shake: 0, endT: 0, places: 0, landed: 0, hopD: 0, hopC: 0 }); G.hints.clear();
+  for (let i = items.length - 1; i >= 0; i--) if (items[i].dyn) items.splice(i, 1);
   for (const it of items) { it.got = false; if (it.m) it.m.visible = true; }
+  Object.assign(A, { mode: 'off', timer: 9, n: 0, lastDrop: 0 }); A.g.visible = false;
   raft.add(dog.root); dog.root.position.set(0, 0.16, 0.48); dog.root.rotation.set(0, 0, 0); raft.add(cat.root); cat.root.position.set(0, 0.2, -0.62); cat.root.rotation.set(0, 0, 0); raft.visible = true; raft.rotation.set(0, Math.PI, 0);
   puppies.forEach((p, i) => { p.x = cx(BEACH.s) + half(BEACH.s) + 4 + (i % 3) * 1.1; p.z = -BEACH.s - 2 + Math.floor(i / 3) * 1.4 + i * 0.5; p.y = 0; p.vy = 0; });
 }
@@ -359,6 +407,7 @@ function step(dt) {
   for (const k of kayaks) { if (Math.abs(k.s - G.s) > 130) { k.g.visible = false; continue; } k.g.visible = true; const a = G.t * k.w + k.ph; k.u = Math.sin(a) * k.amp; k.g.position.set(cx(k.s) + k.u, 0.02 + Math.sin(G.t * 2 + k.ph) * 0.04, -k.s); k.g.rotation.y = Math.cos(a) > 0 ? Math.PI / 2 : -Math.PI / 2; k.p.rotation.x = Math.sin(G.t * 4 + k.ph) * 0.6; if (play && k.s - G.s < 45 && k.s > G.s) hint('h_kayak'); }
   for (const w of whirls) if (Math.abs(w.s - G.s) < 90) w.m.rotation.y = -G.t * 2.4;
   for (const l of lanes) l.m.material.map.offset.y = -G.t * 1.6;
+  updateArtur(dt, play);
   let n = 0; for (const it of items) { if (it.got || it.s < G.s - 6 || it.s > G.s + 130) continue; const x = cx(it.s) + it.u; if (it.kind === 'bone') { if (n < 140) { dummy.position.set(x, 0.95 + Math.sin(G.t * 3 + it.s) * 0.08, -it.s); dummy.rotation.set(0.3, G.t * 3 + it.s, 0.5); dummy.scale.setScalar(1.5); dummy.updateMatrix(); boneMesh.setMatrixAt(n++, dummy.matrix); } } else { it.m.position.set(x, 0.9 + Math.sin(G.t * 2.5) * 0.1, -it.s); it.m.rotation.y = G.t * 2; } }
   boneMesh.count = n; boneMesh.instanceMatrix.needsUpdate = true;
   pAdd.update(dt); pAlpha.update(dt);
@@ -398,7 +447,7 @@ async function boot() {
   document.body.classList.add('raft'); if (isTouch) document.body.classList.add('touch');
   await new Promise((r) => setTimeout(r, 30));
   tex = createTextures();
-  buildRiver(); buildCourse(); buildRaft();
+  buildRiver(); buildCourse(); buildRaft(); buildArtur();
   dog = buildDog(tex, {}); cat = buildCat({ scale: 1.15 });
   for (let i = 0; i < 5; i++) { const d = buildDog(tex, { scale: 0.43, head: 1.3, leg: 0.8, ear: 1.15, snout: 0.72 }); scene.add(d.root); puppies.push({ d, x: 0, z: 0, y: 0, vy: 0 }); }
   pAdd = new Particles(600, true); pAlpha = new Particles(700, false); scene.add(pAdd.mesh, pAlpha.mesh);
@@ -409,7 +458,7 @@ async function boot() {
   $('again').addEventListener('click', () => { const bt = G.bot; toTitle(); G.bot = bt; startGame(); });
   $('menu').addEventListener('click', toTitle);
   step(0.016); camera.position.set(3.6, 1.6, -4.6); renderer.compile(scene, camera); renderer.render(scene, camera);
-  window.__raft = { G, obs, items, events, kayaks, lanes, whirls, input, audio, step, startGame, reset, toTitle, paddle, renderer, scene, camera, cx, half, END,
+  window.__raft = { G, A, obs, items, events, kayaks, lanes, whirls, input, audio, step, startGame, reset, toTitle, paddle, renderer, scene, camera, cx, half, END,
     sim: (secs, dt = 1 / 60) => { for (let t = 0; t < secs; t += dt) step(dt); renderer.render(scene, camera); return { mode: G.mode, s: +G.s.toFixed(0), u: +G.u.toFixed(1), v: +G.v.toFixed(1), lives: G.lives, bones: G.bones, time: +G.time.toFixed(0) }; } };
   $('title').classList.remove('hidden'); $('loading').style.opacity = 0; setTimeout(() => $('loading').remove(), 1100);
   last = performance.now(); requestAnimationFrame(frame);

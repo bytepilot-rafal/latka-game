@@ -25,7 +25,7 @@ VERSION_CHECK = """<script>
   window.BUILD = '%s';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
-    if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v + ((location.search.match(/[?&]level=([234])/) || [])[1] ? '&level=' + location.search.match(/[?&]level=([234])/)[1] : ''));
+    if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) { try { if (window.LEVEL && LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) {} location.replace(location.pathname + '?v=' + v); }
   }).catch(function () {});
 </script>
 """

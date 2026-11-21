@@ -180,12 +180,27 @@
 <div id="loading">ŁATKA…</div>
 
 <script>
-  // level picker (kept visible for testing): level 2 lives under ?level=2
-  var LEVEL = new URLSearchParams(location.search).get('level'); if (LEVEL !== '2' && LEVEL !== '3' && LEVEL !== '4') LEVEL = '1';
-  document.querySelectorAll('#levels button').forEach(function (b) {
-    if (b.dataset.lv === LEVEL) b.classList.add('cur');
-    b.addEventListener('click', function () { if (b.dataset.lv !== LEVEL) location.search = b.dataset.lv === '1' ? '' : '?level=' + b.dataset.lv; });
-  });
+  // Level picker (kept visible for testing). The game always opens on level 1: a pick is remembered only for the one
+  // reload that follows it, and a ?level= in the address is ignored (except on the developer's own machine).
+  var LEVEL = '1';
+  (function () {
+    var KEY = 'latka-level', q = new URLSearchParams(location.search).get('level'), dev = /^(localhost|127\.0\.0\.1)$/.test(location.hostname), once = null;
+    try { once = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch (e) { /* storage blocked */ }
+    if (!once && window.name.indexOf(KEY + ':') === 0) once = window.name.slice(KEY.length + 1);
+    if (window.name.indexOf(KEY + ':') === 0) window.name = '';
+    if (once) LEVEL = once; else if (dev && q) LEVEL = q;
+    if (!/^[1-4]$/.test(LEVEL)) LEVEL = '1';
+    if (q && !dev) history.replaceState(null, '', location.pathname);
+    document.querySelectorAll('#levels button').forEach(function (b) {
+      if (b.dataset.lv === LEVEL) b.classList.add('cur');
+      b.addEventListener('click', function () {
+        if (b.dataset.lv === LEVEL) return;
+        try { sessionStorage.setItem(KEY, b.dataset.lv); } catch (e) { window.name = KEY + ':' + b.dataset.lv; }
+        if (location.search) history.replaceState(null, '', location.pathname);
+        location.reload();
+      });
+    });
+  })();
 </script>
 <script type="module">/*entry*/import(LEVEL === '4' ? './src/raft.js' : LEVEL === '3' ? './src/night.js' : LEVEL === '2' ? './src/run.js' : './src/main.js').catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });</script>
 </body>
