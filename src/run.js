@@ -22,7 +22,7 @@ const TXT = {
     winT: 'Mila złapana!', winX: (s, b, best) => `Mila ma dość uciekania — od dziś biegacie razem. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
     loseT: 'Mila uciekła…', loseX: (s, b, best) => `Tym razem była szybsza. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
     p_magnet: 'Magnes na kości!', p_shield: 'Tarcza!', p_turbo: 'Turbo-łapy!', p_x2: 'Podwójne punkty!', shieldPop: 'Tarcza cię uratowała!', splash: 'Chlup!', smash: 'Bum! +20',
-    cheers: ['Brawo, Łatka!', 'Łap ją!', 'Dalej, dalej!', 'Szybciej, szybciej!', 'Hau hau!'],
+    cheers: ['Brawo, Łatka!', 'Łap ją, łap!', 'Dalej, dalej!', 'Szybciej, szybciej!', 'Hau hau!', 'Biegnij, Łatka!', 'Mila jest tuż-tuż!', 'Dasz radę!', 'Ale pędzisz!', 'Już ją masz!', 'Brawo, piesku kochany!'],
     w_rain: 'Zaczyna padać!', w_fog: 'Nadciąga mgła…', w_snow: 'Sypie śnieg!', w_clear: 'Przejaśnia się.',
     fin1: 'Mila: „No dobrze… wygrałaś!”', fin2: 'Od dziś biegają razem.',
     r_bone: 'Kość dr. Alicji! +100', r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
@@ -38,7 +38,7 @@ const TXT = {
     winT: 'Mila is caught!', winX: (s, b, best) => `Mila is done running — from now on you run together. Score: ${s} · bones: ${b} · best: ${best}`,
     loseT: 'Mila got away…', loseX: (s, b, best) => `She was faster this time. Score: ${s} · bones: ${b} · best: ${best}`,
     p_magnet: 'Bone magnet!', p_shield: 'Shield!', p_turbo: 'Turbo paws!', p_x2: 'Double points!', shieldPop: 'The shield saved you!', splash: 'Splash!', smash: 'Boom! +20',
-    cheers: ['Bravo, Łatka!', 'Get her!', 'Go, go, go!', 'Faster, faster!', 'Woof woof!'],
+    cheers: ['Bravo, Łatka!', 'Get her!', 'Go, go, go!', 'Faster, faster!', 'Woof woof!', 'Run, Łatka!', 'Mila is right there!', 'You can do it!', 'So fast!', 'You have got her!', 'Good girl!'],
     w_rain: 'It starts to rain!', w_fog: 'Fog rolls in…', w_snow: 'It is snowing!', w_clear: 'It clears up.',
     fin1: 'Mila: "All right… you win!"', fin2: 'From now on they run together.',
     r_bone: 'Kość dr. Alicji! +100', r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
@@ -486,28 +486,45 @@ function buildPickups() {
   bubble = new THREE.Mesh(new THREE.SphereGeometry(0.82, 20, 14), new THREE.MeshBasicMaterial({ color: 0x7cc8ff, transparent: true, opacity: 0.24, depthWrite: false })); bubble.visible = false; scene.add(bubble);
 }
 // ---- friends who cheer from the roadside (the owners of the relics)
-const FRIENDS = [['Alicja', 0xf4f4f0, 0x5a3a22, 1.0, 0x3a4660], ['Lesław', 0x3f6b4a, 0x9a9a9a, 1.06, 0x4a4038], ['Ola', 0xe2a03a, 0xd8b45a, 0.96, 0x2f3a55], ['Agata', 0x5b72c9, 0x2b1d14, 1.0, 0x6a4a3a], ['Jaś', 0x7fc4f0, 0xd9b877, 0.52, 0xf6f6f6]];
+// name, shirt, hair, height, trousers, then: long hair, white coat, skirt, grey bun / flat cap
+const FRIENDS = [
+  { name: 'Alicja', shirt: 0xf4f4f0, hair: 0x5a3a22, sc: 1.0, legs: 0x3a4660, long: 1, coat: 1 },
+  { name: 'Dziadek Lesław', shirt: 0x3f6b4a, hair: 0xb9b9b9, sc: 1.04, legs: 0x4a4038, cap: 1 },
+  { name: 'Ola', shirt: 0xe2a03a, hair: 0xd8b45a, sc: 0.96, legs: 0x2f3a55, long: 1 },
+  { name: 'Agata', shirt: 0x5b72c9, hair: 0x2b1d14, sc: 1.0, legs: 0x6a4a3a, long: 1 },
+  { name: 'Jaś', shirt: 0x7fc4f0, hair: 0xd9b877, sc: 0.52, legs: 0xf6f6f6 },
+  { name: 'Staś', shirt: 0xd9483b, hair: 0x6b4a2a, sc: 0.7, legs: 0x34507a },
+  { name: 'Kazik', shirt: 0xf2c230, hair: 0x3a2a1c, sc: 0.76, legs: 0x4a4a52 },
+  { name: 'Karolina', shirt: 0xc2476b, hair: 0x8a3b1e, sc: 0.98, legs: 0x2b2f3a, long: 1 },
+  { name: 'Tomek', shirt: 0x2f8f8a, hair: 0x4a3524, sc: 1.05, legs: 0x3a3f4a },
+  { name: 'Krzysiek', shirt: 0x7a5bb0, hair: 0x22201e, sc: 1.07, legs: 0x5a4a3a },
+  { name: 'Babcia Małgosia', shirt: 0xa56a9a, hair: 0xd6d6d6, sc: 0.9, legs: 0x6a5a7a, skirt: 1, bun: 1 },
+];
 const friends = [];
 function buildFriends() {
-  FRIENDS.forEach(([name, shirt, hair, sc, trousers], i) => {
-    const g = new THREE.Group(), b = new Builder(700 + i), skin = 0xe8b890;
-    for (const x of [-0.09, 0.09]) { b.box(0.13, 0.78, 0.15, x, 0, 0, trousers); b.box(0.14, 0.07, 0.24, x, 0, 0.04, 0x2a2420); }
+  FRIENDS.forEach((F, i) => {
+    const { name, shirt, hair, sc } = F, g = new THREE.Group(), b = new Builder(700 + i), skin = 0xe8b890;
+    for (const x of [-0.09, 0.09]) { b.box(0.13, 0.78, 0.15, x, 0, 0, F.skirt ? skin : F.legs); b.box(0.14, 0.07, 0.24, x, 0, 0.04, 0x2a2420); }
+    if (F.skirt) b.cyl(0.2, 0.3, 0.5, 0, 0.32, 0, F.legs, 10);
     b.box(0.42, 0.56, 0.24, 0, 0.78, 0, shirt); b.box(0.1, 0.5, 0.1, -0.27, 0.8, 0, shirt);                      // body and the arm that hangs
-    if (i === 0) b.box(0.44, 0.42, 0.26, 0, 0.42, 0, shirt);                                                      // dr Alicja's white coat
+    if (F.coat) b.box(0.44, 0.42, 0.26, 0, 0.42, 0, shirt);                                                       // dr Alicja's white coat
     b.cyl(0.06, 0.06, 0.08, 0, 1.34, 0, skin); b.blob(0.16, 0, 1.56, 0, skin, 1.05); b.blob(0.172, 0, 1.61, -0.035, hair, 0.9);
-    if (i === 0 || i === 2 || i === 3) b.box(0.3, 0.3, 0.1, 0, 1.3, -0.13, hair);                                 // longer hair
+    if (F.long) b.box(0.3, 0.3, 0.1, 0, 1.3, -0.13, hair);
+    if (F.bun) b.blob(0.09, 0, 1.76, -0.1, hair);
+    if (F.cap) { b.cyl(0.175, 0.18, 0.07, 0, 1.69, -0.01, 0x5a5348, 12); b.box(0.2, 0.025, 0.14, 0, 1.69, 0.17, 0x5a5348); b.box(0.2, 0.05, 0.03, 0, 1.47, 0.15, hair, 0, 0); }   // flat cap and a moustache
     for (const x of [-0.06, 0.06]) b.box(0.035, 0.035, 0.02, x, 1.55, 0.15, 0x1c1c1c, 0, 0);
-    b.box(0.08, 0.02, 0.02, 0, 1.47, 0.155, 0x9a3b34, 0, 0);
+    if (!F.cap) b.box(0.08, 0.02, 0.02, 0, 1.47, 0.155, 0x9a3b34, 0, 0);
     g.add(b.mesh());
     const ab = new Builder(750 + i); ab.box(0.1, 0.5, 0.1, 0, 0, 0, shirt); ab.blob(0.075, 0, 0.56, 0, skin);
     const arm = ab.mesh(); arm.position.set(0.27, 1.28, 0); g.add(arm);                                           // the waving arm, hinged at the shoulder
-    const t = canvasTex(256, 72, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(12,9,6,.62)'; c.beginPath(); if (c.roundRect) c.roundRect(4, 4, w - 8, h - 8, 28); else c.rect(4, 4, w - 8, h - 8); c.fill(); c.fillStyle = '#ffd27a'; c.font = 'italic 44px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(name, w / 2, h / 2 + 2); }, 1, 1);
-    const label = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.31), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false })); label.position.y = sc < 0.8 ? 2.5 : 2.08; label.scale.setScalar(1 / sc); g.add(label);
+    const lw = name.length > 9 ? 1.75 : 1.1;
+    const t = canvasTex(Math.round(lw * 232), 72, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(12,9,6,.62)'; c.beginPath(); if (c.roundRect) c.roundRect(4, 4, w - 8, h - 8, 28); else c.rect(4, 4, w - 8, h - 8); c.fill(); c.fillStyle = '#ffd27a'; c.font = 'italic 44px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(name, w / 2, h / 2 + 2, w - 26); }, 1, 1);
+    const label = new THREE.Mesh(new THREE.PlaneGeometry(lw, 0.31), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false })); label.position.y = 2.08 + (1 / sc - 1) * 0.42; label.scale.setScalar(1 / sc); g.add(label);
     g.traverse((o) => { o.frustumCulled = false; }); g.scale.setScalar(sc); g.visible = false; scene.add(g);
-    friends.push({ name, g, arm, label, z: 0, on: false, cheered: false, i });
+    friends.push({ name, g, arm, label, z: 0, on: false, cheered: false, i, sc });
   });
 }
-function placeFriend(f, x, z, yaw) { f.z = -z; f.on = true; f.cheered = false; f.g.visible = true; f.g.position.set(x, 0, z); f.g.rotation.y = yaw; f.label.rotation.y = -yaw; }
+function placeFriend(f, x, z, yaw) { f.z = -z; f.on = true; f.cheered = false; f.g.visible = true; f.g.position.set(x, 0, z); f.g.rotation.y = yaw; f.label.rotation.y = -yaw; f.label.position.y = 2.08 + (1 / f.sc - 1) * 0.42; }
 const RELICS = ['sock', 'mirror', 'brush', 'diaper', 'bone'];
 
 // ------------------------------------------------------------------ level generation
@@ -807,7 +824,7 @@ function step(dt) {
   }
   for (const f of friends) if (f.on) {
     f.arm.rotation.z = -0.35 + Math.sin(G.t * 10 + f.i) * 0.42; f.g.position.y = Math.abs(Math.sin(G.t * 6 + f.i)) * 0.06 * (f.cheered || G.mode === 'win' ? 2.2 : 1);
-    if (play && !f.cheered && f.z - G.dist < 2.5) { f.cheered = true; G.score += 50; hint(f.name + ': ' + T('cheers')[f.i] + ' +50', 2.2); if (audio.on) { audio.tone(784, 0.12, 'triangle', 0.1); audio.tone(1047, 0.2, 'triangle', 0.1, 0, 0.1); } }
+    if (play && !f.cheered && f.z - G.dist < 2.5) { f.cheered = true; G.score += 50; hint(f.name + ': ' + T('cheers')[f.i % T('cheers').length] + ' +50', 2.2); if (audio.on) { audio.tone(784, 0.12, 'triangle', 0.1); audio.tone(1047, 0.2, 'triangle', 0.1, 0, 0.1); } }
     if (G.mode !== 'win' && f.z < G.dist - 7) { f.on = false; f.g.visible = false; }
   }
   // ---- power-up effects on Łatka
@@ -863,7 +880,8 @@ function catchMila() {
 function finale(dt) {
   const t = G.endT, F = G.fin, cx = Pl.x, cz = -G.dist - 1, once = (k, at, fn) => { if (!F[k] && t > at) { F[k] = true; fn(); } };
   once('crowd', 1.5, () => {
-    friends.forEach((f, i) => { const a = -1.1 + i * 0.55, x = clamp(cx * 0.5 + Math.sin(a) * 2.9, -2.75, 2.75), z = cz - 1.6 - Math.cos(a) * 2.6; placeFriend(f, x, z, Math.atan2(cx - x, cz - z)); f.cheered = true; });
+    const order = [...friends].sort((p, q) => p.sc - q.sc), front = Math.ceil(order.length / 2);
+    order.forEach((f, i) => { const back = i >= front, n = back ? order.length - front : front, k = n > 1 ? (back ? i - front : i) / (n - 1) - 0.5 : 0, x = clamp(cx * 0.4 + k * (back ? 4.6 : 5.2), -2.75, 2.75), z = cz - 2.4 - (back ? 1.7 : 0) + Math.abs(k) * 0.8; placeFriend(f, x, z, Math.atan2(cx - x, cz - z)); f.cheered = true; if (back) f.label.position.y += 0.55 / f.sc; });     // two rows, the little ones in front
     Object.assign(G.pw, { magnet: 0, shield: 0, turbo: 0, x2: 0 }); for (const id of ['rTop', 'rLives', 'rMila', 'rPow', 'hint']) $(id).style.opacity = 0;
     for (const row of rows) freeRow(row); rows.length = 0; items.length = 0; for (const id in relicMeshes) relicMeshes[id].visible = false;
     setWeather('clear'); buzz([60, 40, 60]);
