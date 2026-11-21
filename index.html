@@ -169,7 +169,7 @@
 <div id="title" class="overlay hidden">
   <h1><small data-t="over"></small>Przygody zaginionej Łatki</h1>
   <p class="story" data-t="story"></p>
-  <div id="levels"><button class="ghost" data-lv="1">1 · Zaginiona świątynia</button><button class="ghost" data-lv="2">2 · Pościg za Milą</button><button class="ghost" data-lv="3">3 · Nocna wyprawa</button><button class="ghost" data-lv="4">4 · Spływ Narwią</button></div>
+  <div id="levels"><button class="ghost" data-lv="1">1 · Zaginiona świątynia</button><button class="ghost" data-lv="2">2 · Pościg za Milą</button><button class="ghost" data-lv="3">3 · Nocna wyprawa</button><button class="ghost" data-lv="4">4 · Spływ Narwią</button><button class="ghost" data-lv="5">5 · Latawiec Stasia</button></div>
   <div><button id="start" data-t="start"></button><button id="lang" class="ghost">EN</button></div>
   <div class="keys" data-t="keys"></div>
 </div>
@@ -190,7 +190,7 @@
     if (!once && window.name.indexOf(KEY + ':') === 0) once = window.name.slice(KEY.length + 1);
     if (window.name.indexOf(KEY + ':') === 0) window.name = '';
     if (once) LEVEL = once; else if (dev && q) LEVEL = q;
-    if (!/^[1-4]$/.test(LEVEL)) LEVEL = '1';
+    if (!/^[1-5]$/.test(LEVEL)) LEVEL = '1';
     if (q && !dev) history.replaceState(null, '', location.pathname);
     document.querySelectorAll('#levels button').forEach(function (b) {
       if (b.dataset.lv === LEVEL) b.classList.add('cur');
@@ -203,6 +203,6 @@
     });
   })();
 </script>
-<script type="module">/*entry*/import(LEVEL === '4' ? './src/raft.js' : LEVEL === '3' ? './src/night.js' : LEVEL === '2' ? './src/run.js' : './src/main.js').catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });</script>
+<script type="module">/*entry*/import(LEVEL === '5' ? './src/kite.js' : LEVEL === '4' ? './src/raft.js' : LEVEL === '3' ? './src/night.js' : LEVEL === '2' ? './src/run.js' : './src/main.js').catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });</script>
 </body>
 </html>
