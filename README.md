@@ -59,6 +59,8 @@ podręcznej i, jeśli jest nowszy, sama przeładowuje się do nowej wersji — z
 | `src/world.js` | kanion, rzeka, wodospad, dżungla, most, schody, tunel, świątynia, relikty |
 | `src/run.js` | poziom 2 „Pościg za Milą”: tor, przeszkody, rozgrywka (adres z `?level=2`) |
 | `src/night.js` | poziom 3 „Nocna wyprawa po szczeniaki”: ogrody, skradanie, szczeniaki (adres z `?level=3`) |
+| `src/raft.js` | poziom 4 „Spływ Narwią”: rzeka, ponton, przeszkody (adres z `?level=4`) |
+| `src/kit.js` | wspólne klocki do budowania scenerii (nowsze poziomy) |
 | `src/relics.js` | modele 3D reliktów, wspólne dla obu poziomów |
 | `src/cat.js` | model i animacja kotki Mili |
 | `src/dog.js` | model i animacja Łatki, szczeniaków i posągów |

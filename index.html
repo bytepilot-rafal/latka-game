@@ -76,6 +76,9 @@
   #nAlert.warm i { filter: none; }
   #nAlert.hot i { filter: none; transform: scale(1.3); }
   body.night #sun { top: 22px; }
+  body.raft #rScore { font-size: clamp(18px, 2.4vw, 26px); }
+  body.raft.touch #bMusic { top: auto; bottom: calc(132px + env(safe-area-inset-bottom)); right: calc(40px + env(safe-area-inset-right)); }
+  body.raft.touch #bBark { right: calc(30px + env(safe-area-inset-right)); bottom: calc(38px + env(safe-area-inset-bottom)); width: 92px; height: 92px; font-size: 17px; }
   body.night.touch #bMusic { top: auto; bottom: calc(132px + env(safe-area-inset-bottom)); right: calc(40px + env(safe-area-inset-right)); }
   body.night.touch #bBark { right: calc(34px + env(safe-area-inset-right)); bottom: calc(40px + env(safe-area-inset-bottom)); width: 82px; height: 82px; font-size: 18px; }
   #nCat { width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: var(--ink); border: 1.5px solid var(--gold); display: grid; place-items: center; font: normal 20px/1 system-ui, sans-serif; opacity: 0; box-shadow: 0 0 16px rgba(255, 200, 90, .7); animation: catPulse .6s ease-in-out infinite alternate; }
@@ -165,7 +168,7 @@
 <div id="title" class="overlay hidden">
   <h1><small data-t="over"></small>Przygody zaginionej Łatki</h1>
   <p class="story" data-t="story"></p>
-  <div id="levels"><button class="ghost" data-lv="1">1 · Zaginiona świątynia</button><button class="ghost" data-lv="2">2 · Pościg za Milą</button><button class="ghost" data-lv="3">3 · Nocna wyprawa</button></div>
+  <div id="levels"><button class="ghost" data-lv="1">1 · Zaginiona świątynia</button><button class="ghost" data-lv="2">2 · Pościg za Milą</button><button class="ghost" data-lv="3">3 · Nocna wyprawa</button><button class="ghost" data-lv="4">4 · Spływ Narwią</button></div>
   <div><button id="start" data-t="start"></button><button id="lang" class="ghost">EN</button></div>
   <div class="keys" data-t="keys"></div>
 </div>
@@ -178,12 +181,12 @@
 
 <script>
   // level picker (kept visible for testing): level 2 lives under ?level=2
-  var LEVEL = new URLSearchParams(location.search).get('level'); if (LEVEL !== '2' && LEVEL !== '3') LEVEL = '1';
+  var LEVEL = new URLSearchParams(location.search).get('level'); if (LEVEL !== '2' && LEVEL !== '3' && LEVEL !== '4') LEVEL = '1';
   document.querySelectorAll('#levels button').forEach(function (b) {
     if (b.dataset.lv === LEVEL) b.classList.add('cur');
     b.addEventListener('click', function () { if (b.dataset.lv !== LEVEL) location.search = b.dataset.lv === '1' ? '' : '?level=' + b.dataset.lv; });
   });
 </script>
-<script type="module">/*entry*/import(LEVEL === '3' ? './src/night.js' : LEVEL === '2' ? './src/run.js' : './src/main.js').catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });</script>
+<script type="module">/*entry*/import(LEVEL === '4' ? './src/raft.js' : LEVEL === '3' ? './src/night.js' : LEVEL === '2' ? './src/run.js' : './src/main.js').catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });</script>
 </body>
 </html>
