@@ -58,6 +58,7 @@ podręcznej i, jeśli jest nowszy, sama przeładowuje się do nowej wersji — z
 | `src/main.js` | pętla gry, sterowanie, kamera, fabuła, teksty |
 | `src/world.js` | kanion, rzeka, wodospad, dżungla, most, schody, tunel, świątynia, relikty |
 | `src/run.js` | poziom 2 „Pościg za Milą”: tor, przeszkody, rozgrywka (adres z `?level=2`) |
+| `src/relics.js` | modele 3D reliktów, wspólne dla obu poziomów |
 | `src/cat.js` | model i animacja kotki Mili |
 | `src/dog.js` | model i animacja Łatki, szczeniaków i posągów |
 | `src/sky.js` | niebo, słońce, zachód, mgła |

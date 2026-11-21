@@ -1,4 +1,5 @@
 // The canyon: terrain, river, waterfall, jungle, ruins, rope bridge, stairs, tunnel and temple.
+import { relicModel } from './relics.js';
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { fbm, sm, lerp, clamp, rng } from './textures.js';
@@ -642,45 +643,22 @@ export function buildWorld(scene, tex) {
     };
     // golden bone
     const bone = mkRelic('bone', world.archPos, 0xffc04a, 14);
-    { const b = bone.spin; const sh = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.5, 6, 14), gold); sh.rotation.z = Math.PI / 2; b.add(sh);
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const k = new THREE.Mesh(new THREE.SphereGeometry(0.125, 16, 12), gold); k.position.set(sx * 0.31, sy * 0.085, 0); b.add(k); }
-      b.rotation.z = 0.5; b.traverse((o) => { if (o.isMesh) o.castShadow = true; }); }
+    bone.spin.add(relicModel('bone'));
     // old stinky sock
     const sock = mkRelic('sock', world.sockPos, 0x58ff2e, 16);
-    { const c = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0.42, 0), new THREE.Vector3(0.01, 0.2, 0), new THREE.Vector3(0.02, 0.05, 0.02), new THREE.Vector3(0.1, -0.03, 0.03), new THREE.Vector3(0.26, -0.04, 0.03)]);
-      const sm_ = new THREE.MeshStandardMaterial({ color: 0x9aa36e, roughness: 1, emissive: 0x2a8a10, emissiveIntensity: 0.35 });
-      const tube = new THREE.Mesh(new THREE.TubeGeometry(c, 24, 0.095, 12, false), sm_); sock.spin.add(tube);
-      const toe = new THREE.Mesh(new THREE.SphereGeometry(0.097, 12, 10), new THREE.MeshStandardMaterial({ color: 0x6b5a3a, roughness: 1, emissive: 0x2a8a10, emissiveIntensity: 0.3 })); toe.position.set(0.26, -0.04, 0.03); sock.spin.add(toe);
-      const red = new THREE.MeshStandardMaterial({ color: 0x8e2d22, roughness: 1 });
-      for (const y of [0.4, 0.33]) { const t = new THREE.Mesh(new THREE.TorusGeometry(0.097, 0.02, 6, 16), red); t.rotation.x = Math.PI / 2; t.position.y = y; sock.spin.add(t); }
-      sock.spin.scale.setScalar(1.7); sock.spin.rotation.z = 0.25; }
+    sock.spin.add(relicModel('sock'));
     // shiny hand mirror
     const mir = mkRelic('mirror', world.mirrorPos, 0xcfeaff, 12);
-    { const s = mir.spin;
-      const face = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.02, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.02, emissive: 0xbfe4ff, emissiveIntensity: 0.9 })); face.rotation.x = Math.PI / 2; face.position.y = 0.2; s.add(face);
-      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.028, 10, 32), gold); rim.position.y = 0.2; s.add(rim);
-      const h = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.032, 0.3, 10), gold); h.position.y = -0.17; s.add(h);
-      const k = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), gold); k.position.y = -0.33; s.add(k);
-      s.scale.setScalar(1.5);
+    { mir.spin.add(relicModel('mirror'));
       const beam = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 0.25, 160, 20, 1, true), beamMaterial(0xdff2ff, 0.9, U.uTime)); beam.position.y = 80.3; beam.renderOrder = 9; mir.g.add(beam); mir.beam = beam;
       mir.rays = new THREE.Group(); mir.g.add(mir.rays);
       for (let i = 0; i < 5; i++) { const ry = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.05, 70, 10, 1, true), beamMaterial(0xfff3d0, 0.4, U.uTime)); const piv = new THREE.Group(); ry.position.y = 35; piv.add(ry); piv.rotation.set(0.22 + i * 0.09, i * 1.257, 0, 'YXZ'); piv.renderOrder = 9; mir.rays.add(piv); } }
     // Agata's hand brush – by the rocks on the landing just after the bridge
     const brush = mkRelic('brush', new THREE.Vector3(-4.2, 1.05, -103), 0xff8a2e, 13);
-    { const s = brush.spin, woodM = new THREE.MeshStandardMaterial({ color: 0xb5651d, roughness: 0.55, emissive: 0xff7a1a, emissiveIntensity: 0.25 }), straw = new THREE.MeshStandardMaterial({ color: 0xe8c66a, roughness: 0.9, emissive: 0xffb030, emissiveIntensity: 0.3 });
-      const hd = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.034, 0.36, 10), woodM); hd.position.y = 0.3; s.add(hd);
-      const kn = new THREE.Mesh(new THREE.SphereGeometry(0.04, 10, 8), woodM); kn.position.y = 0.49; s.add(kn);
-      const blk2 = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.09, 0.1), woodM); blk2.position.y = 0.09; s.add(blk2);
-      for (let i = -4; i <= 4; i++) for (const dz of [-0.03, 0.03]) { const b = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.26, 6), straw); b.rotation.x = Math.PI; b.position.set(i * 0.038, -0.07, dz); b.rotation.z = i * 0.035; s.add(b); }
-      s.rotation.z = 0.45; s.scale.setScalar(1.25); s.traverse((o) => { if (o.isMesh) o.castShadow = true; }); }
+    brush.spin.add(relicModel('brush'));
     // Jaś's nappy – on the sunny west side of the temple court
     const nappy = mkRelic('diaper', new THREE.Vector3(-15, 10.05, -236), 0xff8fd0, 13);
-    { const s = nappy.spin, cloth = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.95, emissive: 0xff9ad6, emissiveIntensity: 0.22 }), tab = new THREE.MeshStandardMaterial({ color: 0x4aa3ff, roughness: 0.6, emissive: 0x2a6adf, emissiveIntensity: 0.4 });
-      const bum = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 14), cloth); bum.scale.set(1.1, 0.85, 0.82); s.add(bum);
-      const waist = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 24), cloth); waist.rotation.x = Math.PI / 2; waist.position.y = 0.11; waist.scale.set(1.1, 0.82, 1); s.add(waist);
-      for (const sd of [-1, 1]) { const leg = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.03, 8, 18), cloth); leg.position.set(sd * 0.12, -0.11, 0.02); leg.rotation.set(Math.PI / 2 - 0.5, 0, sd * 0.5); s.add(leg);
-        const t = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, 0.02), tab); t.position.set(sd * 0.13, 0.1, 0.145); t.rotation.y = sd * 0.5; s.add(t); }
-      s.scale.setScalar(1.25); s.traverse((o) => { if (o.isMesh) o.castShadow = true; }); }
+    nappy.spin.add(relicModel('diaper'));
     for (const [r, c] of [[brush, 0xffa24a], [nappy, 0xffa6dc]]) { const bm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.18, 22, 14, 1, true), beamMaterial(c, 0.45, U.uTime)); bm.position.y = 11; bm.renderOrder = 9; r.g.add(bm); r.beam = bm; }
     // golden bone beam (soft) so it can be seen from the knoll
     const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.2, 26, 14, 1, true), beamMaterial(0xffc860, 0.5, U.uTime)); bb.position.y = 13; bb.renderOrder = 9; bone.g.add(bb); bone.beam = bb;

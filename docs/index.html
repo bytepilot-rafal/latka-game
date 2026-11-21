@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261121-173348';
+  window.BUILD = '20261121-174156';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v + (/[?&]level=2/.test(location.search) ? '&level=2' : ''));
@@ -945,6 +945,54 @@ export function buildCat(opt = {}) {
 }
 
 </script>
+<script type="text/plain" id="m-relics">
+// The five relics as 3D models, shared by both levels so they look the same everywhere.
+import * as THREE from 'three';
+
+export const RELIC_COLORS = { bone: 0xffc04a, sock: 0x58ff2e, mirror: 0xcfeaff, brush: 0xff8a2e, diaper: 0xff8fd0 };
+
+export function relicModel(id) {
+  const s = new THREE.Group(), add = (g, m) => { const o = new THREE.Mesh(g, m); s.add(o); return o; };
+  const gold = new THREE.MeshStandardMaterial({ color: 0xffc84a, metalness: 1, roughness: 0.22, emissive: 0xff9a1a, emissiveIntensity: 0.55 });
+  if (id === 'bone') {                      // golden bone
+    add(new THREE.CapsuleGeometry(0.075, 0.5, 6, 14), gold).rotation.z = Math.PI / 2;
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) add(new THREE.SphereGeometry(0.125, 16, 12), gold).position.set(sx * 0.31, sy * 0.085, 0);
+    s.rotation.z = 0.5;
+  } else if (id === 'sock') {               // old stinky sock
+    const c = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0.42, 0), new THREE.Vector3(0.01, 0.2, 0), new THREE.Vector3(0.02, 0.05, 0.02), new THREE.Vector3(0.1, -0.03, 0.03), new THREE.Vector3(0.26, -0.04, 0.03)]);
+    add(new THREE.TubeGeometry(c, 24, 0.095, 12, false), new THREE.MeshStandardMaterial({ color: 0x9aa36e, roughness: 1, emissive: 0x2a8a10, emissiveIntensity: 0.35 }));
+    add(new THREE.SphereGeometry(0.097, 12, 10), new THREE.MeshStandardMaterial({ color: 0x6b5a3a, roughness: 1, emissive: 0x2a8a10, emissiveIntensity: 0.3 })).position.set(0.26, -0.04, 0.03);
+    const red = new THREE.MeshStandardMaterial({ color: 0x8e2d22, roughness: 1 });
+    for (const y of [0.4, 0.33]) { const t = add(new THREE.TorusGeometry(0.097, 0.02, 6, 16), red); t.rotation.x = Math.PI / 2; t.position.y = y; }
+    s.scale.setScalar(1.7); s.rotation.z = 0.25;
+  } else if (id === 'mirror') {             // shiny hand mirror
+    const face = add(new THREE.CylinderGeometry(0.2, 0.2, 0.02, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.02, emissive: 0xbfe4ff, emissiveIntensity: 0.9 })); face.rotation.x = Math.PI / 2; face.position.y = 0.2;
+    add(new THREE.TorusGeometry(0.21, 0.028, 10, 32), gold).position.y = 0.2;
+    add(new THREE.CylinderGeometry(0.026, 0.032, 0.3, 10), gold).position.y = -0.17;
+    add(new THREE.SphereGeometry(0.045, 10, 8), gold).position.y = -0.33;
+    s.scale.setScalar(1.5);
+  } else if (id === 'brush') {              // Agata's hand brush
+    const woodM = new THREE.MeshStandardMaterial({ color: 0xb5651d, roughness: 0.55, emissive: 0xff7a1a, emissiveIntensity: 0.25 }), straw = new THREE.MeshStandardMaterial({ color: 0xe8c66a, roughness: 0.9, emissive: 0xffb030, emissiveIntensity: 0.3 });
+    add(new THREE.CylinderGeometry(0.028, 0.034, 0.36, 10), woodM).position.y = 0.3;
+    add(new THREE.SphereGeometry(0.04, 10, 8), woodM).position.y = 0.49;
+    add(new THREE.BoxGeometry(0.34, 0.09, 0.1), woodM).position.y = 0.09;
+    for (let i = -4; i <= 4; i++) for (const dz of [-0.03, 0.03]) { const b = add(new THREE.ConeGeometry(0.022, 0.26, 6), straw); b.rotation.x = Math.PI; b.position.set(i * 0.038, -0.07, dz); b.rotation.z = i * 0.035; }
+    s.rotation.z = 0.45; s.scale.setScalar(1.25);
+  } else if (id === 'diaper') {             // Jaś's nappy
+    const cloth = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.95, emissive: 0xff9ad6, emissiveIntensity: 0.22 }), tab = new THREE.MeshStandardMaterial({ color: 0x4aa3ff, roughness: 0.6, emissive: 0x2a6adf, emissiveIntensity: 0.4 });
+    add(new THREE.SphereGeometry(0.2, 18, 14), cloth).scale.set(1.1, 0.85, 0.82);
+    const waist = add(new THREE.TorusGeometry(0.18, 0.04, 10, 24), cloth); waist.rotation.x = Math.PI / 2; waist.position.y = 0.11; waist.scale.set(1.1, 0.82, 1);
+    for (const sd of [-1, 1]) {
+      const leg = add(new THREE.TorusGeometry(0.075, 0.03, 8, 18), cloth); leg.position.set(sd * 0.12, -0.11, 0.02); leg.rotation.set(Math.PI / 2 - 0.5, 0, sd * 0.5);
+      const t = add(new THREE.BoxGeometry(0.09, 0.05, 0.02), tab); t.position.set(sd * 0.13, 0.1, 0.145); t.rotation.y = sd * 0.5;
+    }
+    s.scale.setScalar(1.25);
+  }
+  s.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return s;
+}
+
+</script>
 <script type="text/plain" id="m-sky">
 // Sunset: sky dome, sun + ambient light, fog, far mountains, environment map.
 import * as THREE from 'three';
@@ -1273,6 +1321,7 @@ export class AudioSys {
 </script>
 <script type="text/plain" id="m-world">
 // The canyon: terrain, river, waterfall, jungle, ruins, rope bridge, stairs, tunnel and temple.
+import { relicModel } from './relics.js';
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { fbm, sm, lerp, clamp, rng } from './textures.js';
@@ -1916,45 +1965,22 @@ export function buildWorld(scene, tex) {
     };
     // golden bone
     const bone = mkRelic('bone', world.archPos, 0xffc04a, 14);
-    { const b = bone.spin; const sh = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.5, 6, 14), gold); sh.rotation.z = Math.PI / 2; b.add(sh);
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const k = new THREE.Mesh(new THREE.SphereGeometry(0.125, 16, 12), gold); k.position.set(sx * 0.31, sy * 0.085, 0); b.add(k); }
-      b.rotation.z = 0.5; b.traverse((o) => { if (o.isMesh) o.castShadow = true; }); }
+    bone.spin.add(relicModel('bone'));
     // old stinky sock
     const sock = mkRelic('sock', world.sockPos, 0x58ff2e, 16);
-    { const c = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0.42, 0), new THREE.Vector3(0.01, 0.2, 0), new THREE.Vector3(0.02, 0.05, 0.02), new THREE.Vector3(0.1, -0.03, 0.03), new THREE.Vector3(0.26, -0.04, 0.03)]);
-      const sm_ = new THREE.MeshStandardMaterial({ color: 0x9aa36e, roughness: 1, emissive: 0x2a8a10, emissiveIntensity: 0.35 });
-      const tube = new THREE.Mesh(new THREE.TubeGeometry(c, 24, 0.095, 12, false), sm_); sock.spin.add(tube);
-      const toe = new THREE.Mesh(new THREE.SphereGeometry(0.097, 12, 10), new THREE.MeshStandardMaterial({ color: 0x6b5a3a, roughness: 1, emissive: 0x2a8a10, emissiveIntensity: 0.3 })); toe.position.set(0.26, -0.04, 0.03); sock.spin.add(toe);
-      const red = new THREE.MeshStandardMaterial({ color: 0x8e2d22, roughness: 1 });
-      for (const y of [0.4, 0.33]) { const t = new THREE.Mesh(new THREE.TorusGeometry(0.097, 0.02, 6, 16), red); t.rotation.x = Math.PI / 2; t.position.y = y; sock.spin.add(t); }
-      sock.spin.scale.setScalar(1.7); sock.spin.rotation.z = 0.25; }
+    sock.spin.add(relicModel('sock'));
     // shiny hand mirror
     const mir = mkRelic('mirror', world.mirrorPos, 0xcfeaff, 12);
-    { const s = mir.spin;
-      const face = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.02, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.02, emissive: 0xbfe4ff, emissiveIntensity: 0.9 })); face.rotation.x = Math.PI / 2; face.position.y = 0.2; s.add(face);
-      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.028, 10, 32), gold); rim.position.y = 0.2; s.add(rim);
-      const h = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.032, 0.3, 10), gold); h.position.y = -0.17; s.add(h);
-      const k = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), gold); k.position.y = -0.33; s.add(k);
-      s.scale.setScalar(1.5);
+    { mir.spin.add(relicModel('mirror'));
       const beam = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 0.25, 160, 20, 1, true), beamMaterial(0xdff2ff, 0.9, U.uTime)); beam.position.y = 80.3; beam.renderOrder = 9; mir.g.add(beam); mir.beam = beam;
       mir.rays = new THREE.Group(); mir.g.add(mir.rays);
       for (let i = 0; i < 5; i++) { const ry = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.05, 70, 10, 1, true), beamMaterial(0xfff3d0, 0.4, U.uTime)); const piv = new THREE.Group(); ry.position.y = 35; piv.add(ry); piv.rotation.set(0.22 + i * 0.09, i * 1.257, 0, 'YXZ'); piv.renderOrder = 9; mir.rays.add(piv); } }
     // Agata's hand brush – by the rocks on the landing just after the bridge
     const brush = mkRelic('brush', new THREE.Vector3(-4.2, 1.05, -103), 0xff8a2e, 13);
-    { const s = brush.spin, woodM = new THREE.MeshStandardMaterial({ color: 0xb5651d, roughness: 0.55, emissive: 0xff7a1a, emissiveIntensity: 0.25 }), straw = new THREE.MeshStandardMaterial({ color: 0xe8c66a, roughness: 0.9, emissive: 0xffb030, emissiveIntensity: 0.3 });
-      const hd = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.034, 0.36, 10), woodM); hd.position.y = 0.3; s.add(hd);
-      const kn = new THREE.Mesh(new THREE.SphereGeometry(0.04, 10, 8), woodM); kn.position.y = 0.49; s.add(kn);
-      const blk2 = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.09, 0.1), woodM); blk2.position.y = 0.09; s.add(blk2);
-      for (let i = -4; i <= 4; i++) for (const dz of [-0.03, 0.03]) { const b = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.26, 6), straw); b.rotation.x = Math.PI; b.position.set(i * 0.038, -0.07, dz); b.rotation.z = i * 0.035; s.add(b); }
-      s.rotation.z = 0.45; s.scale.setScalar(1.25); s.traverse((o) => { if (o.isMesh) o.castShadow = true; }); }
+    brush.spin.add(relicModel('brush'));
     // Jaś's nappy – on the sunny west side of the temple court
     const nappy = mkRelic('diaper', new THREE.Vector3(-15, 10.05, -236), 0xff8fd0, 13);
-    { const s = nappy.spin, cloth = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.95, emissive: 0xff9ad6, emissiveIntensity: 0.22 }), tab = new THREE.MeshStandardMaterial({ color: 0x4aa3ff, roughness: 0.6, emissive: 0x2a6adf, emissiveIntensity: 0.4 });
-      const bum = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 14), cloth); bum.scale.set(1.1, 0.85, 0.82); s.add(bum);
-      const waist = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 24), cloth); waist.rotation.x = Math.PI / 2; waist.position.y = 0.11; waist.scale.set(1.1, 0.82, 1); s.add(waist);
-      for (const sd of [-1, 1]) { const leg = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.03, 8, 18), cloth); leg.position.set(sd * 0.12, -0.11, 0.02); leg.rotation.set(Math.PI / 2 - 0.5, 0, sd * 0.5); s.add(leg);
-        const t = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, 0.02), tab); t.position.set(sd * 0.13, 0.1, 0.145); t.rotation.y = sd * 0.5; s.add(t); }
-      s.scale.setScalar(1.25); s.traverse((o) => { if (o.isMesh) o.castShadow = true; }); }
+    nappy.spin.add(relicModel('diaper'));
     for (const [r, c] of [[brush, 0xffa24a], [nappy, 0xffa6dc]]) { const bm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.18, 22, 14, 1, true), beamMaterial(c, 0.45, U.uTime)); bm.position.y = 11; bm.renderOrder = 9; r.g.add(bm); r.beam = bm; }
     // golden bone beam (soft) so it can be seen from the knoll
     const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.2, 26, 14, 1, true), beamMaterial(0xffc860, 0.5, U.uTime)); bb.position.y = 13; bb.renderOrder = 9; bone.g.add(bb); bone.beam = bb;
@@ -2681,6 +2707,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createTextures, sm, lerp, clamp, rng, fbm } from './textures.js';
 import { buildDog } from './dog.js';
 import { buildCat } from './cat.js';
+import { relicModel, RELIC_COLORS } from './relics.js';
 import { Particles, fogUniforms } from './fx.js';
 import { AudioSys } from './audio.js';
 
@@ -2696,7 +2723,7 @@ const TXT = {
     k_street: 'Ulica', turn: 'Skrzyżowanie! Wybierz kierunek — jeśli nie zdążysz, wybierze los.', caught: (p) => `Mam cię! +${p}`, away: 'Mila ucieka dalej!', ouch: 'Auć!',
     winT: 'Mila złapana!', winX: (s, b, best) => `Mila ma dość uciekania — od dziś biegacie razem. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
     loseT: 'Mila uciekła…', loseX: (s, b, best) => `Tym razem była szybsza. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
-    r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
+    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
   },
   en: {
     over: 'Level 2', title: 'Chasing Mila', start: 'Run!', again: 'Again', menu: 'Menu',
@@ -2708,7 +2735,7 @@ const TXT = {
     k_street: 'Street', turn: 'Junction! Pick a way — if you are too slow, chance decides.', caught: (p) => `Gotcha! +${p}`, away: 'Mila is off again!', ouch: 'Ouch!',
     winT: 'Mila is caught!', winX: (s, b, best) => `Mila is done running — from now on you run together. Score: ${s} · bones: ${b} · best: ${best}`,
     loseT: 'Mila got away…', loseX: (s, b, best) => `She was faster this time. Score: ${s} · bones: ${b} · best: ${best}`,
-    r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
+    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
   },
 };
 let lang = 'pl';
@@ -3044,14 +3071,16 @@ function buildPickups() {
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const s = new THREE.SphereGeometry(0.07, 8, 6); s.translate(sx * 0.14, sy * 0.05, 0); parts.push(s.toNonIndexed()); }
   boneMesh = new THREE.InstancedMesh(mergeGeometries(parts), new THREE.MeshStandardMaterial({ color: 0xffd257, emissive: 0x9a5a00, emissiveIntensity: 0.9, roughness: 0.35 }), BONES);
   boneMesh.frustumCulled = false; boneMesh.castShadow = true; scene.add(boneMesh);
-  for (const [id, col] of [['sock', 0x9fbf5a], ['mirror', 0x8fd8ff], ['brush', 0xff8a2e], ['diaper', 0xff8fd0]]) {
-    const g = new THREE.Group(), c = new THREE.Color(col);
-    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.26, 0), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 1.3, roughness: 0.3 })); g.add(core);
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.03, 6, 24), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.6) })); g.add(halo);
+  // the rare relics are the very same models as in level 1, with a ring around them so they stand out on the road
+  for (const id of RELICS) {
+    const g = new THREE.Group(), c = new THREE.Color(RELIC_COLORS[id]), model = relicModel(id);
+    model.traverse((o) => { if (o.isMesh && o.material.metalness > 0.5) { o.material.metalness = 0.35; o.material.emissiveIntensity *= 1.5; } });   // no reflection map on this level: plain metal would render black
+    const spin = new THREE.Group(); spin.add(model); spin.scale.setScalar(1.35); g.add(spin);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.035, 6, 28), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.6) })); g.add(halo);
     g.visible = false; g.userData.col = c; scene.add(g); relicMeshes[id] = g;
   }
 }
-const RELICS = ['sock', 'mirror', 'brush', 'diaper'];
+const RELICS = ['sock', 'mirror', 'brush', 'diaper', 'bone'];
 
 // ------------------------------------------------------------------ level generation
 const gen = { z: 40, safe: 1, relicAt: 260, relicI: 0 };
@@ -3085,7 +3114,7 @@ function genRow() {
     const off = act ? (i - 2) * 1.5 : -7.6 + i * 1.45, y = act === 'low' ? 0.5 + 0.95 * Math.cos((i - 2) / 2 * 1.35) ** 2 * (i === 0 || i === 4 ? 0.35 : 1) : act === 'high' ? 0.3 : 0.55;
     if (z + off > gen.z + 1.2) items.push({ x: LX[safe], y, z: z + off, kind: 'bone' });
   }
-  if (z > gen.relicAt) { items.push({ x: LX[safe], y: 0.75, z: z - dz * 0.5 - (act ? 2 : 0), kind: RELICS[gen.relicI++ % 4] }); gen.relicAt = z + 230 + R() * 90; }
+  if (z > gen.relicAt) { items.push({ x: LX[safe], y: 0.85, z: z - dz * 0.5 - (act ? 2 : 0), kind: RELICS[gen.relicI++ % RELICS.length] }); gen.relicAt = z + 230 + R() * 90; }
   gen.z = z; gen.safe = safe;
 }
 function clearAhead(from, to) {
@@ -3270,7 +3299,7 @@ function step(dt) {
   for (const it of items) {
     if (it.z > G.dist + 120) continue;
     if (it.kind === 'bone') { if (n < BONES) { dummy.position.set(it.x, it.y + Math.sin(G.t * 3 + it.z) * 0.05, -it.z); dummy.rotation.set(0.3, G.t * 3.2 + it.z * 0.5, 0.5); dummy.scale.setScalar(1.55); dummy.updateMatrix(); boneMesh.setMatrixAt(n++, dummy.matrix); } }
-    else { const m = it.mesh || (it.mesh = relicMeshes[it.kind]); m.visible = true; m.position.set(it.x, it.y + Math.sin(G.t * 2.5) * 0.08, -it.z); m.rotation.y = G.t * 2.4; m.children[1].rotation.x = G.t * 1.7; }
+    else { const m = it.mesh || (it.mesh = relicMeshes[it.kind]); m.visible = true; m.position.set(it.x, it.y + Math.sin(G.t * 2.5) * 0.08, -it.z); m.children[0].rotation.y = G.t * 2.4; m.children[1].rotation.x = G.t * 1.7; m.children[1].rotation.y = G.t * 0.9; }
   }
   boneMesh.count = n; boneMesh.instanceMatrix.needsUpdate = true;
   pAdd.update(dt); pAlpha.update(dt);
@@ -3353,7 +3382,7 @@ boot().catch((e) => { console.error(e); $('loading').textContent = 'Błąd: ' + 
 
 </script>
 <script type="module">
-  const order = ['textures', 'fx', 'dog', 'cat', 'sky', 'audio', 'world', 'main', 'run'], urls = {};
+  const order = ['textures', 'fx', 'dog', 'cat', 'relics', 'sky', 'audio', 'world', 'main', 'run'], urls = {};
   for (const n of order) {
     let src = document.getElementById('m-' + n).textContent;
     src = src.replace(/from '\.\/(\w+)\.js'/g, (m, k) => "from '" + urls[k] + "'");

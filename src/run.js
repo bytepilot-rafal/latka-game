@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createTextures, sm, lerp, clamp, rng, fbm } from './textures.js';
 import { buildDog } from './dog.js';
 import { buildCat } from './cat.js';
+import { relicModel, RELIC_COLORS } from './relics.js';
 import { Particles, fogUniforms } from './fx.js';
 import { AudioSys } from './audio.js';
 
@@ -20,7 +21,7 @@ const TXT = {
     k_street: 'Ulica', turn: 'Skrzyżowanie! Wybierz kierunek — jeśli nie zdążysz, wybierze los.', caught: (p) => `Mam cię! +${p}`, away: 'Mila ucieka dalej!', ouch: 'Auć!',
     winT: 'Mila złapana!', winX: (s, b, best) => `Mila ma dość uciekania — od dziś biegacie razem. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
     loseT: 'Mila uciekła…', loseX: (s, b, best) => `Tym razem była szybsza. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
-    r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
+    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
   },
   en: {
     over: 'Level 2', title: 'Chasing Mila', start: 'Run!', again: 'Again', menu: 'Menu',
@@ -32,7 +33,7 @@ const TXT = {
     k_street: 'Street', turn: 'Junction! Pick a way — if you are too slow, chance decides.', caught: (p) => `Gotcha! +${p}`, away: 'Mila is off again!', ouch: 'Ouch!',
     winT: 'Mila is caught!', winX: (s, b, best) => `Mila is done running — from now on you run together. Score: ${s} · bones: ${b} · best: ${best}`,
     loseT: 'Mila got away…', loseX: (s, b, best) => `She was faster this time. Score: ${s} · bones: ${b} · best: ${best}`,
-    r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
+    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
   },
 };
 let lang = 'pl';
@@ -368,14 +369,16 @@ function buildPickups() {
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const s = new THREE.SphereGeometry(0.07, 8, 6); s.translate(sx * 0.14, sy * 0.05, 0); parts.push(s.toNonIndexed()); }
   boneMesh = new THREE.InstancedMesh(mergeGeometries(parts), new THREE.MeshStandardMaterial({ color: 0xffd257, emissive: 0x9a5a00, emissiveIntensity: 0.9, roughness: 0.35 }), BONES);
   boneMesh.frustumCulled = false; boneMesh.castShadow = true; scene.add(boneMesh);
-  for (const [id, col] of [['sock', 0x9fbf5a], ['mirror', 0x8fd8ff], ['brush', 0xff8a2e], ['diaper', 0xff8fd0]]) {
-    const g = new THREE.Group(), c = new THREE.Color(col);
-    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.26, 0), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 1.3, roughness: 0.3 })); g.add(core);
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.03, 6, 24), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.6) })); g.add(halo);
+  // the rare relics are the very same models as in level 1, with a ring around them so they stand out on the road
+  for (const id of RELICS) {
+    const g = new THREE.Group(), c = new THREE.Color(RELIC_COLORS[id]), model = relicModel(id);
+    model.traverse((o) => { if (o.isMesh && o.material.metalness > 0.5) { o.material.metalness = 0.35; o.material.emissiveIntensity *= 1.5; } });   // no reflection map on this level: plain metal would render black
+    const spin = new THREE.Group(); spin.add(model); spin.scale.setScalar(1.35); g.add(spin);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.035, 6, 28), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.6) })); g.add(halo);
     g.visible = false; g.userData.col = c; scene.add(g); relicMeshes[id] = g;
   }
 }
-const RELICS = ['sock', 'mirror', 'brush', 'diaper'];
+const RELICS = ['sock', 'mirror', 'brush', 'diaper', 'bone'];
 
 // ------------------------------------------------------------------ level generation
 const gen = { z: 40, safe: 1, relicAt: 260, relicI: 0 };
@@ -409,7 +412,7 @@ function genRow() {
     const off = act ? (i - 2) * 1.5 : -7.6 + i * 1.45, y = act === 'low' ? 0.5 + 0.95 * Math.cos((i - 2) / 2 * 1.35) ** 2 * (i === 0 || i === 4 ? 0.35 : 1) : act === 'high' ? 0.3 : 0.55;
     if (z + off > gen.z + 1.2) items.push({ x: LX[safe], y, z: z + off, kind: 'bone' });
   }
-  if (z > gen.relicAt) { items.push({ x: LX[safe], y: 0.75, z: z - dz * 0.5 - (act ? 2 : 0), kind: RELICS[gen.relicI++ % 4] }); gen.relicAt = z + 230 + R() * 90; }
+  if (z > gen.relicAt) { items.push({ x: LX[safe], y: 0.85, z: z - dz * 0.5 - (act ? 2 : 0), kind: RELICS[gen.relicI++ % RELICS.length] }); gen.relicAt = z + 230 + R() * 90; }
   gen.z = z; gen.safe = safe;
 }
 function clearAhead(from, to) {
@@ -594,7 +597,7 @@ function step(dt) {
   for (const it of items) {
     if (it.z > G.dist + 120) continue;
     if (it.kind === 'bone') { if (n < BONES) { dummy.position.set(it.x, it.y + Math.sin(G.t * 3 + it.z) * 0.05, -it.z); dummy.rotation.set(0.3, G.t * 3.2 + it.z * 0.5, 0.5); dummy.scale.setScalar(1.55); dummy.updateMatrix(); boneMesh.setMatrixAt(n++, dummy.matrix); } }
-    else { const m = it.mesh || (it.mesh = relicMeshes[it.kind]); m.visible = true; m.position.set(it.x, it.y + Math.sin(G.t * 2.5) * 0.08, -it.z); m.rotation.y = G.t * 2.4; m.children[1].rotation.x = G.t * 1.7; }
+    else { const m = it.mesh || (it.mesh = relicMeshes[it.kind]); m.visible = true; m.position.set(it.x, it.y + Math.sin(G.t * 2.5) * 0.08, -it.z); m.children[0].rotation.y = G.t * 2.4; m.children[1].rotation.x = G.t * 1.7; m.children[1].rotation.y = G.t * 0.9; }
   }
   boneMesh.count = n; boneMesh.instanceMatrix.needsUpdate = true;
   pAdd.update(dt); pAlpha.update(dt);
