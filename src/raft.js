@@ -15,10 +15,10 @@ const TXT = {
   pl: {
     over: 'Poziom 4', title: 'Spływ Narwią', start: 'Odbijamy!', again: 'Jeszcze raz', menu: 'Menu',
     story: 'Łatka i Mila płyną pontonem od mostu w Serocku aż na plażę. Steruj, wiosłuj, omijaj skały, kłody i kajakarzy — i nie daj się wciągnąć wirom!',
-    keys: 'A / D lub ← → — ster · Spacja lub W — wiosło · M — muzyka',
-    keys_t: 'Lewy kciuk w lewo / w prawo — ster · przycisk — wiosło',
+    keys: 'A / D lub ← → — ster · ↑, W lub Spacja (można trzymać) — wiosło · M — muzyka',
+    keys_t: 'Lewy kciuk w lewo / w prawo — ster · przycisk (można trzymać) — wiosło',
     time: (t) => `Czas: ${t}`, bones: (n) => `Kości: ${n}`, left: (m) => `Do plaży: ${m} m`, paddle: 'Wiosło',
-    h_start: 'Nurt niesie ponton. Steruj na boki i wiosłuj, żeby przyspieszyć.', h_lane: 'Bystry nurt — tu płynie się szybciej!', h_whirl: 'Wir! Wiosłuj, żeby się wyrwać!',
+    h_start: 'Nurt niesie ponton. Steruj na boki; trzymaj wiosło, żeby płynąć szybciej.', h_lane: 'Bystry nurt — tu płynie się szybciej!', h_whirl: 'Wir! Wiosłuj, żeby się wyrwać!',
     h_sand: 'Mielizna — ponton zwalnia.', h_bridge: 'Przepłyń między filarami mostu.', h_kayak: 'Uwaga, kajakarz!', h_beach: 'Widać plażę!',
     hit: 'Auć! Dziura w pontonie!', patch: 'Łatka na ponton! +1', k_place: 'Narew', p1: 'Most w Serocku', p2: 'Wielkie Zakole', p3: 'Stary Most', p4: 'Plaża',
     winT: 'Dopłynęli!', winX: (t, b, s) => `Łatka i Mila są na plaży. Czas: ${t} · kości: ${b}. ${s}`,
@@ -27,10 +27,10 @@ const TXT = {
   en: {
     over: 'Level 4', title: 'Down the Narew', start: 'Cast off!', again: 'Again', menu: 'Menu',
     story: 'Łatka and Mila ride a raft from the bridge in Serock all the way to the beach. Steer, paddle, dodge rocks, logs and kayakers — and stay out of the whirlpools!',
-    keys: 'A / D or ← → — steer · Space or W — paddle · M — music',
-    keys_t: 'Left thumb left / right — steer · button — paddle',
+    keys: 'A / D or ← → — steer · ↑, W or Space (hold) — paddle · M — music',
+    keys_t: 'Left thumb left / right — steer · button (hold) — paddle',
     time: (t) => `Time: ${t}`, bones: (n) => `Bones: ${n}`, left: (m) => `To the beach: ${m} m`, paddle: 'Paddle',
-    h_start: 'The current carries the raft. Steer sideways and paddle to go faster.', h_lane: 'Fast water — the raft speeds up here!', h_whirl: 'A whirlpool! Paddle to break free!',
+    h_start: 'The current carries the raft. Steer sideways; hold the paddle to go faster.', h_lane: 'Fast water — the raft speeds up here!', h_whirl: 'A whirlpool! Paddle to break free!',
     h_sand: 'A sandbank — the raft slows down.', h_bridge: 'Pass between the piers of the bridge.', h_kayak: 'Mind the kayaker!', h_beach: 'The beach is in sight!',
     hit: 'Ouch! A hole in the raft!', patch: 'A patch for the raft! +1', k_place: 'Narew', p1: 'Most w Serocku', p2: 'Wielkie Zakole', p3: 'Stary Most', p4: 'Plaża',
     winT: 'They made it!', winX: (t, b, s) => `Łatka and Mila are on the beach. Time: ${t} · bones: ${b}. ${s}`,
@@ -179,10 +179,10 @@ function buildCourse() {
   while (s < END - 70) {
     const d = clamp(s / END, 0, 1), h = half(s) - 1.1, near = BR.some((q) => Math.abs(q - s) < 26), prev = gap;
     gap = clamp(prev + (R() - 0.5) * 2 * 4.5, -h + 1.6, h - 1.6);
-    let type = near ? 'bridge' : pick(d < 0.12 ? ['rocks', 'lane', 'rocks', 'sand'] : ['rocks', 'rocks', 'log', 'whirl', 'kayak', 'sand', 'lane', 'log']);
+    let type = near ? 'bridge' : pick(d < 0.1 ? ['rocks', 'lane', 'rocks', 'sand'] : ['rocks', 'rocks', 'log', 'whirl', 'kayak', 'sand', 'lane', 'log', 'rocks', 'kayak', 'whirl']);
     if (type === 'bridge') { const bs = BR.find((q) => Math.abs(q - s) < 26); gap = 0; events.push({ s: bs, gap: 0, type }); s = bs + 30; continue; }
     const ev = { s, gap, type }; events.push(ev);
-    if (type === 'rocks') { const n = 2 + (R() < d ? 1 : 0); for (let i = 0; i < n; i++) { let u, t = 0; do { u = (R() * 2 - 1) * h; } while (Math.abs(u - gap) < 2.7 && t++ < 20); if (Math.abs(u - gap) >= 2.7) rock(s + (R() - 0.5) * 5, u, 0.8 + R() * 0.5); } }
+    if (type === 'rocks') { const n = 3 + (R() < d ? 1 : 0) + (R() < 0.4 ? 1 : 0); for (let i = 0; i < n; i++) { let u, t = 0; do { u = (R() * 2 - 1) * h; } while (Math.abs(u - gap) < 2.7 && t++ < 20); if (Math.abs(u - gap) >= 2.7) rock(s + (R() - 0.5) * 5, u, 0.8 + R() * 0.5); } }
     else if (type === 'log') { const side = gap > 0 ? -1 : 1, len = clamp(Math.abs(side * h - gap) - 2.7, 2, 9), uc = side * h - side * len / 2, x = cx(s) + uc, g = new THREE.CylinderGeometry(0.3, 0.34, len, 10); g.rotateZ(Math.PI / 2); b.add(g, 0x6b4a32, x, 0.12, -s); b.cyl(0.06, 0.08, 0.5, x + len * 0.2, 0.3, -s, 0x5c3f2a); for (let k = 0; k <= Math.floor(len / 1.1); k++) obs.push({ type: 'log', s, u: uc - len / 2 + 0.4 + k * 1.1, r: 0.55 }); }
     else if (type === 'sand') { const u = clamp(gap + (R() < 0.5 ? -1 : 1) * (3.4 + R() * 2), -h, h), x = cx(s) + u, g = new THREE.CylinderGeometry(2.6, 3.0, 0.14, 18); b.add(g, 0xe2cf9a, x, 0.0, -s, 0, 0.03); b.blob(0.3, x + 0.8, 0.14, -s - 0.5, 0x8a877f, 0.5); obs.push({ type: 'sand', s, u, r: 2.6 }); }
     else if (type === 'whirl') { const u = clamp(gap + (R() < 0.5 ? -1 : 1) * (4 + R() * 1.5), -h + 1, h - 1); whirls.push({ s, u, r: 2.7 }); obs.push({ type: 'whirl', s, u, r: 2.7 }); }
@@ -191,7 +191,8 @@ function buildCourse() {
     // bones: a line through the gap, leading on from the last one
     if (type !== 'kayak') for (let i = 0; i < 6; i++) { const k = i / 5, ss = s - 14 + k * (type === 'lane' ? 44 : 20); items.push({ s: ss, u: lerp(prev, gap, sm(0, 0.7, k)), kind: 'bone', got: false }); }
     if (events.length % 9 === 0) items.push({ s: s + 12, u: gap, kind: 'patch', got: false });
-    s += type === 'lane' ? 50 : lerp(34, 24, d) + R() * 10 + (type === 'kayak' ? 8 : 0);
+    if (type !== 'lane' && type !== 'kayak' && R() < 0.35 + d * 0.4) { let u, t = 0; do { u = (R() * 2 - 1) * h; } while (Math.abs(u - gap) < 3 && t++ < 20); if (Math.abs(u - gap) >= 3) rock(s + 9 + R() * 4, u, 0.6 + R() * 0.35); }      // a stray rock on the way to the next one
+    s += type === 'lane' ? 44 : lerp(25, 16, d) + R() * 7 + (type === 'kayak' ? 8 : 0);
   }
   scene.add(b.mesh());
   // whirlpools, fast-water strips, kayakers, pickups
@@ -208,7 +209,7 @@ function buildCourse() {
     k.g = new THREE.Group(); k.g.add(kb.mesh()); const pb = new Builder(1350 + i); pb.cyl(0.025, 0.025, 2.2, 0, -1.1, 0, 0x3a3a3e, 6); pb.box(0.2, 0.36, 0.03, 0, 0.92, 0, col); pb.box(0.2, 0.36, 0.03, 0, -1.28, 0, col); k.p = pb.mesh(); k.p.position.set(0, 0.72, 0.15); k.p.rotation.z = Math.PI / 2; k.g.add(k.p); scene.add(k.g); obs.push({ type: 'kayak', k, r: 1.25 }); });
   const parts = [], cg = new THREE.CylinderGeometry(0.06, 0.06, 0.34, 8); cg.rotateZ(Math.PI / 2); parts.push(cg.toNonIndexed());
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const q = new THREE.SphereGeometry(0.09, 8, 6); q.translate(sx * 0.18, sy * 0.065, 0); parts.push(q.toNonIndexed()); }
-  boneMesh = new THREE.InstancedMesh(mergeGeometries(parts), new THREE.MeshStandardMaterial({ color: 0xffd257, emissive: 0x9a5a00, emissiveIntensity: 0.9, roughness: 0.35 }), 90); boneMesh.frustumCulled = false; boneMesh.castShadow = true; scene.add(boneMesh);
+  boneMesh = new THREE.InstancedMesh(mergeGeometries(parts), new THREE.MeshStandardMaterial({ color: 0xffd257, emissive: 0x9a5a00, emissiveIntensity: 0.9, roughness: 0.35 }), 140); boneMesh.frustumCulled = false; boneMesh.castShadow = true; scene.add(boneMesh);
   for (const it of items) if (it.kind === 'patch') { it.m = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.15, 10, 24), new THREE.MeshStandardMaterial({ color: 0xe2402f, emissive: 0x5a1008, roughness: 0.5 })); const w = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.155, 10, 6, 0.5), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 })); it.m.add(w); const w2 = w.clone(); w2.rotation.z = Math.PI; it.m.add(w2); scene.add(it.m); }
 }
 
@@ -257,7 +258,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code.startsWith('Arrow')) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; touch.paddle = false; });
 {
   const zone = $('joyZone'), base = $('joy'), knob = $('joyKnob'), R = 50, NP = { passive: false }; let id = null, ox = 0;
   const each = (e, fn) => { e.preventDefault(); for (const t of e.changedTouches) fn(t); };
@@ -266,7 +267,8 @@ window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; }
   zone.addEventListener('touchmove', (e) => each(e, (t) => { if (t.identifier === id) set(t.clientX - ox); }), NP);
   const end = (e) => each(e, (t) => { if (t.identifier !== id) return; id = null; base.classList.remove('act'); base.style.left = base.style.top = ''; set(0); });
   zone.addEventListener('touchend', end, NP); zone.addEventListener('touchcancel', end, NP);
-  $('bBark').addEventListener('touchstart', (e) => { e.preventDefault(); paddle(); }, NP);
+  $('bBark').addEventListener('touchstart', (e) => { e.preventDefault(); touch.paddle = true; paddle(); }, NP);
+  for (const ev of ['touchend', 'touchcancel']) $('bBark').addEventListener(ev, (e) => { e.preventDefault(); touch.paddle = false; }, NP);
   $('bMusic').addEventListener('touchstart', (e) => { e.preventDefault(); if (audio.on) $('bMusic').classList.toggle('off', !audio.toggleMusic()); }, NP);
   for (const g of ['gesturestart', 'gesturechange']) document.addEventListener(g, (e) => e.preventDefault());
 }
@@ -301,6 +303,7 @@ function damage(ox, oz, type) {
 function step(dt) {
   G.t += dt; const play = G.mode === 'play', moving = play || G.mode === 'land';
   G.inv = Math.max(0, G.inv - dt); G.cd = Math.max(0, G.cd - dt); G.stroke = Math.max(0, G.stroke - dt * 2.4); G.shake = Math.max(0, G.shake - dt * 1.8);
+  if (play && (keys.ArrowUp || keys.KeyW || keys.Space || touch.paddle)) paddle();          // holding the key or the button keeps the paddles going
   if (G.bot && play) bot();
   // ---- the raft
   let steer = clamp((keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + touch.x + input.x, -1, 1), slow = 1, fast = 0;
@@ -356,7 +359,7 @@ function step(dt) {
   for (const k of kayaks) { if (Math.abs(k.s - G.s) > 130) { k.g.visible = false; continue; } k.g.visible = true; const a = G.t * k.w + k.ph; k.u = Math.sin(a) * k.amp; k.g.position.set(cx(k.s) + k.u, 0.02 + Math.sin(G.t * 2 + k.ph) * 0.04, -k.s); k.g.rotation.y = Math.cos(a) > 0 ? Math.PI / 2 : -Math.PI / 2; k.p.rotation.x = Math.sin(G.t * 4 + k.ph) * 0.6; if (play && k.s - G.s < 45 && k.s > G.s) hint('h_kayak'); }
   for (const w of whirls) if (Math.abs(w.s - G.s) < 90) w.m.rotation.y = -G.t * 2.4;
   for (const l of lanes) l.m.material.map.offset.y = -G.t * 1.6;
-  let n = 0; for (const it of items) { if (it.got || it.s < G.s - 6 || it.s > G.s + 130) continue; const x = cx(it.s) + it.u; if (it.kind === 'bone') { if (n < 90) { dummy.position.set(x, 0.95 + Math.sin(G.t * 3 + it.s) * 0.08, -it.s); dummy.rotation.set(0.3, G.t * 3 + it.s, 0.5); dummy.scale.setScalar(1.5); dummy.updateMatrix(); boneMesh.setMatrixAt(n++, dummy.matrix); } } else { it.m.position.set(x, 0.9 + Math.sin(G.t * 2.5) * 0.1, -it.s); it.m.rotation.y = G.t * 2; } }
+  let n = 0; for (const it of items) { if (it.got || it.s < G.s - 6 || it.s > G.s + 130) continue; const x = cx(it.s) + it.u; if (it.kind === 'bone') { if (n < 140) { dummy.position.set(x, 0.95 + Math.sin(G.t * 3 + it.s) * 0.08, -it.s); dummy.rotation.set(0.3, G.t * 3 + it.s, 0.5); dummy.scale.setScalar(1.5); dummy.updateMatrix(); boneMesh.setMatrixAt(n++, dummy.matrix); } } else { it.m.position.set(x, 0.9 + Math.sin(G.t * 2.5) * 0.1, -it.s); it.m.rotation.y = G.t * 2; } }
   boneMesh.count = n; boneMesh.instanceMatrix.needsUpdate = true;
   pAdd.update(dt); pAlpha.update(dt);
   // ---- camera, light, water
