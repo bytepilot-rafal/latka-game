@@ -17,8 +17,8 @@ const TXT = {
   pl: {
     over: 'Poziom 5', title: 'Latawiec Stasia', start: 'Lecimy!', again: 'Jeszcze raz', menu: 'Menu',
     story: 'Wiatr porwał latawiec Stasia — razem z Łatką! Szybuj nad wsią, Narwią i lasem, przelatuj przez obręcze z chmur, omijaj balony i bociany, a na koniec wyląduj na Słonecznej Polanie, gdzie czeka Staś.',
-    keys: 'A / D lub ← → — skręt · W / ↑ — w górę · S / ↓ — nurkowanie (szybciej) · Spacja — hau! · M — muzyka',
-    keys_t: 'Lewy kciuk: na boki — skręt, w górę — wznoszenie, w dół — nurkowanie · przycisk — hau!',
+    keys: 'A / D lub ← → — skręt · S / ↓ — w górę · W / ↑ — nurkowanie (szybciej) · Spacja — hau! · M — muzyka',
+    keys_t: 'Lewy kciuk: na boki — skręt, do siebie (w dół) — wznoszenie, od siebie (w górę) — nurkowanie · przycisk — hau!',
     sub: (a, n, b, h) => `Obręcze ${a}/${n} · Kości ${b} · ${h} m`, next: (m) => `Następna obręcz: ${m} m`, land: (m) => `Słoneczna Polana: ${m} m`, bark: 'Hau!',
     h_start: 'Przelatuj przez obręcze z chmur. Nurkując, przyspieszasz.', h_thermal: 'Komin ciepłego powietrza — niesie w górę!', h_storm: 'Burza! Trzymaj kurs i nie daj się zepchnąć.',
     h_low: 'Za nisko! W górę!', h_land: 'Ląduj w białym kole na Słonecznej Polanie.', h_balloon: 'Uwaga na balony!', h_stork: 'Bociany! Omiń je.',
@@ -31,8 +31,8 @@ const TXT = {
   en: {
     over: 'Level 5', title: 'Staś\'s Kite', start: 'Take off!', again: 'Again', menu: 'Menu',
     story: 'The wind has carried Staś\'s kite away — with Łatka hanging on! Glide over the village, the Narew and the forest, fly through the rings of cloud, dodge balloons and storks, and land on Słoneczna Polana where Staś is waiting.',
-    keys: 'A / D or ← → — turn · W / ↑ — climb · S / ↓ — dive (faster) · Space — woof! · M — music',
-    keys_t: 'Left thumb: sideways — turn, up — climb, down — dive · button — woof!',
+    keys: 'A / D or ← → — turn · S / ↓ — climb · W / ↑ — dive (faster) · Space — woof! · M — music',
+    keys_t: 'Left thumb: sideways — turn, pull down — climb, push up — dive · button — woof!',
     sub: (a, n, b, h) => `Rings ${a}/${n} · Bones ${b} · ${h} m`, next: (m) => `Next ring: ${m} m`, land: (m) => `Słoneczna Polana: ${m} m`, bark: 'Woof!',
     h_start: 'Fly through the rings of cloud. Diving makes you faster.', h_thermal: 'A thermal — warm air carries you up!', h_storm: 'A storm! Hold your course.',
     h_low: 'Too low! Pull up!', h_land: 'Land in the white circle on Słoneczna Polana.', h_balloon: 'Mind the balloons!', h_stork: 'Storks! Fly around them.',
@@ -491,7 +491,7 @@ function step(dt) {
   G.t += dt; U.uTime.value = G.t; const play = G.mode === 'play', title = G.mode === 'title', win = G.mode === 'win';
   if (play) {
     G.time += dt; G.inv = Math.max(0, G.inv - dt);
-    if (G.bot) bot(); else { input.x = clamp((keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + touch.x, -1, 1); input.y = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + touch.y, -1, 1); }
+    if (G.bot) bot(); else { input.x = clamp((keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + touch.x, -1, 1); input.y = clamp((keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0) - touch.y, -1, 1); }
     const px = P.x, py = P.y, pz = P.z; fly(dt, input.x, input.y);
     // rings
     if (G.gi < gates.length) {
