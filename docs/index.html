@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261121-172752';
+  window.BUILD = '20261121-173348';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v + (/[?&]level=2/.test(location.search) ? '&level=2' : ''));
@@ -2807,12 +2807,31 @@ function buildScenery() {
     fragmentShader: `uniform vec3 uTop, uHor, uSun, uSunDir; uniform float uTime; varying vec3 vDir;
       float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
       float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }
-      float fb(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a * vn(p); p = p * 2.03 + 7.1; a *= 0.5; } return s; }
-      void main(){ vec3 d = normalize(vDir); float h = max(d.y, 0.0); vec3 c = mix(uHor, uTop, pow(h, 0.55));
-        float sd = max(dot(d, uSunDir), 0.0); c += uSun * (pow(sd, 90.0) * 0.9 + pow(sd, 9.0) * 0.18);
-        if (d.y > 0.0) { vec2 p = d.xz / (d.y + 0.14) * 0.85 + vec2(uTime * 0.008, 0.0); float n = fb(p) * 0.7 + fb(p * 2.6 + 3.0) * 0.3;
-          float cov = smoothstep(0.66, 0.88, n) * smoothstep(0.0, 0.13, d.y); c = mix(c, mix(vec3(1.0), uHor, 0.3) + uSun * 0.12, cov * 0.88); }
-        c = mix(c, uHor, exp(-h * 9.0) * 0.75); gl_FragColor = vec4(c, 1.0);
+      float fb(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.07 + 7.1; a *= 0.5; } return s / 0.9375; }
+      void main(){
+        vec3 d = normalize(vDir); float h = max(d.y, 0.0);
+        vec3 c = mix(uHor, uTop, pow(h, 0.5)); c = mix(c, uTop * 0.72, pow(h, 1.7) * 0.55);                  // deeper blue overhead
+        float sd = max(dot(d, uSunDir), 0.0), sa = max(dot(normalize(d.xz + 1e-5), normalize(uSunDir.xz + 1e-5)), 0.0);
+        c += uSun * pow(sa, 5.0) * exp(-h * 5.5) * 0.4;                                                      // warm band of sky under the sun
+        c += uSun * (pow(sd, 40.0) * 0.45 + pow(sd, 5.0) * 0.2);                                             // halo
+        float disc = smoothstep(0.9993, 0.99965, sd);
+        if (d.y > 0.0) {
+          vec2 p = d.xz / (d.y + 0.11); float up = smoothstep(0.0, 0.16, d.y);
+          // thin streaks of high cloud
+          float ci = fb(p * vec2(0.45, 1.7) + vec2(uTime * 0.003, 3.0)); ci = smoothstep(0.52, 0.8, ci) * 0.4 * up;
+          c = mix(c, vec3(0.97) + uSun * 0.12, ci);
+          // drifting heaps of cumulus, lit from the sun's side, grey underneath
+          vec2 q = p * 0.7 + vec2(uTime * 0.009, uTime * 0.002);
+          float n = fb(q) * 0.68 + fb(q * 3.1 + 5.0) * 0.32, cov = smoothstep(0.55, 0.74, n);
+          vec2 ld = normalize(uSunDir.xz + 1e-4) * 0.16; float n2 = fb(q + ld);
+          float lit = clamp((fb(q) - n2) * 3.2 + 0.55, 0.0, 1.0), thick = smoothstep(0.55, 0.95, n);
+          vec3 bright = mix(vec3(1.0), uSun, 0.45) * 1.12, under = mix(uTop, uHor, 0.55) * 0.62 + uSun * 0.1;
+          vec3 cc = mix(under, bright, clamp(lit * (1.0 - thick * 0.55) + 0.18, 0.0, 1.0));
+          cc += uSun * pow(sd, 10.0) * (1.0 - thick) * 0.9;                                                  // glowing edges where the sun shines through
+          c = mix(c, cc, cov * up * 0.94); disc *= 1.0 - cov * 0.9;
+        }
+        c += uSun * disc * 9.0;
+        c = mix(c, uHor, exp(-h * 11.0) * 0.72); gl_FragColor = vec4(c, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }` }));
@@ -2852,7 +2871,7 @@ function buildScenery() {
     }, 1, 1);
     plateMats.push(new THREE.MeshStandardMaterial({ map: t, roughness: 0.5 }));
   }
-  const plateG = new THREE.PlaneGeometry(2.3, 0.575);
+  const plateG = new THREE.PlaneGeometry(2.7, 0.675);
   const WALLS = [0xeadcbe, 0xf3efe4, 0xe7c98c, 0xdcc0a2, 0xcfd8cf], ROOFS = [0x9a3b2e, 0x80402f, 0x55565c, 0x6f3a2c];
   const GREENS = [0x3f7a2c, 0x4f8a34, 0x356b2a, 0x5c9440];
   for (let ci = 0; ci < NC; ci++) {
@@ -2882,7 +2901,7 @@ function buildScenery() {
           for (let i = 0; i < 6; i++) b.blob(0.5 + r() * 0.3, fx + s * 0.8, 0.5, z0 - 1 - i * 2, GREENS[(r() * 4) | 0], 0.8);
         }
         // what stands on the plot
-        const hx = s * (ROADW / 2 + 6.2 + r() * 2.5), q = r();
+        const hx = s * (ROADW / 2 + 6.2 + r() * 2.5), q = ci % 2 === 0 && s === (ci % 4 === 0 ? -1 : 1) && seg === 0 ? 0 : r();
         if (q < 0.62) {
           const w = 6 + r() * 2.5, d = 6.5 + r() * 2.5, h = 2.9 + (r() < 0.35 ? 2.4 : 0), wall = WALLS[(r() * WALLS.length) | 0], roof = ROOFS[(r() * ROOFS.length) | 0];
           b.box(w, 0.35, d, hx, 0, zc, 0x8f8a82); b.box(w - 0.1, h, d - 0.1, hx, 0.35, zc, wall, 0, 0.03);
@@ -2891,7 +2910,7 @@ function buildScenery() {
           const face = hx - s * (w / 2 + 0.02);
           for (const wz of [-d * 0.27, d * 0.27]) for (let fl = 0; fl < (h > 4 ? 2 : 1); fl++) { b.box(0.06, 1.25, 1.15, face - s * 0.01, 1.25 + fl * 2.4, zc + wz, 0xf4f1ea, 0, 0); b.box(0.07, 1.05, 0.95, face - s * 0.03, 1.35 + fl * 2.4, zc + wz, 0x2c3f52, 0, 0); }
           b.box(0.07, 2.0, 0.95, face - s * 0.02, 0.35, zc, 0x6b4630, 0, 0);                                           // door
-          if ((ci === 2 || ci === 6) && !grp.userData.plate) { const pl = new THREE.Mesh(plateG, plateMats[0]); pl.position.set(face - s * 0.07, 2.75, zc); pl.rotation.y = -s * Math.PI / 2; grp.userData.plate = pl; grp.userData.plateSide = s; }
+          if (ci % 2 === 0 && s === (ci % 4 === 0 ? -1 : 1) && !grp.userData.plate) { const pl = new THREE.Mesh(plateG, plateMats[0]); pl.position.set(face - s * 0.07, 2.75, zc); pl.rotation.y = -s * Math.PI / 2; grp.userData.plate = pl; grp.userData.plateSide = s; }
           b.box(Math.abs(face - fx) - 0.3, 0.04, 1.6, (face + fx) / 2, 0, zc, 0xa8a49b, 0, 0.03);                     // path to the gate
           if (r() < 0.6) tree(hx + s * (1 + r() * 3), zc + (r() < 0.5 ? -5 : 5), 0.8 + r() * 0.4);
         } else if (q < 0.82) { tree(hx - s * 1.5, zc + 2, 1 + r() * 0.5); spruce(hx + s * 2, zc - 3, 6 + r() * 3); tree(hx + s * 4, zc + 4, 0.9); }
@@ -2980,16 +2999,16 @@ function doTurn(dir) {
 }
 // time of day drifts from a bright afternoon to a warm sunset over the three stages
 const MOODS = [
-  { top: [0.04, 0.24, 0.95], hor: [0.5, 0.74, 1.0], sun: [1.0, 0.96, 0.86], si: 3.3, hi: 1.05, el: 0.9, fog: 0.0105 },
-  { top: [0.2, 0.36, 0.76], hor: [0.99, 0.82, 0.58], sun: [1.0, 0.82, 0.55], si: 3.1, hi: 0.9, el: 0.5, fog: 0.012 },
-  { top: [0.16, 0.2, 0.52], hor: [1.0, 0.56, 0.36], sun: [1.0, 0.56, 0.3], si: 2.8, hi: 0.9, el: 0.28, fog: 0.0135 },
+  { top: [0.03, 0.22, 0.92], hor: [0.5, 0.75, 1.0], sun: [1.0, 0.95, 0.82], si: 3.3, hi: 1.05, el: 0.62, fog: 0.0105 },
+  { top: [0.1, 0.27, 0.78], hor: [1.0, 0.8, 0.52], sun: [1.0, 0.8, 0.5], si: 3.1, hi: 0.92, el: 0.38, fog: 0.012 },
+  { top: [0.12, 0.14, 0.5], hor: [1.0, 0.5, 0.3], sun: [1.0, 0.52, 0.26], si: 2.8, hi: 0.9, el: 0.17, fog: 0.0135 },
 ];
 const mood = { k: 0 }, sunDir = new THREE.Vector3(), tmpC = new THREE.Color(), YAX = new THREE.Vector3(0, 1, 0);
 function updateMood(dt) {
   mood.k += (Math.min(2, G.stage + (G.mode === 'play' ? sm(0, 1, G.stageT / 60) * 0.6 : 0)) - mood.k) * Math.min(1, dt * 0.6);
   const i = Math.min(1, Math.floor(mood.k)), f = mood.k - i, a = MOODS[i], b = MOODS[i + 1], L3 = (p, q) => [lerp(p[0], q[0], f), lerp(p[1], q[1], f), lerp(p[2], q[2], f)];
   skyU.uTop.value.setRGB(...L3(a.top, b.top)); skyU.uHor.value.setRGB(...L3(a.hor, b.hor)); skyU.uSun.value.setRGB(...L3(a.sun, b.sun));
-  const el = lerp(a.el, b.el, f); sunDir.set(-0.55 * Math.cos(el), Math.sin(el), -0.84 * Math.cos(el)).normalize(); skyU.uSunDir.value.copy(sunDir); skyU.uTime.value = G.t; sunDir.applyAxisAngle(YAX, G.yaw); G.dome.rotation.y = G.yaw;    // the sky and the light turn with the world
+  const el = lerp(a.el, b.el, f); sunDir.set(-0.42 * Math.cos(el), Math.sin(el), -0.91 * Math.cos(el)).normalize(); skyU.uSunDir.value.copy(sunDir); skyU.uTime.value = G.t; sunDir.applyAxisAngle(YAX, G.yaw); G.dome.rotation.y = G.yaw;    // the sky and the light turn with the world
   sun.color.setRGB(...L3(a.sun, b.sun)); sun.intensity = lerp(a.si, b.si, f); hemi.intensity = lerp(a.hi, b.hi, f);
   hemi.color.setRGB(...L3(a.top, b.top)).lerp(tmpC.setRGB(1, 1, 1), 0.55); scene.fog.color.setRGB(...L3(a.hor, b.hor)); scene.fog.density = lerp(a.fog, b.fog, f);
   fogUniforms.uFogColor.value.copy(scene.fog.color); fogUniforms.uFogDensity.value = scene.fog.density;
@@ -3036,22 +3055,24 @@ const RELICS = ['sock', 'mirror', 'brush', 'diaper'];
 
 // ------------------------------------------------------------------ level generation
 const gen = { z: 40, safe: 1, relicAt: 260, relicI: 0 };
-function difficulty() { return clamp(G.stage * 0.3 + sm(0, 50, G.stageT) * 0.25, 0, 1); }
-function speedNow() { return STAGE_SPEED[Math.min(2, G.stage)] + sm(0, 45, G.stageT) * 1.6; }
+// Difficulty climbs steadily with the time actually played (and a little with every catch): Łatka runs faster,
+// obstacles come closer together, fewer lanes are left open and the safe lane more often needs a jump or a slide.
+function difficulty() { return clamp(G.playT / 170 + G.stage * 0.12, 0, 1); }
+function speedNow() { return 9.0 + Math.min(5.6, G.playT * 0.034) + Math.min(2, G.stage) * 0.45; }
 function genRow() {
   const d = difficulty(), sp = speedNow(), prev = gen.safe;
   let safe = clamp(prev + (R() < 0.6 ? (R() < 0.5 ? -1 : 1) : 0), 0, 2);
-  let dz = sp * lerp(1.2, 0.82, d) + R() * sp * 0.4; if (safe !== prev) dz += sp * 0.22;
+  let dz = sp * lerp(1.3, 0.78, d) + R() * sp * lerp(0.45, 0.25, d); if (safe !== prev) dz += sp * 0.22;
   if (jn && !jn.done && Math.max(gen.z + dz, G.genMin) > jn.J - 32) { gen.hold = true; return; }   // keep the run-up to a junction clear
   const z = Math.max(gen.z + dz, G.genMin), row = { z, cells: [null, null, null], safe, objs: [], hit: false, wide: null };
   const q = R(), pick = (a) => a[(R() * a.length) | 0];
-  if (q < 0.12 + d * 0.05) { row.wide = 'biglog'; row.cells = ['low', 'low', 'low']; safe = row.safe = prev; }
-  else if (q < 0.24 + d * 0.1) { row.wide = 'line'; row.cells = ['high', 'high', 'high']; safe = row.safe = prev; }
+  if (q < 0.08 + d * 0.1) { row.wide = 'biglog'; row.cells = ['low', 'low', 'low']; safe = row.safe = prev; }
+  else if (q < 0.16 + d * 0.2) { row.wide = 'line'; row.cells = ['high', 'high', 'high']; safe = row.safe = prev; }
   else {
     let n = 0;
     for (let l = 0; l < 3; l++) {
-      if (l === safe) { if (R() < 0.18 + d * 0.3) row.cells[l] = R() < 0.55 ? 'low' : 'high'; continue; }
-      const k = R(); row.cells[l] = k < 0.5 ? 'full' : k < 0.68 ? 'low' : k < 0.82 ? 'high' : null; if (row.cells[l]) n++;
+      if (l === safe) { if (R() < 0.08 + d * 0.45) row.cells[l] = R() < 0.55 ? 'low' : 'high'; continue; }
+      const k = R(), open = lerp(0.42, 0.08, d); row.cells[l] = k < open ? null : k < open + (1 - open) * 0.62 ? 'full' : k < open + (1 - open) * 0.82 ? 'low' : 'high'; if (row.cells[l]) n++;
     }
     if (!n) row.cells[(safe + 1) % 3] = 'full';
   }
@@ -3127,7 +3148,7 @@ window.addEventListener('keydown', (e) => {
 // ------------------------------------------------------------------ game flow
 function reset() {
   for (const r of rows) freeRow(r); rows.length = 0; items.length = 0; R = rng(G.bot ? G.seed || 7 : 7 + ((Math.random() * 1e6) | 0));
-  Object.assign(G, { t: 0, dist: 0, speed: 0, stage: 0, gap: STAGE_GAP[0], lives: 3, score: 0, bones: 0, inv: 0, slow: 0, ct: 0, stageT: 0, shake: 0, streak: 0, blend: 0, genMin: 0, endT: 0 });
+  Object.assign(G, { playT: 0, t: 0, dist: 0, speed: 0, stage: 0, gap: STAGE_GAP[0], lives: 3, score: 0, bones: 0, inv: 0, slow: 0, ct: 0, stageT: 0, shake: 0, streak: 0, blend: 0, genMin: 0, endT: 0 });
   Object.assign(Pl, { lane: 1, x: 0, y: 0, vy: 0, slide: 0, grounded: true }); Object.assign(Mi, { lane: 1, x: 0, y: 0, vy: 0, crouch: 0 });
   Object.assign(gen, { z: 38, safe: 1, relicAt: 240, relicI: 0 }); mood.k = 0;
   chunks.forEach((c, i) => placeTrack(c, (i - 1) * CL)); junction.visible = false; jn = null; gen.hold = false;
@@ -3167,7 +3188,7 @@ function step(dt) {
   const play = G.mode === 'play', moving = play || G.mode === 'catch';
   // ---- speed and distance
   let target = 0;
-  if (moving) { G.stageT += play ? dt : 0; target = speedNow() * (1 - 0.45 * G.slow); }
+  if (moving) { G.stageT += play ? dt : 0; G.playT += play ? dt : 0; target = speedNow() * (1 - 0.45 * G.slow); }
   G.slow = Math.max(0, G.slow - dt * 1.4); G.inv = Math.max(0, G.inv - dt);
   G.speed += (target - G.speed) * Math.min(1, dt * (moving ? 3.2 : 2.2));
   const prevDist = G.dist; G.dist += G.speed * dt; if (play) G.score += G.speed * dt;
