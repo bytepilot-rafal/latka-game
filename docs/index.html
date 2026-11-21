@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261121-170234';
+  window.BUILD = '20261121-172752';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v + (/[?&]level=2/.test(location.search) ? '&level=2' : ''));
@@ -2693,7 +2693,7 @@ const TXT = {
     keys_t: 'Przesuń palcem: w lewo / w prawo — tor · w górę — skok · w dół — ślizg',
     hint: 'Kości przybliżają cię do Mili. Każde potknięcie daje jej przewagę!',
     mila: (m) => `Mila: ${m} m`, stage: (n) => `Etap ${n}/3`, bones: (n) => `Kości: ${n}`,
-    k_street: 'Ulica', turn: 'Skrzyżowanie! Wybierz kierunek: w lewo albo w prawo.', caught: (p) => `Mam cię! +${p}`, away: 'Mila ucieka dalej!', ouch: 'Auć!',
+    k_street: 'Ulica', turn: 'Skrzyżowanie! Wybierz kierunek — jeśli nie zdążysz, wybierze los.', caught: (p) => `Mam cię! +${p}`, away: 'Mila ucieka dalej!', ouch: 'Auć!',
     winT: 'Mila złapana!', winX: (s, b, best) => `Mila ma dość uciekania — od dziś biegacie razem. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
     loseT: 'Mila uciekła…', loseX: (s, b, best) => `Tym razem była szybsza. Wynik: ${s} · kości: ${b} · rekord: ${best}`,
     r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
@@ -2705,7 +2705,7 @@ const TXT = {
     keys_t: 'Swipe: left / right — lane · up — jump · down — slide',
     hint: 'Bones bring you closer to Mila. Every stumble gives her a head start!',
     mila: (m) => `Mila: ${m} m`, stage: (n) => `Stage ${n}/3`, bones: (n) => `Bones: ${n}`,
-    k_street: 'Street', turn: 'Junction! Pick a way: left or right.', caught: (p) => `Gotcha! +${p}`, away: 'Mila is off again!', ouch: 'Ouch!',
+    k_street: 'Street', turn: 'Junction! Pick a way — if you are too slow, chance decides.', caught: (p) => `Gotcha! +${p}`, away: 'Mila is off again!', ouch: 'Ouch!',
     winT: 'Mila is caught!', winX: (s, b, best) => `Mila is done running — from now on you run together. Score: ${s} · bones: ${b} · best: ${best}`,
     loseT: 'Mila got away…', loseX: (s, b, best) => `She was faster this time. Score: ${s} · bones: ${b} · best: ${best}`,
     r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
@@ -2938,8 +2938,8 @@ function planJunction() {
   const J = trackFar() + CL + JH; G.jCount = (G.jCount || 0) + 1;
   jn = { J, arms: 0, done: false, choice: null, id: G.jCount };
   junction.position.set(0, 0, -J); junction.rotation.y = 0; junction.visible = true;
-  for (let i = rows.length - 1; i >= 0; i--) if (rows[i].z > J - 26) { freeRow(rows[i]); rows.splice(i, 1); }
-  for (let i = items.length - 1; i >= 0; i--) if (items[i].z > J - 26) { if (items[i].mesh) items[i].mesh.visible = false; items.splice(i, 1); }
+  for (let i = rows.length - 1; i >= 0; i--) if (rows[i].z > J - 32) { freeRow(rows[i]); rows.splice(i, 1); }
+  for (let i = items.length - 1; i >= 0; i--) if (items[i].z > J - 32) { if (items[i].mesh) items[i].mesh.visible = false; items.splice(i, 1); }
   gen.z = Math.min(gen.z, rows.length ? rows[rows.length - 1].z : gen.z);
 }
 function manageChunks() {
@@ -2974,7 +2974,7 @@ function doTurn(dir) {
     else { rotAbout(c, J, th); if (u.role === 'track') { u.role = 'spareOld'; u.ready = J + 50; } else { u.role = 'spareArm'; u.ready = G.t + 0.3; } }
   }
   rotAbout(junction, J, th);
-  G.dist = J + (dir === 'left' ? -Pl.x : Pl.x); Pl.x = 0; Pl.lane = 1; Mi.x = 0; Mi.lane = 1; Mi.lead = 0.8;
+  G.dist = J + (dir === 'left' ? -Pl.x : Pl.x); Pl.x = 0; Pl.lane = 1; Mi.x = 0; Mi.lane = 1;
   G.yawOff = th; G.yaw += th; jn.done = true; gen.hold = false; gen.z = J + 14; gen.safe = 1; G.genMin = J + 26; G.nextJ = J + 240 + Math.random() * 110;
   audio.whoosh(); G.score += 25;
 }
@@ -3042,7 +3042,7 @@ function genRow() {
   const d = difficulty(), sp = speedNow(), prev = gen.safe;
   let safe = clamp(prev + (R() < 0.6 ? (R() < 0.5 ? -1 : 1) : 0), 0, 2);
   let dz = sp * lerp(1.2, 0.82, d) + R() * sp * 0.4; if (safe !== prev) dz += sp * 0.22;
-  if (jn && !jn.done && Math.max(gen.z + dz, G.genMin) > jn.J - 26) { gen.hold = true; return; }   // keep the run-up to a junction clear
+  if (jn && !jn.done && Math.max(gen.z + dz, G.genMin) > jn.J - 32) { gen.hold = true; return; }   // keep the run-up to a junction clear
   const z = Math.max(gen.z + dz, G.genMin), row = { z, cells: [null, null, null], safe, objs: [], hit: false, wide: null };
   const q = R(), pick = (a) => a[(R() * a.length) | 0];
   if (q < 0.12 + d * 0.05) { row.wide = 'biglog'; row.cells = ['low', 'low', 'low']; safe = row.safe = prev; }
@@ -3092,14 +3092,14 @@ function hud(force) {
   set('rLives', [0, 1, 2].map((i) => `<span class="${i < G.lives ? '' : 'lost'}">${paw}</span>`).join(''), true);
   set('rLabel', T('mila', Math.max(0, Math.round(G.gap))));
   $('rCat').style.left = clamp(G.gap / 42, 0, 1) * 100 + '%';
-  const tv = G.mode === 'play' && jn && !jn.done && jn.J - G.dist < 48 ? (jn.choice || 'ask') : '';
+  const tv = G.mode === 'play' && jn && !jn.done && jn.J - G.dist < 30 ? (jn.choice || 'ask') : '';
   if (shown.turn !== tv) { shown.turn = tv; $('turn').className = 'ui ' + tv; if (tv === 'ask' && !G.turnHint) { G.turnHint = true; hint(T('turn'), 4); } }
 }
 
 // ------------------------------------------------------------------ input
 function act(a) {
   if (G.mode !== 'play') return;
-  if ((a === 'left' || a === 'right') && jn && !jn.done && jn.J - G.dist < 18) { if (jn.choice !== a) { jn.choice = a; audio.whoosh(); audio.tone(880, 0.12, 'triangle', 0.12); } return; }   // at a junction the swipe picks the way
+  if ((a === 'left' || a === 'right') && jn && !jn.done && jn.J - G.dist < 30) { if (!jn.locked && jn.choice !== a) { jn.choice = a; audio.whoosh(); audio.tone(880, 0.12, 'triangle', 0.12); } return; }   // at a junction the swipe picks the way
   if (a === 'left' && Pl.lane > 0) { Pl.lane--; audio.whoosh(); }
   else if (a === 'right' && Pl.lane < 2) { Pl.lane++; audio.whoosh(); }
   else if (a === 'up') { if (Pl.grounded) { Pl.vy = 6.7; Pl.grounded = false; Pl.slide = 0; audio.jump(); } else Pl.jumpBuf = 0.14; }
@@ -3182,8 +3182,9 @@ function step(dt) {
   while (rows.length && rows[0].z < G.dist - 1.3) { freeRow(rows[0]); rows.shift(); }      // gone as soon as it is behind Łatka, so nothing ever hides her from the camera
   if (moving) manageChunks();
   if (moving && jn && !jn.done) {
-    if (G.dist >= jn.J && jn.choice) doTurn(jn.choice);
-    else if (G.dist >= jn.J + 2.3) { if (play) stumble({}); if (G.mode !== 'over') doTurn(Math.random() < 0.5 ? 'left' : 'right'); }     // ran straight into the hedge
+    // the way can be picked (and changed) for the last 30 m; 5 m before the corner it is settled – by chance if nobody chose
+    if (!jn.locked && G.dist >= jn.J - 5) { if (!jn.choice) { jn.choice = Math.random() < 0.5 ? 'left' : 'right'; audio.tone(660, 0.12, 'triangle', 0.1); } jn.locked = true; }
+    if (G.dist >= jn.J) doTurn(jn.choice);
   }
   if (G.yawOff) { const d = dt * (Math.PI / 2) / 0.36; G.yawOff = Math.abs(G.yawOff) <= d ? 0 : G.yawOff - Math.sign(G.yawOff) * d; }
   // ---- collisions
@@ -3204,7 +3205,8 @@ function step(dt) {
     }
     G.streakT -= dt;
     G.gap -= dt * 0.27;
-    if (G.gap <= 2.3) { if (jn && (jn.done ? G.dist < jn.J + 30 : jn.J - G.dist < 85)) G.gap = 2.35; else catchMila(); }     // never in the middle of a junction
+    if (jn && (jn.done ? G.dist < jn.J + 20 : jn.J - G.dist < 70)) G.gap = Math.max(G.gap, 8);       // no catch in the middle of a junction: she keeps a few metres clear there
+    else if (G.gap <= 2.3) catchMila();
   }
   // ---- stage transition / endings
   if (G.mode === 'catch') {
@@ -3219,7 +3221,8 @@ function step(dt) {
   // ---- Mila: follows the safe lane, hops and ducks like a pro
   const pounce = G.mode === 'catch' ? sm(0, 0.22, G.ct) * (1 - sm(0.4, 0.8, G.ct)) : 0;
   let lead = 2.3 + (G.gap - 2.3) * 0.5 - pounce * 1.25, waits = false;
-  if (jn && !jn.done && lead > jn.J - 0.8 - G.dist) { lead = Math.max(0.7, jn.J - 0.8 - G.dist); waits = true; }       // she stops at the corner and looks back until Łatka picks a way
+  if (jn && !jn.done && !jn.choice && lead > jn.J - 0.8 - G.dist) { lead = Math.max(0.7, jn.J - 0.8 - G.dist); waits = true; }       // way still open: she hesitates at the corner
+  if (jn && !jn.done && jn.choice && G.dist + Mi.lead > jn.J) jn.locked = true;                                                    // she has gone round the corner: settled
   Mi.lead += clamp(lead - Mi.lead, -1e9, dt * 17);
   const mz = G.dist + Mi.lead,          // drawn at half the real lead, so she stays in sight
      sitM = G.mode === 'win' || G.mode === 'title' ? 1 : 0;
@@ -3231,6 +3234,7 @@ function step(dt) {
   if (Mi.vy !== 0 || Mi.y > 0) { Mi.vy -= 19 * dt; Mi.y += Mi.vy * dt; if (Mi.y <= 0) { Mi.y = 0; Mi.vy = 0; Mi.flip = 0; } }
   if (Mi.flip > 0 && Mi.y > 0) { Mi.flip += dt; if (Math.random() < rawDt * 60) pAdd.spawn(Mi.x + (Math.random() - 0.5) * 0.3, Mi.y + 0.3, -mz, (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2 - G.speed * 0.6, 0.5, 0.22, 0.02, 4, 3, 1, 1, 3, 1); }
   if (G.mode === 'title') { cat.root.position.set(-1.0, 0, -G.dist - 1.3); cat.root.rotation.y = Math.PI + 0.5; cat.root.visible = true; }
+  else if (jn && !jn.done && jn.choice && mz > jn.J) { const sgn = jn.choice === 'left' ? -1 : 1; cat.root.position.set(sgn * (mz - jn.J), Mi.y, -jn.J); cat.root.rotation.set(0, sgn * Math.PI / 2, 0); cat.root.visible = true; }   // already running down the chosen street
   else { cat.root.position.set(Mi.x, Mi.y + (Mi.flip > 0 ? 0.25 * Math.sin(Math.min(1, Mi.flip / 0.74) * Math.PI) : 0), -mz); cat.root.rotation.y = sitM || (waits && Mi.lead < lead + 0.3) ? 0 : Math.PI; cat.root.rotation.x = Mi.flip > 0 ? Math.min(1, Mi.flip / 0.74) * Math.PI * 2 : 0; cat.root.visible = G.gap < 75; }
   cat.animate(dt, { speed: sitM || (waits && Mi.lead < lead + 0.3) ? 0 : Math.max(G.speed, moving ? 8 : G.mode === 'over' ? 9 : 0), grounded: Mi.y === 0, vy: Mi.vy, sit: sitM, crouch: Mi.crouch });
   // ---- Łatka
@@ -3281,7 +3285,7 @@ function catchMila() {
 }
 // plays the level by itself (used for testing): heads for the safe lane and jumps / slides when needed
 function botPlay() {
-  if (jn && !jn.done && jn.J - G.dist < 12 && !jn.choice) act((G.seed + jn.id) % 2 ? 'left' : 'right');
+  if (jn && !jn.done && jn.J - G.dist < 22 && !jn.choice) act((G.seed + jn.id) % 2 ? 'left' : 'right');
   let prev = null;
   for (const row of rows) {
     if (row.z < G.dist - 0.4) { prev = row; continue; }
