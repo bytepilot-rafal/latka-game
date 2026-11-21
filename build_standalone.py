@@ -17,7 +17,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 NAME = "Przygody-zaginionej-Latki"
 OUT = os.path.join(ROOT, "dist", NAME)
 WEB = os.path.join(ROOT, "docs")   # what GitHub Pages serves
-ORDER = ["textures", "fx", "dog", "sky", "audio", "world", "main"]  # dependencies first
+ORDER = ["textures", "fx", "dog", "cat", "sky", "audio", "world", "main", "run"]  # dependencies first
 
 # Runs first on the hosted page: asks the server (bypassing every cache) which build is current and,
 # if this copy is older, reloads under a new address so the browser cannot answer from its cache.
@@ -25,7 +25,7 @@ VERSION_CHECK = """<script>
   window.BUILD = '%s';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
-    if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v);
+    if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v + (/[?&]level=2/.test(location.search) ? '&level=2' : ''));
   }).catch(function () {});
 </script>
 """
@@ -38,7 +38,7 @@ LOADER = """
     src = src.replace(/from '\\.\\/(\\w+)\\.js'/g, (m, k) => "from '" + urls[k] + "'");
     urls[n] = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
   }
-  import(urls.main).catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });
+  import(LEVEL === '2' ? urls.run : urls.main).catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });
 </script>
 """
 
@@ -70,8 +70,9 @@ Cel
 
 def main():
     html = open(os.path.join(ROOT, "index.html"), encoding="utf-8").read()
-    tag = '<script type="module" src="./src/main.js"></script>'
-    assert tag in html, "index.html no longer contains the expected module tag"
+    m = re.search(r'<script type="module">/\*entry\*/.*?</script>', html, re.S)
+    assert m, "index.html no longer contains the entry module tag"
+    tag = m.group(0)
     parts = []
     for n in ORDER:
         src = open(os.path.join(ROOT, "src", n + ".js"), encoding="utf-8").read()

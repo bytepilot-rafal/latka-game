@@ -44,6 +44,27 @@
   #end { justify-content: center; padding: 0; background: radial-gradient(ellipse at center, rgba(8, 5, 3, .15), rgba(8, 5, 3, .7)); }
   #end h1 { font-size: clamp(30px, 5vw, 70px); }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #0b0a09; font-size: 20px; letter-spacing: .3em; color: var(--gold); transition: opacity 1s; z-index: 5; }
+  /* level 2 (runner) HUD and the level picker */
+  #levels { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+  #levels button { margin: 0; font-size: 13px; }
+  #levels button.cur { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 14px rgba(255, 200, 90, .35); }
+  #rTop { top: calc(14px + env(safe-area-inset-top)); left: calc(18px + env(safe-area-inset-left)); opacity: 0; text-shadow: 0 1px 5px #000, 0 0 12px rgba(0, 0, 0, .5); }
+  #rScore { font-size: clamp(28px, 4.2vw, 46px); line-height: 1; color: var(--gold); }
+  #rSub { margin-top: 5px; font: 13px system-ui, sans-serif; letter-spacing: .06em; }
+  #rLives { top: calc(14px + env(safe-area-inset-top)); right: calc(18px + env(safe-area-inset-right)); opacity: 0; display: flex; gap: 6px; }
+  #rLives span { width: 30px; height: 30px; display: block; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .7)); transition: all .3s; }
+  #rLives svg { width: 100%; height: 100%; fill: var(--gold); }
+  #rLives span.lost { opacity: .28; transform: scale(.8); filter: grayscale(1); }
+  #rMila { top: calc(22px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(300px, 36vw); opacity: 0; text-align: center; }
+  #rTrack { position: relative; height: 7px; border-radius: 4px; background: linear-gradient(90deg, #ffd874, #ff9a3c 60%, #d9506a); box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), 0 2px 10px rgba(0, 0, 0, .4); }
+  #rTrack i { position: absolute; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: var(--ink); border: 1.5px solid var(--gold); display: grid; place-items: center; font: normal 14px/1 system-ui, sans-serif; transition: left .25s linear; }
+  #rDog { left: 0; }
+  #rLabel { margin-top: 13px; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; text-shadow: 0 1px 4px #000; }
+  #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s; background: radial-gradient(ellipse at center, rgba(200, 30, 20, 0) 45%, rgba(200, 30, 20, .6)); }
+  body.run #hint { bottom: 5vh; }
+  body.touch #rLives span { width: 22px; height: 22px; }
+  body.touch #rLives { gap: 3px; }
+  body.touch #rSub { font-size: 11px; }
   /* touch controls (shown only on phones / tablets) */
   #touch { position: fixed; inset: 0; display: none; opacity: 0; pointer-events: none; transition: opacity .6s; touch-action: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
   body.touch #touch { display: block; }
@@ -96,6 +117,10 @@
 <div id="place" class="ui"><div class="orn"><span id="placeKind"></span></div><div class="name" id="placeName"></div></div>
 <div id="pick" class="ui"></div>
 <div id="hint" class="ui"></div>
+<div id="rTop" class="ui"><div id="rScore">0</div><div id="rSub"></div></div>
+<div id="rLives" class="ui"></div>
+<div id="rMila" class="ui"><div id="rTrack"><i id="rDog">🐶</i><i id="rCat">🐱</i></div><div id="rLabel"></div></div>
+<div id="flash"></div>
 <div id="touch">
   <div id="joyZone"><div id="joy"><div id="joyKnob"></div></div></div>
   <div class="tb" id="bBark">Hau!</div>
@@ -106,16 +131,25 @@
 <div id="title" class="overlay hidden">
   <h1><small data-t="over"></small>Przygody zaginionej Łatki</h1>
   <p class="story" data-t="story"></p>
+  <div id="levels"><button class="ghost" data-lv="1">1 · Zaginiona świątynia</button><button class="ghost" data-lv="2">2 · Pościg za Milą</button></div>
   <div><button id="start" data-t="start"></button><button id="lang" class="ghost">EN</button></div>
   <div class="keys" data-t="keys"></div>
 </div>
 <div id="end" class="overlay hidden">
   <h1 id="endTitle"></h1>
   <p class="story" id="endText"></p>
-  <button id="again" data-t="again"></button>
+  <div><button id="again" data-t="again"></button><button id="menu" class="ghost" style="display:none">Menu</button></div>
 </div>
 <div id="loading">ŁATKA…</div>
 
-<script type="module" src="./src/main.js"></script>
+<script>
+  // level picker (kept visible for testing): level 2 lives under ?level=2
+  var LEVEL = new URLSearchParams(location.search).get('level') === '2' ? '2' : '1';
+  document.querySelectorAll('#levels button').forEach(function (b) {
+    if (b.dataset.lv === LEVEL) b.classList.add('cur');
+    b.addEventListener('click', function () { if (b.dataset.lv !== LEVEL) location.search = b.dataset.lv === '2' ? '?level=2' : ''; });
+  });
+</script>
+<script type="module">/*entry*/import(LEVEL === '2' ? './src/run.js' : './src/main.js').catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });</script>
 </body>
 </html>

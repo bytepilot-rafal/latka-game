@@ -112,6 +112,64 @@ export class AudioSys {
       this.nextT += stepDur; this.mStep++;
     }
   }
+  // ---------------------------------------------------------------- level 2: chase music and effects
+  mKick(t, vol) {
+    const c = this.ctx, g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); g.connect(this.musicF);
+    const o = c.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(44, t + 0.11); o.connect(g); o.start(t); o.stop(t + 0.22);
+  }
+  mTom(t, f, vol) {
+    const c = this.ctx, g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.19); g.connect(this.musicF);
+    const o = c.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.62, t + 0.16); o.connect(g); o.start(t); o.stop(t + 0.2);
+  }
+  mSnare(t, vol) {
+    const c = this.ctx, src = c.createBufferSource(); src.buffer = this.noise; const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1900; f.Q.value = 0.7;
+    const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13); src.connect(f); f.connect(g); g.connect(this.musicF); src.start(t, Math.random()); src.stop(t + 0.15);
+    this.mTom(t, 210, vol * 0.5);
+  }
+  mFlute(t, n, dur, vol) {                  // breathy lead
+    const c = this.ctx, g = c.createGain(), f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2600; f.connect(g); g.connect(this.musicF);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.045); g.gain.setValueAtTime(vol, t + dur * 0.7); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    const l = c.createOscillator(); l.frequency.value = 5.6; const lg = c.createGain(); lg.gain.value = 7; l.connect(lg); l.start(t); l.stop(t + dur + 0.05);
+    for (const [type, mul, v] of [['triangle', 1, 1], ['sine', 2, 0.35]]) { const o = c.createOscillator(), og = c.createGain(); og.gain.value = v; o.type = type; o.frequency.value = this.mf(n) * mul; lg.connect(o.detune); o.connect(og); og.connect(f); o.start(t); o.stop(t + dur + 0.05); }
+  }
+  // 8 bars of 16 steps in A minor (Am Am F G | Am Am F E): syncopated kick and toms, running bass, marimba ostinato, flute tune on every other pass
+  static R = {
+    chords: [[57, 60, 64], [57, 60, 64], [53, 57, 60], [55, 59, 62], [57, 60, 64], [57, 60, 64], [53, 57, 60], [52, 56, 59]],
+    bass: [45, 45, 41, 43, 45, 45, 41, 40],
+    riff: [0, 2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 3, 2, 1, 2],
+    tune: [{ 0: 76, 6: 74, 8: 72, 12: 69 }, { 0: 72, 4: 74, 8: 76, 14: 79 }, { 0: 81, 6: 79, 8: 77, 12: 72 }, { 0: 74, 4: 71, 8: 74, 12: 79 },
+      { 0: 76, 6: 79, 8: 81, 12: 84 }, { 0: 81, 4: 79, 8: 76, 12: 72 }, { 0: 77, 6: 76, 8: 72, 12: 69 }, { 0: 71, 4: 68, 8: 71, 12: 76 }],
+  };
+  musicRun(s) {
+    if (!this.on) return; const c = this.ctx, now = c.currentTime, R = AudioSys.R;
+    this.musicF.frequency.setTargetAtTime(9000, now, 0.3);
+    this.musicG.gain.setTargetAtTime(this.musicOn && s.play ? 0.62 : this.musicOn && s.soft ? 0.22 : 0, now, 0.35);
+    if (this.nextT < now - 0.5) this.nextT = now + 0.05;
+    const stepDur = 60 / (150 + 9 * (s.stage || 0)) / 4;
+    while (this.nextT < now + 0.25) {
+      const t = this.nextT, st = this.mStep % 16, bar = Math.floor(this.mStep / 16) % 8, pass = Math.floor(this.mStep / 128) % 4, ch = R.chords[bar];
+      if (st === 0 || st === 3 || st === 6 || st === 8 || st === 11 || st === 14) this.mKick(t, st % 8 === 0 ? 0.5 : 0.3);
+      if (st === 4 || st === 12) this.mSnare(t, 0.2);
+      if (st === 2 || st === 10) this.mTom(t, 120, 0.16); if (st === 7 || st === 15) this.mTom(t, 185, 0.13);
+      if ((bar === 3 || bar === 7) && st >= 12) this.mTom(t, [230, 196, 165, 131][st - 12], 0.26);     // fill into the next phrase
+      this.mShake(t, st % 4 === 2 ? 0.07 : st % 2 === 0 ? 0.04 : 0.025);
+      if (st % 2 === 0 || st === 3 || st === 11) this.mBass(t, R.bass[bar] + (st === 6 || st === 14 ? 12 : 0), stepDur * 1.6, 0.2);
+      if (pass > 0 || bar >= 4) { const k = R.riff[st]; this.mPluck(t, (k === 3 ? ch[0] + 12 : ch[k]) + 12, st % 4 === 0 ? 0.1 : 0.06); }
+      const n = R.tune[bar][st]; if (n && (pass === 1 || pass === 3)) this.mFlute(t, n + (pass === 3 ? 0 : -12) + 12, stepDur * 3.6, 0.075);
+      this.nextT += stepDur; this.mStep++;
+    }
+  }
+  coin(k = 0) { const f = 1175 * Math.pow(2, Math.min(k, 7) / 12); this.tone(f, 0.09, 'triangle', 0.13); this.tone(f * 1.5, 0.16, 'sine', 0.1, 0, 0.05); }
+  whoosh() { this.burst(700, 0.7, 0.13, 0.07, 'bandpass', 0, 2.4); }
+  scrape() { this.burst(420, 0.6, 0.45, 0.16, 'bandpass', 0, 0.6); }
+  yelp() { this.tone(980, 0.2, 'sawtooth', 0.2, 0.45); this.burst(1700, 2, 0.14, 0.14, 'bandpass'); this.burst(200, 1, 0.2, 0.4, 'lowpass'); }
+  meow(p = 1) {
+    if (!this.on) return; const c = this.ctx, t = c.currentTime, o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(540 * p, t); o.frequency.linearRampToValueAtTime(930 * p, t + 0.13); o.frequency.linearRampToValueAtTime(620 * p, t + 0.46);
+    f.type = 'bandpass'; f.Q.value = 3; f.frequency.setValueAtTime(900, t); f.frequency.linearRampToValueAtTime(2300, t + 0.16); f.frequency.linearRampToValueAtTime(1100, t + 0.46);
+    this.env(g, t, 0.04, 0.3, 0.5); o.connect(f); f.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.55);
+  }
+  hiss() { this.burst(5200, 0.5, 0.4, 0.2, 'highpass'); }
   // continuous ambience; d* are distances / levels supplied by the game
   update(dt, s) {
     if (!this.on) return; const c = this.ctx, t = c.currentTime, set = (g, v) => g.gain.setTargetAtTime(v, t, 0.15);

@@ -141,13 +141,15 @@ export function buildDog(tex, opt = {}) {
 
   root.scale.setScalar(P.scale);
 
-  const A = { phase: Math.random() * 6, t: Math.random() * 10, bark: 0, sit: 0, lookY: 0 };
+  const A = { phase: Math.random() * 6, t: Math.random() * 10, bark: 0, sit: 0, lookY: 0, slide: 0 };
   function animate(dt, s = {}) {
     A.t += dt;
     const sp = s.speed || 0, run = clamp((sp - 3.5) / 4, 0, 1), air = s.grounded === false;
     const happy = s.happy || 0;
     A.sit += ((s.sit || 0) - A.sit) * Math.min(1, dt * 6);
     const sit = A.sit;
+    A.slide += ((s.slide || 0) - A.slide) * Math.min(1, dt * 16);                 // belly slide (level 2): legs stretched out, chest on the ground
+    const sl = A.slide;
     if (sp > 0.2) A.phase += dt * (5.5 + sp * 1.75);
     const amp = air ? 0 : Math.min(1, sp / 2.2) * (0.5 + 0.4 * run);
     const offs = run > 0.5 ? [0, 0.7, Math.PI, Math.PI + 0.7] : [0, Math.PI, Math.PI, 0];
@@ -155,11 +157,12 @@ export function buildDog(tex, opt = {}) {
       const ph = A.phase + offs[i];
       let h = L.rest - Math.sin(ph) * amp * 0.9, k = L.restK + Math.max(0, Math.cos(ph)) * amp * 1.15;
       if (air) { const up = (s.vy || 0) > 0; h = L.hind ? (up ? 0.75 : 0.2) : (up ? -0.95 : -0.5); k = L.hind ? 0.25 : 0.35; }
+      if (sl > 0.01) { h = lerp(h, L.hind ? 1.25 : -1.35, sl); k = lerp(k, 0.1, sl); }
       if (sit > 0.01) { const hs = L.hind ? -0.55 : 1.02, ks = L.hind ? 2.5 : 0; h = lerp(h, hs, sit); k = lerp(k, ks, sit); }
       L.hip.rotation.x += (h - L.hip.rotation.x) * Math.min(1, dt * 22);
       L.knee.rotation.x += (k - L.knee.rotation.x) * Math.min(1, dt * 22);
     });
-    body.position.y = baseY + Math.abs(Math.sin(A.phase)) * 0.022 * amp - sit * 0.19 + Math.sin(A.t * 2.2) * 0.003;
+    body.position.y = baseY + Math.abs(Math.sin(A.phase)) * 0.022 * amp - sit * 0.19 - sl * 0.27 + Math.sin(A.t * 2.2) * 0.003;
     const pitch = -0.7 * sit + (air ? clamp(-(s.vy || 0) * 0.035, -0.3, 0.3) : Math.sin(A.phase * 2) * 0.035 * run);
     body.rotation.x += (pitch - body.rotation.x) * Math.min(1, dt * 12);
     const br = 1 + Math.sin(A.t * (sp > 4 ? 9 : 3)) * 0.012; torso.scale.set(br, br, 1);
@@ -171,7 +174,7 @@ export function buildDog(tex, opt = {}) {
     // head
     A.bark = Math.max(0, A.bark - dt * 4);
     A.lookY += ((s.lookY || 0) - A.lookY) * Math.min(1, dt * 5);
-    head.rotation.x = sit * 0.6 + Math.sin(A.t * 1.3) * 0.035 - A.bark * 0.45 - run * 0.12 + (s.lookX || 0);
+    head.rotation.x = sl * 0.22 + sit * 0.6 + Math.sin(A.t * 1.3) * 0.035 - A.bark * 0.45 - run * 0.12 + (s.lookX || 0);
     head.rotation.y = A.lookY + (sp < 0.3 ? Math.sin(A.t * 0.45) * 0.3 * (1 - sit * 0.5) : 0);
     head.rotation.z = sp < 0.3 ? Math.sin(A.t * 0.31) * 0.08 : 0;
     const pant = sp > 4 || happy > 0.5 || s.pant;
