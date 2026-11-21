@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261121-162749';
+  window.BUILD = '20261121-165114';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v + (/[?&]level=2/.test(location.search) ? '&level=2' : ''));
@@ -2679,7 +2679,7 @@ const $ = (id) => document.getElementById(id);
 const TXT = {
   pl: {
     over: 'Poziom 2', title: 'Pościg za Milą', start: 'Biegnij!', again: 'Jeszcze raz', menu: 'Menu',
-    story: 'Kotka Mila zwiała ulicą Miłą! Biegnij za nią, zbieraj kości i omijaj przeszkody. Złap ją trzy razy, zanim stracisz wszystkie łapki.',
+    story: 'Kotka Mila zwiała ulicą Pogodną! Biegnij za nią, zbieraj kości i omijaj przeszkody. Złap ją trzy razy, zanim stracisz wszystkie łapki.',
     keys: '← → zmiana toru · ↑ / Spacja — skok · ↓ — ślizg · M — muzyka',
     keys_t: 'Przesuń palcem: w lewo / w prawo — tor · w górę — skok · w dół — ślizg',
     hint: 'Kości przybliżają cię do Mili. Każde potknięcie daje jej przewagę!',
@@ -2691,7 +2691,7 @@ const TXT = {
   },
   en: {
     over: 'Level 2', title: 'Chasing Mila', start: 'Run!', again: 'Again', menu: 'Menu',
-    story: 'Mila the cat has bolted down Miła Street! Run after her, collect bones and dodge what is in the way. Catch her three times before you lose all your paws.',
+    story: 'Mila the cat has bolted down Pogodna Street! Run after her, collect bones and dodge what is in the way. Catch her three times before you lose all your paws.',
     keys: '← → change lane · ↑ / Space — jump · ↓ — slide · M — music',
     keys_t: 'Swipe: left / right — lane · up — jump · down — slide',
     hint: 'Bones bring you closer to Mila. Every stumble gives her a head start!',
@@ -2705,7 +2705,7 @@ const TXT = {
 let lang = 'pl';
 const isTouch = matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && matchMedia('(hover: none)').matches);
 const T = (k, ...a) => { const v = (isTouch && TXT[lang][k + '_t']) || TXT[lang][k]; return typeof v === 'function' ? v(...a) : v; };
-const STREETS = ['Miła', 'Słoneczna', 'Zacisze'];
+const STREETS = ['Pogodna', 'Słoneczna Polana', 'Miła'];
 
 // ------------------------------------------------------------------ renderer
 const canvas = $('c');
@@ -2728,6 +2728,37 @@ let R = rng(7);
 const audio = new AudioSys();
 let dog, cat, pAdd, pAlpha, sun, hemi, skyU, tex;
 try { G.best = +localStorage.getItem('latka-run-best') || 0; } catch (_) { /* private mode */ }
+
+// ------------------------------------------------------------------ bends and hills
+// The track itself stays straight (so lanes and collisions stay simple); everything ahead of Łatka is pushed sideways and
+// up/down in the vertex shader by distance², which reads as the road curving and rolling. Shadows are computed in the
+// unbent world on both sides, so they bend along with whatever they fall on.
+const bendU = { value: new THREE.Vector3() }, bend = { x: 0, y: 0, tx: 0, ty: 0, t: 3, dir: 1 };
+function bendPatch(m) {
+  if (!m || m.isShaderMaterial || m.userData.bent) return; m.userData.bent = true;
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uBend = bendU;
+    sh.vertexShader = 'uniform vec3 uBend;\n' + sh.vertexShader.replace('#include <project_vertex>', `vec4 bw = vec4(transformed, 1.0);
+      #ifdef USE_INSTANCING
+        bw = instanceMatrix * bw;
+      #endif
+      bw = modelMatrix * bw; float bd = min(0.0, bw.z - uBend.z); bw.x += uBend.x * bd * bd; bw.y += uBend.y * bd * bd;
+      vec4 mvPosition = viewMatrix * bw; gl_Position = projectionMatrix * mvPosition;`);
+  };
+  m.needsUpdate = true;
+}
+function updateBend(dt) {
+  const moving = G.mode === 'play' || G.mode === 'catch';
+  bend.t -= dt;
+  if (bend.t <= 0) {
+    bend.t = 3.5 + Math.random() * 4.5;
+    if (Math.random() < 0.22) bend.tx = 0; else { bend.dir = Math.random() < 0.7 ? -bend.dir : bend.dir; bend.tx = bend.dir * (0.0009 + Math.random() * 0.0011); }
+    bend.ty = (Math.random() - 0.55) * 0.0009;
+  }
+  const k = Math.min(1, dt * 0.75);
+  bend.x += ((moving ? bend.tx : 0) - bend.x) * k; bend.y += ((moving ? bend.ty : 0) - bend.y) * k;
+  bendU.value.set(bend.x, bend.y, -G.dist);
+}
 
 // ------------------------------------------------------------------ geometry helpers (everything is vertex-coloured and merged)
 const worldMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, side: THREE.DoubleSide });
@@ -2757,7 +2788,7 @@ function canvasTex(w, h, draw, rx, ry) {
 }
 
 // ------------------------------------------------------------------ scenery
-const chunks = [];
+const chunks = [], plateMats = [];
 function buildScenery() {
   // sky
   skyU = { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSun: { value: new THREE.Color() }, uSunDir: { value: new THREE.Vector3() }, uTime: { value: 0 } };
@@ -2802,6 +2833,16 @@ function buildScenery() {
   const roadG = new THREE.PlaneGeometry(ROADW, CL); roadG.rotateX(-Math.PI / 2);
   const grassG = new THREE.PlaneGeometry(190, CL); grassG.rotateX(-Math.PI / 2);
 
+  // street-name plates: one texture per street; only two houses on the whole loop carry one
+  for (const name of STREETS) {
+    const t = canvasTex(512, 128, (c, w, h) => {
+      c.fillStyle = '#f4f4f0'; c.fillRect(0, 0, w, h); c.fillStyle = '#1d4e9e'; c.fillRect(7, 7, w - 14, h - 14);
+      c.fillStyle = '#f4f4f0'; c.textAlign = 'center'; c.textBaseline = 'middle'; let fs = 66; do { c.font = `bold ${fs}px Arial, Helvetica, sans-serif`; fs -= 3; } while (c.measureText('ul. ' + name).width > w - 50);
+      c.fillText('ul. ' + name, w / 2, h / 2 + 3);
+    }, 1, 1);
+    plateMats.push(new THREE.MeshStandardMaterial({ map: t, roughness: 0.5 }));
+  }
+  const plateG = new THREE.PlaneGeometry(2.3, 0.575);
   const WALLS = [0xeadcbe, 0xf3efe4, 0xe7c98c, 0xdcc0a2, 0xcfd8cf], ROOFS = [0x9a3b2e, 0x80402f, 0x55565c, 0x6f3a2c];
   const GREENS = [0x3f7a2c, 0x4f8a34, 0x356b2a, 0x5c9440];
   for (let ci = 0; ci < NC; ci++) {
@@ -2840,6 +2881,7 @@ function buildScenery() {
           const face = hx - s * (w / 2 + 0.02);
           for (const wz of [-d * 0.27, d * 0.27]) for (let fl = 0; fl < (h > 4 ? 2 : 1); fl++) { b.box(0.06, 1.25, 1.15, face - s * 0.01, 1.25 + fl * 2.4, zc + wz, 0xf4f1ea, 0, 0); b.box(0.07, 1.05, 0.95, face - s * 0.03, 1.35 + fl * 2.4, zc + wz, 0x2c3f52, 0, 0); }
           b.box(0.07, 2.0, 0.95, face - s * 0.02, 0.35, zc, 0x6b4630, 0, 0);                                           // door
+          if ((ci === 2 || ci === 6) && !grp.userData.plate) { const pl = new THREE.Mesh(plateG, plateMats[0]); pl.position.set(face - s * 0.07, 2.75, zc); pl.rotation.y = -s * Math.PI / 2; grp.add(pl); grp.userData.plate = pl; }
           b.box(Math.abs(face - fx) - 0.3, 0.04, 1.6, (face + fx) / 2, 0, zc, 0xa8a49b, 0, 0.03);                     // path to the gate
           if (r() < 0.6) tree(hx + s * (1 + r() * 3), zc + (r() < 0.5 ? -5 : 5), 0.8 + r() * 0.4);
         } else if (q < 0.82) { tree(hx - s * 1.5, zc + 2, 1 + r() * 0.5); spruce(hx + s * 2, zc - 3, 6 + r() * 3); tree(hx + s * 4, zc + 4, 0.9); }
@@ -2851,7 +2893,7 @@ function buildScenery() {
       for (let i = 0; i < 16; i++) { const z = -r() * CL, x = s * (ROADW / 2 + 0.12 + r() * 0.45); if (r() < 0.75) b.cone(0.09 + r() * 0.07, 0.22 + r() * 0.2, x, 0, z, 0x5f9a3c, 5); else b.blob(0.07, x, 0.2, z, [0xf2d24a, 0xf5f5f0, 0xd95f8a][(r() * 3) | 0]); }
     }
     if (ci % 2 === 0) { const s = ci % 4 === 0 ? 1 : -1, x = s * (ROADW / 2 + 0.38); b.cyl(0.05, 0.07, 5.2, x, 0, -6, 0x6d7278); b.box(0.9, 0.06, 0.08, x - s * 0.4, 5.15, -6, 0x6d7278); b.box(0.36, 0.1, 0.18, x - s * 0.82, 5.05, -6, 0xe8e2c8); }
-    grp.add(b.mesh()); grp.userData.k = ci; grp.position.z = -(ci - 1) * CL; scene.add(grp); chunks.push(grp);
+    grp.add(b.mesh()); grp.traverse((o) => { o.frustumCulled = false; }); grp.userData.k = ci; grp.position.z = -(ci - 1) * CL; scene.add(grp); chunks.push(grp);
   }
 }
 // time of day drifts from a bright afternoon to a warm sunset over the three stages
@@ -2892,7 +2934,7 @@ function buildProtos() {
   });
 }
 const KIND = { log: 'low', crate: 'low', gate: 'high', binG: 'full', binB: 'full', binY: 'full', planter: 'full', biglog: 'low', line: 'high' };
-function getObj(kind) { const p = pools[kind] || (pools[kind] = []); let m = p.pop(); if (!m) { m = new THREE.Mesh(PROTO[kind], worldMat); m.castShadow = true; m.receiveShadow = true; m.userData.kind = kind; scene.add(m); } m.visible = true; return m; }
+function getObj(kind) { const p = pools[kind] || (pools[kind] = []); let m = p.pop(); if (!m) { m = new THREE.Mesh(PROTO[kind], worldMat); m.castShadow = true; m.receiveShadow = true; m.userData.kind = kind; m.frustumCulled = false; scene.add(m); } m.visible = true; return m; }
 function freeRow(row) { for (const m of row.objs) { m.visible = false; pools[m.userData.kind].push(m); } row.objs.length = 0; }
 
 const BONES = 110; let boneMesh, relicMeshes = {}; const dummy = new THREE.Object3D();
@@ -3002,7 +3044,8 @@ function reset() {
   Object.assign(G, { t: 0, dist: 0, speed: 0, stage: 0, gap: STAGE_GAP[0], lives: 3, score: 0, bones: 0, inv: 0, slow: 0, ct: 0, stageT: 0, shake: 0, streak: 0, blend: 0, genMin: 0, endT: 0 });
   Object.assign(Pl, { lane: 1, x: 0, y: 0, vy: 0, slide: 0, grounded: true }); Object.assign(Mi, { lane: 1, x: 0, y: 0, vy: 0, crouch: 0 });
   Object.assign(gen, { z: 38, safe: 1, relicAt: 240, relicI: 0 }); mood.k = 0;
-  for (const c of chunks) c.position.z = -(c.userData.k - 1) * CL;
+  for (const c of chunks) { c.position.z = -(c.userData.k - 1) * CL; if (c.userData.plate) c.userData.plate.material = plateMats[0]; }
+  Object.assign(bend, { x: 0, y: 0, tx: 0, ty: 0, t: 3 }); G.cr = 0; G.ts = 1; Mi.flip = 0;
   for (const id in relicMeshes) relicMeshes[id].visible = false;
   dog.root.visible = true;
 }
@@ -3030,6 +3073,9 @@ function sparkle(x, y, z, c, n) { for (let i = 0; i < n; i++) pAdd.spawn(x, y, z
 const GOLD = new THREE.Color(1, 0.75, 0.25);
 
 function step(dt) {
+  // slow motion for the pounce (G.cr counts real seconds since the catch began)
+  if (G.mode === 'catch' || (G.mode === 'win' && G.cr < 2.4)) { G.cr += dt; G.ts = 1 - 0.74 * sm(0, 0.1, G.cr) * (1 - sm(1.35, 1.9, G.cr)); } else G.ts = 1;
+  const rawDt = dt; dt *= G.ts;
   G.t += dt;
   const play = G.mode === 'play', moving = play || G.mode === 'catch';
   // ---- speed and distance
@@ -3047,7 +3093,7 @@ function step(dt) {
   // ---- world generation / recycling
   while (moving && gen.z < G.dist + 150) genRow();
   while (rows.length && rows[0].z < G.dist - 1.3) { freeRow(rows[0]); rows.shift(); }      // gone as soon as it is behind Łatka, so nothing ever hides her from the camera
-  for (const c of chunks) if (-c.position.z + CL < G.dist - 8) c.position.z -= NC * CL;
+  for (const c of chunks) if (-c.position.z + CL < G.dist - 8) { c.position.z -= NC * CL; if (c.userData.plate) c.userData.plate.material = plateMats[Math.min(2, G.stage)]; }
   // ---- collisions
   if (play) {
     const lane = clamp(Math.round(Pl.x / LANE) + 1, 0, 2);
@@ -3079,16 +3125,18 @@ function step(dt) {
     if (G.endT > (G.mode === 'win' ? 3.4 : 1.7) && $('end').classList.contains('hidden')) finish(G.mode === 'win');
   }
   // ---- Mila: follows the safe lane, hops and ducks like a pro
-  const mz = G.dist + 2.3 + (G.gap - 2.3) * 0.5,          // drawn at half the real lead, so she stays in sight
+  const pounce = G.mode === 'catch' ? sm(0, 0.22, G.ct) * (1 - sm(0.4, 0.8, G.ct)) : 0;
+  const mz = G.dist + 2.3 + (G.gap - 2.3) * 0.5 - pounce * 1.25,          // drawn at half the real lead, so she stays in sight
      sitM = G.mode === 'win' || G.mode === 'title' ? 1 : 0;
   if (moving) {
     for (const row of rows) { if (row.z < mz - 0.3) continue; Mi.lane = row.safe; const c = row.cells[row.safe], dz = row.z - mz;
       if (c === 'low' && dz < G.speed * 0.27 && Mi.y === 0) Mi.vy = 5.6; Mi.crouch = c === 'high' && dz < G.speed * 0.3 ? 1 : 0; break; }
   }
   Mi.x += (LX[Mi.lane] - Mi.x) * Math.min(1, dt * 9);
-  if (Mi.vy !== 0 || Mi.y > 0) { Mi.vy -= 19 * dt; Mi.y += Mi.vy * dt; if (Mi.y <= 0) { Mi.y = 0; Mi.vy = 0; } }
+  if (Mi.vy !== 0 || Mi.y > 0) { Mi.vy -= 19 * dt; Mi.y += Mi.vy * dt; if (Mi.y <= 0) { Mi.y = 0; Mi.vy = 0; Mi.flip = 0; } }
+  if (Mi.flip > 0 && Mi.y > 0) { Mi.flip += dt; if (Math.random() < rawDt * 60) pAdd.spawn(Mi.x + (Math.random() - 0.5) * 0.3, Mi.y + 0.3, -mz, (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2 - G.speed * 0.6, 0.5, 0.22, 0.02, 4, 3, 1, 1, 3, 1); }
   if (G.mode === 'title') { cat.root.position.set(-1.0, 0, -G.dist - 1.3); cat.root.rotation.y = Math.PI + 0.5; cat.root.visible = true; }
-  else { cat.root.position.set(Mi.x, Mi.y, -mz); cat.root.rotation.y = sitM ? 0 : Math.PI; cat.root.visible = G.gap < 75; }
+  else { cat.root.position.set(Mi.x, Mi.y + (Mi.flip > 0 ? 0.25 * Math.sin(Math.min(1, Mi.flip / 0.74) * Math.PI) : 0), -mz); cat.root.rotation.y = sitM ? 0 : Math.PI; cat.root.rotation.x = Mi.flip > 0 ? Math.min(1, Mi.flip / 0.74) * Math.PI * 2 : 0; cat.root.visible = G.gap < 75; }
   cat.animate(dt, { speed: sitM ? 0 : Math.max(G.speed, moving ? 8 : G.mode === 'over' ? 9 : 0), grounded: Mi.y === 0, vy: Mi.vy, sit: sitM, crouch: Mi.crouch });
   // ---- Łatka
   const sitD = G.mode === 'title' || ((G.mode === 'win' || G.mode === 'over') && G.speed < 1.5) ? 1 : 0;
@@ -3112,18 +3160,26 @@ function step(dt) {
   G.shake = Math.max(0, G.shake - dt * 1.8); const sh = G.shake * G.shake * 0.25;
   camP.set(lerp(2.3, Pl.x * 0.6, k) + end * 2.6, lerp(1.25, 2.45 + wide * 0.5 + Pl.y * 0.3, k) - end * 1.1, pz + lerp(-3.4 - wide * 2.4, 4.4 + wide * 0.8, k) - end * 4.5);
   camL.set(lerp(-0.2, Pl.x * 0.8, k), lerp(-0.25 - wide * 0.9, 1.05 - wide * 0.8, k) - end * 0.4, pz + lerp(-1.5, -7.5, k) + end * 6);
-  camera.position.copy(camP); camera.position.x += (Math.random() - 0.5) * sh; camera.position.y += (Math.random() - 0.5) * sh; camera.lookAt(camL);
-  const fov = 62 + (wide ? 8 : 0) + clamp((G.speed - 9) * 1.3, 0, 9); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
-  updateMood(dt);
+  // the catch is watched from low at the roadside, close to both animals
+  const cc = G.cr > 0 && (G.mode === 'catch' || G.mode === 'win') ? sm(0, 0.22, G.cr) * (1 - sm(1.5, 2.15, G.cr)) : 0;
+  if (cc > 0) { const side = Pl.x > 0.5 ? -1 : 1; camP.lerp(tmpV.set(Pl.x + side * 3.3, 0.75, pz - 0.2), cc); camL.lerp(tmpV.set((Pl.x + Mi.x) / 2, 0.85, pz - 1.5), cc); }
+  camL.x += bend.x * 420 * (1 - cc);
+  camera.position.copy(camP); camera.position.x += (Math.random() - 0.5) * sh; camera.position.y += (Math.random() - 0.5) * sh; camera.lookAt(camL); camera.rotateZ(-bend.x * 34 * (1 - cc));
+  const fov = 62 + (wide ? 8 : 0) + clamp((G.speed - 9) * 1.3, 0, 9) - cc * 14; if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
+  updateBend(dt); updateMood(dt);
   // ---- HUD and sound
   hud(); if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.opacity = 0; } if (pickT > 0) { pickT -= dt; if (pickT <= 0) $('pick').style.opacity = 0; }
   audio.musicRun({ play: moving, soft: G.mode === 'win', stage: G.stage });
   if (audio.on && moving && Pl.grounded && !sliding) { stepAcc -= dt * (2 + G.speed * 0.75); if (stepAcc <= 0) { stepAcc = 1; audio.step(false); } }
 }
-let stepAcc = 0; const camP = new THREE.Vector3(), camL = new THREE.Vector3();
+let stepAcc = 0; const camP = new THREE.Vector3(), camL = new THREE.Vector3(), tmpV = new THREE.Vector3();
 function catchMila() {
-  const pts = 500 * (G.stage + 1); G.score += pts; G.mode = 'catch'; G.ct = 0; G.gap = 2.3;
-  audio.bark(); dog.bark(); audio.meow(1.25); setTimeout(() => audio.hiss(), 250); Mi.vy = 7.2; Mi.y = 0.01;
+  const pts = 500 * (G.stage + 1); G.score += pts; G.mode = 'catch'; G.ct = 0; G.cr = 0; G.gap = 2.3;
+  audio.bark(); dog.bark(); audio.meow(1.25); setTimeout(() => audio.hiss(), 500); audio.whoosh(); audio.tone(110, 1.2, 'sine', 0.25, 0.5);
+  Mi.vy = 7.2; Mi.y = 0.01; Mi.flip = 0.001; Mi.lane = Pl.lane; Mi.x = Pl.x;
+  Pl.slide = 0; Pl.vy = 6.4; Pl.grounded = false; if (Pl.y <= 0) Pl.y = 0.01;                    // Łatka pounces
+  $('flash').style.background = 'radial-gradient(ellipse at center, rgba(255,230,150,0) 35%, rgba(255,214,110,.6))'; $('flash').style.opacity = 1; setTimeout(() => { $('flash').style.opacity = 0; setTimeout(() => { $('flash').style.background = ''; }, 300); }, 500);
+  for (let i = 0; i < 70; i++) { const a = Math.random() * 6.28, sp = 2 + Math.random() * 4; pAdd.spawn(Pl.x, 0.7, -(G.dist + 1.2), Math.cos(a) * sp, Math.abs(Math.sin(a)) * sp + 1, -G.speed * 0.8 + (Math.random() - 0.5) * 3, 0.8 + Math.random() * 0.7, 0.3, 0.03, 5, 3.6 + Math.random(), 1, 1, 5, 1); }
   pick(T('caught', pts)); if (G.stage < 2) setTimeout(() => { if (G.mode === 'catch') pick(T('away')); }, 1300);
   sparkle(Mi.x, 0.6, -(G.dist + 2.3), GOLD, 50); clearAhead(G.dist, G.dist + 62);
 }
@@ -3155,6 +3211,7 @@ async function boot() {
   buildScenery(); buildProtos(); buildPickups();
   dog = buildDog(tex, {}); scene.add(dog.root);
   cat = buildCat({ scale: 1.45 }); scene.add(cat.root);
+  scene.traverse((o) => { if (o.material) bendPatch(o.material); }); for (const m of plateMats) bendPatch(m);
   pAdd = new Particles(500, true); pAlpha = new Particles(400, false); scene.add(pAdd.mesh); scene.add(pAlpha.mesh);
   reset(); G.mode = 'title'; applyLang();
   $('start').addEventListener('click', startGame);
