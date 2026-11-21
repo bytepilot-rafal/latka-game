@@ -65,6 +65,19 @@
   #rPow span.on { display: grid; }
   #rPow i { font: normal 19px/1 system-ui, sans-serif; color: var(--gold); }
   #rPow b { position: absolute; left: 0; bottom: 0; height: 5px; background: var(--gold); transition: width .25s linear; }
+  /* level 3 (night sneak) HUD */
+  #nTop { top: calc(14px + env(safe-area-inset-top)); left: calc(18px + env(safe-area-inset-left)); opacity: 0; text-shadow: 0 1px 5px #000; }
+  #nCount { font-size: clamp(17px, 2.2vw, 24px); color: var(--gold); }
+  #nSub { margin-top: 4px; font: 13px system-ui, sans-serif; letter-spacing: .05em; opacity: .9; }
+  #nAlert { top: calc(16px + env(safe-area-inset-top)); right: calc(18px + env(safe-area-inset-right)); opacity: 0; display: flex; align-items: center; gap: 8px; }
+  #nAlert i { font: normal 22px/1 system-ui, sans-serif; filter: grayscale(1) brightness(1.6); transition: filter .3s, transform .3s; }
+  #nAlert div { width: min(150px, 26vw); height: 9px; border-radius: 5px; background: var(--ink); box-shadow: 0 0 0 1px rgba(255, 210, 122, .45); overflow: hidden; }
+  #nAlert b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffd874, #ff9a3c 60%, #e2402f); transition: width .12s linear; }
+  #nAlert.warm i { filter: none; }
+  #nAlert.hot i { filter: none; transform: scale(1.3); }
+  body.night #sun { top: 22px; }
+  body.night.touch #bMusic { top: auto; bottom: calc(132px + env(safe-area-inset-bottom)); right: calc(40px + env(safe-area-inset-right)); }
+  body.night.touch #bBark { right: calc(34px + env(safe-area-inset-right)); bottom: calc(40px + env(safe-area-inset-bottom)); width: 82px; height: 82px; font-size: 18px; }
   #turn { top: 27vh; left: 0; right: 0; display: flex; justify-content: center; gap: min(34vw, 300px); opacity: 0; font: normal clamp(46px, 9vw, 92px)/1 system-ui, sans-serif; color: var(--gold); text-shadow: 0 3px 14px rgba(0, 0, 0, .8), 0 0 30px rgba(255, 190, 80, .6); transition: opacity .2s; }
   #turn.ask, #turn.left, #turn.right { opacity: 1; }
   #turn.ask span { animation: turnPulse .5s ease-in-out infinite alternate; }
@@ -135,6 +148,8 @@
 <div id="rLives" class="ui"></div>
 <div id="rMila" class="ui"><div id="rTrack"><i id="rDog">🐶</i><i id="rCat">🐱</i></div><div id="rLabel"></div></div>
 <div id="rPow" class="ui"></div>
+<div id="nTop" class="ui"><div id="nCount"></div><div id="nSub"></div></div>
+<div id="nAlert" class="ui"><i>👁</i><div><b id="nBar"></b></div></div>
 <div id="turn" class="ui"><span id="tL">◀</span><span id="tR">▶</span></div>
 <div id="flash"></div>
 <div id="touch">
@@ -147,7 +162,7 @@
 <div id="title" class="overlay hidden">
   <h1><small data-t="over"></small>Przygody zaginionej Łatki</h1>
   <p class="story" data-t="story"></p>
-  <div id="levels"><button class="ghost" data-lv="1">1 · Zaginiona świątynia</button><button class="ghost" data-lv="2">2 · Pościg za Milą</button></div>
+  <div id="levels"><button class="ghost" data-lv="1">1 · Zaginiona świątynia</button><button class="ghost" data-lv="2">2 · Pościg za Milą</button><button class="ghost" data-lv="3">3 · Nocna wyprawa</button></div>
   <div><button id="start" data-t="start"></button><button id="lang" class="ghost">EN</button></div>
   <div class="keys" data-t="keys"></div>
 </div>
@@ -160,12 +175,12 @@
 
 <script>
   // level picker (kept visible for testing): level 2 lives under ?level=2
-  var LEVEL = new URLSearchParams(location.search).get('level') === '2' ? '2' : '1';
+  var LEVEL = new URLSearchParams(location.search).get('level'); if (LEVEL !== '2' && LEVEL !== '3') LEVEL = '1';
   document.querySelectorAll('#levels button').forEach(function (b) {
     if (b.dataset.lv === LEVEL) b.classList.add('cur');
-    b.addEventListener('click', function () { if (b.dataset.lv !== LEVEL) location.search = b.dataset.lv === '2' ? '?level=2' : ''; });
+    b.addEventListener('click', function () { if (b.dataset.lv !== LEVEL) location.search = b.dataset.lv === '1' ? '' : '?level=' + b.dataset.lv; });
   });
 </script>
-<script type="module">/*entry*/import(LEVEL === '2' ? './src/run.js' : './src/main.js').catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });</script>
+<script type="module">/*entry*/import(LEVEL === '3' ? './src/night.js' : LEVEL === '2' ? './src/run.js' : './src/main.js').catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });</script>
 </body>
 </html>
