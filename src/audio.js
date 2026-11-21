@@ -54,7 +54,7 @@ export class AudioSys {
     notes.forEach((n, i) => { this.tone(n, 0.5, kind === 'sock' ? 'square' : 'triangle', kind === 'sock' ? 0.07 : 0.16, 0, i * 0.09); this.tone(n * 2, 0.4, 'sine', 0.06, 0, i * 0.09); });
   }
   placeChime() { [392, 523, 659].forEach((n, i) => { this.tone(n, 1.6, 'triangle', 0.07, 0, i * 0.12); this.tone(n * 2, 1.2, 'sine', 0.03, 0, i * 0.12); }); }
-  chime(i) { const n = [523, 587, 659, 784, 880][i] || 880; this.tone(n, 1.2, 'triangle', 0.2); this.tone(n * 2, 1.0, 'sine', 0.1); this.tone(n * 3, 0.6, 'sine', 0.04); }
+  chime(i) { const n = [523, 587, 659, 784, 880, 1047][i] || 880; this.tone(n, 1.2, 'triangle', 0.2); this.tone(n * 2, 1.0, 'sine', 0.1); this.tone(n * 3, 0.6, 'sine', 0.04); }
   ignite() { this.burst(500, 0.7, 0.5, 0.3, 'bandpass', 0, 3); }
   rumble(dur) { this.burst(70, 0.7, dur, 0.9, 'lowpass'); this.burst(160, 1, dur, 0.4, 'bandpass'); this.tone(41, dur, 'sawtooth', 0.25); }
   fanfare() { [523, 659, 784, 1047, 784, 1047, 1318].forEach((n, i) => { this.tone(n, 0.6, 'triangle', 0.18, 0, i * 0.16); this.tone(n / 2, 0.6, 'sine', 0.1, 0, i * 0.16); }); }

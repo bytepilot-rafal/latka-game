@@ -18,30 +18,30 @@ const DAY = 360; // seconds of daylight
 const TXT = {
   pl: {
     over: 'Zaginiona świątynia w kanionie', start: 'Zacznij przygodę', again: 'Zagraj ponownie',
-    story: 'Zachodzi słońce. Łatka dotarła do zaginionej świątyni w głębi dżungli. Znajdź pięć reliktów ukrytych w ruinach i otwórz wrota, zanim zgaśnie światło — za nimi czekają szczeniaki!',
+    story: 'Zachodzi słońce. Łatka dotarła do zaginionej świątyni w głębi dżungli. Znajdź sześć reliktów ukrytych w ruinach i otwórz wrota, zanim zgaśnie światło — za nimi czekają szczeniaki!',
     keys: 'WASD / strzałki — ruch · Spacja — skok · Shift — bieg · przeciągnij myszą lub Q / E — kamera · H — hau! · M — muzyka',
     keys_t: 'Lewy kciuk — ruch (do końca = bieg) · przycisk z łapą — skok · przeciągnij po ekranie — kamera · dwa palce — przybliżenie · najlepiej w poziomie',
     h_stairs_t: 'Kazikowe Schody się kruszą — przeskakuj wyrwy (przycisk z łapą).',
     sun: 'Do zmroku', h_start: 'Idź ulicą Pogodną przez ruiny do Mostu Serockiego.', h_bridge: 'Most Serocki skrzypi i kołysze się… Uważaj na dziury!',
     h_break: 'Uff! Most Serocki runął do rzeki tuż za tobą!', h_stairs: 'Kazikowe Schody się kruszą — przeskakuj wyrwy (Spacja).', h_tunnel: 'W Tunelu Stasia jest ciemno… Latarenka na obroży rozświetla drogę.',
-    h_court: 'Świątynia! Lustro Oli śle promienie do nieba — poszukaj go w ruinach.', h_need: (n) => `Roszczeńskie Wrota potrzebują pięciu reliktów (masz ${n}/5). Rozejrzyj się za kolorowymi słupami światła.`, h_door: 'Relikty wracają na swoje miejsce…',
+    h_court: 'Świątynia! Lustro Oli śle promienie do nieba — poszukaj go w ruinach.', h_need: (n) => `Roszczeńskie Wrota potrzebują sześciu reliktów (masz ${n}/6). Rozejrzyj się za kolorowymi słupami światła.`, h_door: 'Relikty wracają na swoje miejsce…',
     h_fall: 'Chlup! Spróbuj jeszcze raz.', h_go: 'Masz wszystkie relikty! Biegnij do Roszczeńskich Wrót.',
-    p_bone: 'Kość dr. Alicji!', p_sock: 'Feeeeee! Skarpeta Lesława!', p_mirror: 'Lustro Oli!', p_brush: 'Zmiotka Agaty!', p_diaper: 'Ojej! Pielucha Jasia!',
+    p_bone: 'Kość dr. Alicji!', p_sock: 'Feeeeee! Skarpeta Lesława!', p_mirror: 'Lustro Oli!', p_brush: 'Zmiotka Agaty!', p_diaper: 'Ojej! Pielucha Jasia!', p_ball: 'Gooool! Piłka Piotrusia!',
     k_street: 'ulica', k_bridge: 'most linowy', k_stairs: 'schody', k_tunnel: 'tunel', k_gate: 'wrota świątyni', k_temple: 'zaginiona świątynia',
     win: 'Łatka odnalazła szczeniaki!', winText: (t) => `Roszczeńskie Wrota stoją otworem, a maluchy są bezpieczne. Zdążyłaś w ${t}, zanim zapadł zmrok.`,
     lose: 'Zapadła noc…', loseText: 'Światło zgasło, zanim wrota się otworzyły. Szczeniaki wciąż czekają — spróbuj jeszcze raz!',
   },
   en: {
     over: 'The lost temple in the canyon', start: 'Begin the adventure', again: 'Play again',
-    story: 'The sun is setting. Łatka has reached a lost temple deep in the jungle. Find the five relics hidden in the ruins and open the door before the light is gone — the puppies are waiting behind it!',
+    story: 'The sun is setting. Łatka has reached a lost temple deep in the jungle. Find the six relics hidden in the ruins and open the door before the light is gone — the puppies are waiting behind it!',
     keys: 'WASD / arrows — move · Space — jump · Shift — run · drag the mouse or Q / E — camera · H — woof! · M — music',
     keys_t: 'Left thumb — move (push all the way = run) · paw button — jump · drag the screen — camera · two fingers — zoom · best in landscape',
     h_stairs_t: 'Kazikowe Schody are crumbling — jump the gaps (paw button).',
     sun: 'Until dark', h_start: 'Follow Pogodna Street through the ruins to Most Serocki.', h_bridge: 'Most Serocki creaks and sways… Mind the gaps!',
     h_break: 'Phew! Most Serocki fell into the river right behind you!', h_stairs: 'Kazikowe Schody are crumbling — jump the gaps (Space).', h_tunnel: 'Tunel Stasia is dark… The little lantern on your collar lights the way.',
-    h_court: 'The temple! Lustro Oli sends rays to the sky — look for it in the ruins.', h_need: (n) => `Roszczeńskie Wrota need five relics (you have ${n}/5). Look for the coloured beams of light.`, h_door: 'The relics return to their places…',
+    h_court: 'The temple! Lustro Oli sends rays to the sky — look for it in the ruins.', h_need: (n) => `Roszczeńskie Wrota need six relics (you have ${n}/6). Look for the coloured beams of light.`, h_door: 'The relics return to their places…',
     h_fall: 'Splash! Try again.', h_go: 'You have all the relics! Run to Roszczeńskie Wrota.',
-    p_bone: 'Kość dr. Alicji — Dr Alicja\'s bone!', p_sock: 'Yuck! Skarpeta Lesława!', p_mirror: 'Lustro Oli — Ola\'s mirror!', p_brush: 'Zmiotka Agaty — Agata\'s brush!', p_diaper: 'Oh my! Pielucha Jasia!',
+    p_bone: 'Kość dr. Alicji — Dr Alicja\'s bone!', p_sock: 'Yuck! Skarpeta Lesława!', p_mirror: 'Lustro Oli — Ola\'s mirror!', p_brush: 'Zmiotka Agaty — Agata\'s brush!', p_diaper: 'Oh my! Pielucha Jasia!', p_ball: 'Goal! Piłka Piotrusia — Piotruś\'s football!',
     k_street: 'street', k_bridge: 'rope bridge', k_stairs: 'stairs', k_tunnel: 'tunnel', k_gate: 'temple gate', k_temple: 'the lost temple',
     win: 'Łatka found the puppies!', winText: (t) => `The temple door stands open and the little ones are safe. You made it in ${t}, before nightfall.`,
     lose: 'Night has fallen…', loseText: 'The light was gone before the door opened. The puppies are still waiting — try again!',
@@ -263,7 +263,7 @@ async function boot() {
     const order = ['arch', 'bridge', 'break', 'landing', 'stairs', 'mouth', 'tunnel', 'sock', 'court', 'mirror', 'door'], upto = order.indexOf(stage);
     if (G.mode === 'title') { startGame(); S(4.5); }
     const steps = [
-      () => { go(0, -20); go(0, -43.5); },
+      () => { go(0, -20); go(world.ballPos.x - 0.4, world.ballPos.z + 0.4, { r: 0.5 }); go(0, -36); go(0, -43.5); },
       () => { go(0, -49.5); go(0, -64, { r: 0.9 }); },
       () => { go(0, -77, { r: 0.6 }); S(0.7); },
       () => { go(0, -100, { r: 0.6 }); go(-2.9, -102.6, { r: 0.5 }); go(0, -105, { r: 0.6 }); go(0, -108.6, { r: 0.4 }); },
@@ -437,11 +437,11 @@ function cinematic(dt) {
   P.speed = t < 0.8 ? 2.5 : 0; P.sit = t > 1 ? 1 : 0;
   // relics fly to their sockets
   for (let i = 0; i < orbs.length; i++) {
-    const t0 = 1.2 + i * 0.75, o = orbs[i], s = door.sockets[i];
+    const t0 = 1.2 + i * 0.62, o = orbs[i], s = door.sockets[i];
     if (t > t0 && s.lit === 0) {
       const u = clamp((t - t0) / 1.0, 0, 1), e = u * u * (3 - 2 * u); o.visible = true;
       _a.set(P.pos.x, P.pos.y + 0.8, P.pos.z); _b.copy(s.m.position);
-      o.position.lerpVectors(_a, _b, e); o.position.y += Math.sin(u * Math.PI) * 3; o.position.x += Math.sin(u * Math.PI) * (i - 2) * 1.3;
+      o.position.lerpVectors(_a, _b, e); o.position.y += Math.sin(u * Math.PI) * 3; o.position.x += Math.sin(u * Math.PI) * (i - 2.5) * 1.2;
       const c = s.color; pAdd.spawn(o.position.x, o.position.y, o.position.z, rnd(0.4), rnd(0.4), rnd(0.4), 0.7, 0.3, 0.02, c.r * 5, c.g * 5, c.b * 5, 1, 0, 0);
       if (u >= 1) { s.lit = 1; o.visible = false; audio.chime(i); sparkle(s.m.position, s.color, 40, 3); G.shake = 0.12; }
     }

@@ -364,6 +364,7 @@ export function createTextures() {
   T.glyphSock = glyph((ctx) => { ctx.lineWidth = 26; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(52, 30); ctx.lineTo(52, 84); ctx.lineTo(88, 92); ctx.stroke(); });
   T.glyphBrush = glyph((ctx) => { ctx.save(); ctx.translate(64, 64); ctx.rotate(-0.6); ctx.fillRect(-7, -52, 14, 46); ctx.fillRect(-26, -8, 52, 16); for (let i = -3; i <= 3; i++) ctx.fillRect(i * 7.5 - 2.5, 10, 5, 34); ctx.restore(); });
   T.glyphDiaper = glyph((ctx) => { ctx.beginPath(); ctx.moveTo(22, 36); ctx.lineTo(106, 36); ctx.lineTo(102, 60); ctx.quadraticCurveTo(84, 66, 78, 96); ctx.lineTo(50, 96); ctx.quadraticCurveTo(44, 66, 26, 60); ctx.closePath(); ctx.fill(); });
+  T.glyphBall = glyph((ctx) => { ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(64, 64, 40, 0, 7); ctx.stroke(); ctx.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * Math.PI * 0.4; ctx.lineTo(64 + Math.cos(a) * 16, 64 + Math.sin(a) * 16); } ctx.closePath(); ctx.fill(); ctx.lineWidth = 6; ctx.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * Math.PI * 0.4; ctx.moveTo(64 + Math.cos(a) * 16, 64 + Math.sin(a) * 16); ctx.lineTo(64 + Math.cos(a) * 38, 64 + Math.sin(a) * 38); } ctx.stroke(); });
   T.glyphMirror = glyph((ctx) => { ctx.beginPath(); ctx.arc(64, 48, 28, 0, 7); ctx.fill(); ctx.fillRect(58, 72, 12, 40); });
 
   return T;

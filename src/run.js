@@ -25,7 +25,7 @@ const TXT = {
     cheers: ['Brawo, Łatka!', 'Łap ją, łap!', 'Dalej, dalej!', 'Szybciej, szybciej!', 'Hau hau!', 'Biegnij, Łatka!', 'Mila jest tuż-tuż!', 'Dasz radę!', 'Ale pędzisz!', 'Już ją masz!', 'Brawo, piesku kochany!'],
     w_rain: 'Zaczyna padać!', w_fog: 'Nadciąga mgła…', w_snow: 'Sypie śnieg!', w_clear: 'Przejaśnia się.',
     fin1: 'Mila: „No dobrze… wygrałaś!”', fin2: 'Od dziś biegają razem.',
-    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
+    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100', r_ball: 'Gooool! Piłka Piotrusia! +100',
   },
   en: {
     over: 'Level 2', title: 'Chasing Mila', start: 'Run!', again: 'Again', menu: 'Menu',
@@ -41,7 +41,7 @@ const TXT = {
     cheers: ['Bravo, Łatka!', 'Get her!', 'Go, go, go!', 'Faster, faster!', 'Woof woof!', 'Run, Łatka!', 'Mila is right there!', 'You can do it!', 'So fast!', 'You have got her!', 'Good girl!'],
     w_rain: 'It starts to rain!', w_fog: 'Fog rolls in…', w_snow: 'It is snowing!', w_clear: 'It clears up.',
     fin1: 'Mila: "All right… you win!"', fin2: 'From now on they run together.',
-    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
+    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100', r_ball: 'Goal! Piłka Piotrusia! +100',
   },
 };
 let lang = 'pl';
@@ -498,6 +498,7 @@ const FRIENDS = [
   { name: 'Karolina', shirt: 0xc2476b, hair: 0x8a3b1e, sc: 0.98, legs: 0x2b2f3a, long: 1 },
   { name: 'Tomek', shirt: 0x2f8f8a, hair: 0x4a3524, sc: 1.05, legs: 0x3a3f4a },
   { name: 'Krzysiek', shirt: 0x7a5bb0, hair: 0x22201e, sc: 1.07, legs: 0x5a4a3a },
+  { name: 'Piotruś', shirt: 0x2f9a4a, hair: 0x4a3320, sc: 0.72, legs: 0xf2f2f2, ball: 1 },
   { name: 'Babcia Małgosia', shirt: 0xa56a9a, hair: 0xd6d6d6, sc: 0.9, legs: 0x6a5a7a, skirt: 1, bun: 1 },
 ];
 const friends = [];
@@ -515,6 +516,7 @@ function buildFriends() {
     for (const x of [-0.06, 0.06]) b.box(0.035, 0.035, 0.02, x, 1.55, 0.15, 0x1c1c1c, 0, 0);
     if (!F.cap) b.box(0.08, 0.02, 0.02, 0, 1.47, 0.155, 0x9a3b34, 0, 0);
     g.add(b.mesh());
+    if (F.ball) { const fb = relicModel('ball'); fb.scale.setScalar(0.8); fb.position.set(-0.36, 0.19, 0.22); g.add(fb); }      // Piotruś keeps his football at his feet
     const ab = new Builder(750 + i); ab.box(0.1, 0.5, 0.1, 0, 0, 0, shirt); ab.blob(0.075, 0, 0.56, 0, skin);
     const arm = ab.mesh(); arm.position.set(0.27, 1.28, 0); g.add(arm);                                           // the waving arm, hinged at the shoulder
     const lw = name.length > 9 ? 1.75 : 1.1;
@@ -525,7 +527,7 @@ function buildFriends() {
   });
 }
 function placeFriend(f, x, z, yaw) { f.z = -z; f.on = true; f.cheered = false; f.g.visible = true; f.g.position.set(x, 0, z); f.g.rotation.y = yaw; f.label.rotation.y = -yaw; f.label.position.y = 2.08 + (1 / f.sc - 1) * 0.42; }
-const RELICS = ['sock', 'mirror', 'brush', 'diaper', 'bone'];
+const RELICS = ['sock', 'ball', 'mirror', 'brush', 'diaper', 'bone'];
 
 // ------------------------------------------------------------------ level generation
 const gen = { z: 40, safe: 1, relicAt: 260, relicI: 0, powAt: 100 };

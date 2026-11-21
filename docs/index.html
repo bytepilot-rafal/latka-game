@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261121-190852';
+  window.BUILD = '20261121-233808';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) { try { if (window.LEVEL && LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) {} location.replace(location.pathname + '?v=' + v); }
@@ -152,6 +152,7 @@
   <div class="slot" id="s-mirror" title="Lustro Oli"><svg viewBox="0 0 32 32"><circle cx="16" cy="12" r="8.5" fill="#d8f1ff" stroke="#ffcf5a" stroke-width="2.4"/><path d="M11 9l4-3M12 13l7-6" stroke="#fff" stroke-width="1.6"/><rect x="14.2" y="20" width="3.6" height="10" rx="1.6" fill="#ffcf5a" stroke="#a86a12" stroke-width=".8"/></svg></div>
   <div class="slot" id="s-brush" title="Zmiotka Agaty"><svg viewBox="0 0 32 32"><g transform="rotate(-30 16 16)"><rect x="14.4" y="2" width="3.2" height="13" rx="1.4" fill="#b5651d" stroke="#6b3a10" stroke-width=".8"/><rect x="7" y="14" width="18" height="5" rx="1.5" fill="#c9792a" stroke="#6b3a10" stroke-width=".8"/><path d="M8 19l-1 10M11 19l-.5 10M14 19v10M17 19v10M20 19l.5 10M23 19l1 10" stroke="#e8c66a" stroke-width="2" stroke-linecap="round"/></g></svg></div>
   <div class="slot" id="s-diaper" title="Pielucha Jasia"><svg viewBox="0 0 32 32"><path d="M4 9h24l-1 7c-5 1-7 5-8 10h-6c-1-5-3-9-8-10z" fill="#fafafa" stroke="#9aa6b8" stroke-width="1.2"/><rect x="4.5" y="10" width="5" height="3" rx="1" fill="#4aa3ff"/><rect x="22.5" y="10" width="5" height="3" rx="1" fill="#4aa3ff"/></svg></div>
+  <div class="slot" id="s-ball" title="Piłka Piotrusia"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="11.5" fill="#fafafa" stroke="#22222a" stroke-width="1.6"/><path d="M16 10.6l5.1 3.7-1.9 6h-6.4l-1.9-6z" fill="#1c1c22"/><path d="M16 10.6V5M21.1 14.3l5.4-1.8M19.2 20.3l3.4 4.6M12.8 20.3l-3.4 4.6M10.9 14.3l-5.4-1.8" stroke="#1c1c22" stroke-width="1.5"/></svg></div>
 </div>
 <div id="sun" class="ui"><div id="sunbar"><div id="sundot"></div></div><div id="sunlabel"></div></div>
 <div id="place" class="ui"><div class="orn"><span id="placeKind"></span></div><div class="name" id="placeName"></div></div>
@@ -577,6 +578,7 @@ export function createTextures() {
   T.glyphSock = glyph((ctx) => { ctx.lineWidth = 26; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(52, 30); ctx.lineTo(52, 84); ctx.lineTo(88, 92); ctx.stroke(); });
   T.glyphBrush = glyph((ctx) => { ctx.save(); ctx.translate(64, 64); ctx.rotate(-0.6); ctx.fillRect(-7, -52, 14, 46); ctx.fillRect(-26, -8, 52, 16); for (let i = -3; i <= 3; i++) ctx.fillRect(i * 7.5 - 2.5, 10, 5, 34); ctx.restore(); });
   T.glyphDiaper = glyph((ctx) => { ctx.beginPath(); ctx.moveTo(22, 36); ctx.lineTo(106, 36); ctx.lineTo(102, 60); ctx.quadraticCurveTo(84, 66, 78, 96); ctx.lineTo(50, 96); ctx.quadraticCurveTo(44, 66, 26, 60); ctx.closePath(); ctx.fill(); });
+  T.glyphBall = glyph((ctx) => { ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(64, 64, 40, 0, 7); ctx.stroke(); ctx.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * Math.PI * 0.4; ctx.lineTo(64 + Math.cos(a) * 16, 64 + Math.sin(a) * 16); } ctx.closePath(); ctx.fill(); ctx.lineWidth = 6; ctx.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * Math.PI * 0.4; ctx.moveTo(64 + Math.cos(a) * 16, 64 + Math.sin(a) * 16); ctx.lineTo(64 + Math.cos(a) * 38, 64 + Math.sin(a) * 38); } ctx.stroke(); });
   T.glyphMirror = glyph((ctx) => { ctx.beginPath(); ctx.arc(64, 48, 28, 0, 7); ctx.fill(); ctx.fillRect(58, 72, 12, 40); });
 
   return T;
@@ -1026,10 +1028,10 @@ export function buildCat(opt = {}) {
 
 </script>
 <script type="text/plain" id="m-relics">
-// The five relics as 3D models, shared by both levels so they look the same everywhere.
+// The six relics as 3D models, shared by both levels so they look the same everywhere.
 import * as THREE from 'three';
 
-export const RELIC_COLORS = { bone: 0xffc04a, sock: 0x58ff2e, mirror: 0xcfeaff, brush: 0xff8a2e, diaper: 0xff8fd0 };
+export const RELIC_COLORS = { bone: 0xffc04a, sock: 0x58ff2e, mirror: 0xcfeaff, brush: 0xff8a2e, diaper: 0xff8fd0, ball: 0xa98bff };
 
 export function relicModel(id) {
   const s = new THREE.Group(), add = (g, m) => { const o = new THREE.Mesh(g, m); s.add(o); return o; };
@@ -1067,6 +1069,26 @@ export function relicModel(id) {
       const t = add(new THREE.BoxGeometry(0.09, 0.05, 0.02), tab); t.position.set(sd * 0.13, 0.1, 0.145); t.rotation.y = sd * 0.5;
     }
     s.scale.setScalar(1.25);
+  } else if (id === 'ball') {               // Piotruś's football: white, with black pentagons and stitched seams
+    const R = 0.23, white = new THREE.MeshStandardMaterial({ color: 0xf6f6f2, roughness: 0.55, emissive: 0x8f7ad8, emissiveIntensity: 0.22 }), black = new THREE.MeshStandardMaterial({ color: 0x17171a, roughness: 0.5, side: THREE.DoubleSide });
+    add(new THREE.IcosahedronGeometry(R, 4), white);
+    const ico = new THREE.IcosahedronGeometry(1, 0).toNonIndexed().attributes.position, V = [];
+    for (let i = 0; i < ico.count; i++) { const v = new THREE.Vector3().fromBufferAttribute(ico, i); if (!V.some((q) => q.distanceTo(v) < 1e-3)) V.push(v); }
+    const tri = [], seam = [], put = (arr, v, r) => { const q = v.clone().normalize().multiplyScalar(r); arr.push(q.x, q.y, q.z); };
+    for (const v of V) {
+      const nb = V.filter((q) => q !== v && q.distanceTo(v) < 1.1), ax = new THREE.Vector3().crossVectors(v, nb[0]).normalize(), ay = new THREE.Vector3().crossVectors(v, ax);
+      nb.sort((p, q) => Math.atan2(p.dot(ay), p.dot(ax)) - Math.atan2(q.dot(ay), q.dot(ax)));
+      const c = nb.map((q) => v.clone().lerp(q, 1 / 3));                            // the corners of the pentagon: a third of the way to each neighbour
+      for (let i = 0; i < 5; i++) {
+        const a = c[i], b = c[(i + 1) % 5], m = a.clone().add(b);
+        put(tri, v, R * 1.012); put(tri, a, R * 1.012); put(tri, m, R * 1.012); put(tri, v, R * 1.012); put(tri, m, R * 1.012); put(tri, b, R * 1.012);
+        const far = nb[i].clone().lerp(v, 1 / 3), mid = a.clone().add(far);      // the seam between two white patches, along the edge to the next pentagon
+        put(seam, a, R * 1.006); put(seam, mid, R * 1.006); put(seam, mid, R * 1.006); put(seam, far, R * 1.006);
+      }
+    }
+    const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(tri, 3)); pg.computeVertexNormals(); add(pg, black);
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(seam, 3)); s.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: 0x3a3a40 })));
+    s.rotation.set(0.4, 0, 0.3); s.scale.setScalar(1.3);
   }
   s.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   return s;
@@ -1260,7 +1282,7 @@ export class AudioSys {
     notes.forEach((n, i) => { this.tone(n, 0.5, kind === 'sock' ? 'square' : 'triangle', kind === 'sock' ? 0.07 : 0.16, 0, i * 0.09); this.tone(n * 2, 0.4, 'sine', 0.06, 0, i * 0.09); });
   }
   placeChime() { [392, 523, 659].forEach((n, i) => { this.tone(n, 1.6, 'triangle', 0.07, 0, i * 0.12); this.tone(n * 2, 1.2, 'sine', 0.03, 0, i * 0.12); }); }
-  chime(i) { const n = [523, 587, 659, 784, 880][i] || 880; this.tone(n, 1.2, 'triangle', 0.2); this.tone(n * 2, 1.0, 'sine', 0.1); this.tone(n * 3, 0.6, 'sine', 0.04); }
+  chime(i) { const n = [523, 587, 659, 784, 880, 1047][i] || 880; this.tone(n, 1.2, 'triangle', 0.2); this.tone(n * 2, 1.0, 'sine', 0.1); this.tone(n * 3, 0.6, 'sine', 0.04); }
   ignite() { this.burst(500, 0.7, 0.5, 0.3, 'bandpass', 0, 3); }
   rumble(dur) { this.burst(70, 0.7, dur, 0.9, 'lowpass'); this.burst(160, 1, dur, 0.4, 'bandpass'); this.tone(41, dur, 'sawtooth', 0.25); }
   fanfare() { [523, 659, 784, 1047, 784, 1047, 1318].forEach((n, i) => { this.tone(n, 0.6, 'triangle', 0.18, 0, i * 0.16); this.tone(n / 2, 0.6, 'sine', 0.1, 0, i * 0.16); }); }
@@ -1989,14 +2011,14 @@ export function buildWorld(scene, tex) {
       const m = new THREE.Mesh(g, doorMat); m.position.set(s * 1.525, P + 3.8, -262.5); m.castShadow = m.receiveShadow = true; scene.add(m); return m;
     };
     const door = { L: mkDoor(-1), R: mkDoor(1), open: 0, target: 0, box: addBox(-3.1, 3.1, -263.4, -261.9, 40), sockets: [] };
-    const glyphs = [[tex.glyphBone, 0xffc247], [tex.glyphSock, 0x63ff3a], [tex.glyphMirror, 0xbfe9ff], [tex.glyphBrush, 0xff8a2e], [tex.glyphDiaper, 0xff8fd0]];
+    const glyphs = [[tex.glyphBone, 0xffc247], [tex.glyphSock, 0x63ff3a], [tex.glyphMirror, 0xbfe9ff], [tex.glyphBrush, 0xff8a2e], [tex.glyphDiaper, 0xff8fd0], [tex.glyphBall, 0xa98bff]];
     glyphs.forEach(([gl, c], i) => {
       const m = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.56, 0.16, 28), new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.6, emissive: new THREE.Color(c), emissiveMap: gl, emissiveIntensity: 0 }));
-      m.rotation.x = Math.PI / 2; m.position.set((i - 2) * 1.72, P + 10.35, -261.05); scene.add(m);
+      m.rotation.x = Math.PI / 2; m.position.set((i - 2.5) * 1.5, P + 10.35, -261.05); scene.add(m);
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.08, 8, 28), stone); ring.position.copy(m.position); scene.add(ring);
       door.sockets.push({ m, lit: 0, color: new THREE.Color(c) });
     });
-    batch.box(stone, 8.6, 1.9, 0.5, 0, P + 10.35, -261.55);
+    batch.box(stone, 9.5, 1.9, 0.5, 0, P + 10.35, -261.55);
     door.update = (dt) => {
       door.open += clamp(door.target - door.open, -dt * 0.22, dt * 0.22);
       const k = sm(0, 1, door.open); door.L.position.x = -1.525 - k * 2.9; door.R.position.x = 1.525 + k * 2.9;
@@ -2061,7 +2083,11 @@ export function buildWorld(scene, tex) {
     // Jaś's nappy – on the sunny west side of the temple court
     const nappy = mkRelic('diaper', new THREE.Vector3(-15, 10.05, -236), 0xff8fd0, 13);
     nappy.spin.add(relicModel('diaper'));
-    for (const [r, c] of [[brush, 0xffa24a], [nappy, 0xffa6dc]]) { const bm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.18, 22, 14, 1, true), beamMaterial(c, 0.45, U.uTime)); bm.position.y = 11; bm.renderOrder = 9; r.g.add(bm); r.beam = bm; }
+    // Piotruś's football – kicked into the ruins beside Pogodna street, before the bridge
+    world.ballPos = new THREE.Vector3(6.5, 1.0, -29.5);
+    const ball = mkRelic('ball', world.ballPos, 0xa98bff, 13);
+    ball.spin.add(relicModel('ball'));
+    for (const [r, c] of [[brush, 0xffa24a], [nappy, 0xffa6dc], [ball, 0xb9a0ff]]) { const bm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.18, 22, 14, 1, true), beamMaterial(c, 0.45, U.uTime)); bm.position.y = 11; bm.renderOrder = 9; r.g.add(bm); r.beam = bm; }
     // golden bone beam (soft) so it can be seen from the knoll
     const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.2, 26, 14, 1, true), beamMaterial(0xffc860, 0.5, U.uTime)); bb.position.y = 13; bb.renderOrder = 9; bone.g.add(bb); bone.beam = bb;
     world.updaters.push((dt, t) => {
@@ -2229,30 +2255,30 @@ const DAY = 360; // seconds of daylight
 const TXT = {
   pl: {
     over: 'Zaginiona świątynia w kanionie', start: 'Zacznij przygodę', again: 'Zagraj ponownie',
-    story: 'Zachodzi słońce. Łatka dotarła do zaginionej świątyni w głębi dżungli. Znajdź pięć reliktów ukrytych w ruinach i otwórz wrota, zanim zgaśnie światło — za nimi czekają szczeniaki!',
+    story: 'Zachodzi słońce. Łatka dotarła do zaginionej świątyni w głębi dżungli. Znajdź sześć reliktów ukrytych w ruinach i otwórz wrota, zanim zgaśnie światło — za nimi czekają szczeniaki!',
     keys: 'WASD / strzałki — ruch · Spacja — skok · Shift — bieg · przeciągnij myszą lub Q / E — kamera · H — hau! · M — muzyka',
     keys_t: 'Lewy kciuk — ruch (do końca = bieg) · przycisk z łapą — skok · przeciągnij po ekranie — kamera · dwa palce — przybliżenie · najlepiej w poziomie',
     h_stairs_t: 'Kazikowe Schody się kruszą — przeskakuj wyrwy (przycisk z łapą).',
     sun: 'Do zmroku', h_start: 'Idź ulicą Pogodną przez ruiny do Mostu Serockiego.', h_bridge: 'Most Serocki skrzypi i kołysze się… Uważaj na dziury!',
     h_break: 'Uff! Most Serocki runął do rzeki tuż za tobą!', h_stairs: 'Kazikowe Schody się kruszą — przeskakuj wyrwy (Spacja).', h_tunnel: 'W Tunelu Stasia jest ciemno… Latarenka na obroży rozświetla drogę.',
-    h_court: 'Świątynia! Lustro Oli śle promienie do nieba — poszukaj go w ruinach.', h_need: (n) => `Roszczeńskie Wrota potrzebują pięciu reliktów (masz ${n}/5). Rozejrzyj się za kolorowymi słupami światła.`, h_door: 'Relikty wracają na swoje miejsce…',
+    h_court: 'Świątynia! Lustro Oli śle promienie do nieba — poszukaj go w ruinach.', h_need: (n) => `Roszczeńskie Wrota potrzebują sześciu reliktów (masz ${n}/6). Rozejrzyj się za kolorowymi słupami światła.`, h_door: 'Relikty wracają na swoje miejsce…',
     h_fall: 'Chlup! Spróbuj jeszcze raz.', h_go: 'Masz wszystkie relikty! Biegnij do Roszczeńskich Wrót.',
-    p_bone: 'Kość dr. Alicji!', p_sock: 'Feeeeee! Skarpeta Lesława!', p_mirror: 'Lustro Oli!', p_brush: 'Zmiotka Agaty!', p_diaper: 'Ojej! Pielucha Jasia!',
+    p_bone: 'Kość dr. Alicji!', p_sock: 'Feeeeee! Skarpeta Lesława!', p_mirror: 'Lustro Oli!', p_brush: 'Zmiotka Agaty!', p_diaper: 'Ojej! Pielucha Jasia!', p_ball: 'Gooool! Piłka Piotrusia!',
     k_street: 'ulica', k_bridge: 'most linowy', k_stairs: 'schody', k_tunnel: 'tunel', k_gate: 'wrota świątyni', k_temple: 'zaginiona świątynia',
     win: 'Łatka odnalazła szczeniaki!', winText: (t) => `Roszczeńskie Wrota stoją otworem, a maluchy są bezpieczne. Zdążyłaś w ${t}, zanim zapadł zmrok.`,
     lose: 'Zapadła noc…', loseText: 'Światło zgasło, zanim wrota się otworzyły. Szczeniaki wciąż czekają — spróbuj jeszcze raz!',
   },
   en: {
     over: 'The lost temple in the canyon', start: 'Begin the adventure', again: 'Play again',
-    story: 'The sun is setting. Łatka has reached a lost temple deep in the jungle. Find the five relics hidden in the ruins and open the door before the light is gone — the puppies are waiting behind it!',
+    story: 'The sun is setting. Łatka has reached a lost temple deep in the jungle. Find the six relics hidden in the ruins and open the door before the light is gone — the puppies are waiting behind it!',
     keys: 'WASD / arrows — move · Space — jump · Shift — run · drag the mouse or Q / E — camera · H — woof! · M — music',
     keys_t: 'Left thumb — move (push all the way = run) · paw button — jump · drag the screen — camera · two fingers — zoom · best in landscape',
     h_stairs_t: 'Kazikowe Schody are crumbling — jump the gaps (paw button).',
     sun: 'Until dark', h_start: 'Follow Pogodna Street through the ruins to Most Serocki.', h_bridge: 'Most Serocki creaks and sways… Mind the gaps!',
     h_break: 'Phew! Most Serocki fell into the river right behind you!', h_stairs: 'Kazikowe Schody are crumbling — jump the gaps (Space).', h_tunnel: 'Tunel Stasia is dark… The little lantern on your collar lights the way.',
-    h_court: 'The temple! Lustro Oli sends rays to the sky — look for it in the ruins.', h_need: (n) => `Roszczeńskie Wrota need five relics (you have ${n}/5). Look for the coloured beams of light.`, h_door: 'The relics return to their places…',
+    h_court: 'The temple! Lustro Oli sends rays to the sky — look for it in the ruins.', h_need: (n) => `Roszczeńskie Wrota need six relics (you have ${n}/6). Look for the coloured beams of light.`, h_door: 'The relics return to their places…',
     h_fall: 'Splash! Try again.', h_go: 'You have all the relics! Run to Roszczeńskie Wrota.',
-    p_bone: 'Kość dr. Alicji — Dr Alicja\'s bone!', p_sock: 'Yuck! Skarpeta Lesława!', p_mirror: 'Lustro Oli — Ola\'s mirror!', p_brush: 'Zmiotka Agaty — Agata\'s brush!', p_diaper: 'Oh my! Pielucha Jasia!',
+    p_bone: 'Kość dr. Alicji — Dr Alicja\'s bone!', p_sock: 'Yuck! Skarpeta Lesława!', p_mirror: 'Lustro Oli — Ola\'s mirror!', p_brush: 'Zmiotka Agaty — Agata\'s brush!', p_diaper: 'Oh my! Pielucha Jasia!', p_ball: 'Goal! Piłka Piotrusia — Piotruś\'s football!',
     k_street: 'street', k_bridge: 'rope bridge', k_stairs: 'stairs', k_tunnel: 'tunnel', k_gate: 'temple gate', k_temple: 'the lost temple',
     win: 'Łatka found the puppies!', winText: (t) => `The temple door stands open and the little ones are safe. You made it in ${t}, before nightfall.`,
     lose: 'Night has fallen…', loseText: 'The light was gone before the door opened. The puppies are still waiting — try again!',
@@ -2474,7 +2500,7 @@ async function boot() {
     const order = ['arch', 'bridge', 'break', 'landing', 'stairs', 'mouth', 'tunnel', 'sock', 'court', 'mirror', 'door'], upto = order.indexOf(stage);
     if (G.mode === 'title') { startGame(); S(4.5); }
     const steps = [
-      () => { go(0, -20); go(0, -43.5); },
+      () => { go(0, -20); go(world.ballPos.x - 0.4, world.ballPos.z + 0.4, { r: 0.5 }); go(0, -36); go(0, -43.5); },
       () => { go(0, -49.5); go(0, -64, { r: 0.9 }); },
       () => { go(0, -77, { r: 0.6 }); S(0.7); },
       () => { go(0, -100, { r: 0.6 }); go(-2.9, -102.6, { r: 0.5 }); go(0, -105, { r: 0.6 }); go(0, -108.6, { r: 0.4 }); },
@@ -2648,11 +2674,11 @@ function cinematic(dt) {
   P.speed = t < 0.8 ? 2.5 : 0; P.sit = t > 1 ? 1 : 0;
   // relics fly to their sockets
   for (let i = 0; i < orbs.length; i++) {
-    const t0 = 1.2 + i * 0.75, o = orbs[i], s = door.sockets[i];
+    const t0 = 1.2 + i * 0.62, o = orbs[i], s = door.sockets[i];
     if (t > t0 && s.lit === 0) {
       const u = clamp((t - t0) / 1.0, 0, 1), e = u * u * (3 - 2 * u); o.visible = true;
       _a.set(P.pos.x, P.pos.y + 0.8, P.pos.z); _b.copy(s.m.position);
-      o.position.lerpVectors(_a, _b, e); o.position.y += Math.sin(u * Math.PI) * 3; o.position.x += Math.sin(u * Math.PI) * (i - 2) * 1.3;
+      o.position.lerpVectors(_a, _b, e); o.position.y += Math.sin(u * Math.PI) * 3; o.position.x += Math.sin(u * Math.PI) * (i - 2.5) * 1.2;
       const c = s.color; pAdd.spawn(o.position.x, o.position.y, o.position.z, rnd(0.4), rnd(0.4), rnd(0.4), 0.7, 0.3, 0.02, c.r * 5, c.g * 5, c.b * 5, 1, 0, 0);
       if (u >= 1) { s.lit = 1; o.visible = false; audio.chime(i); sparkle(s.m.position, s.color, 40, 3); G.shake = 0.12; }
     }
@@ -2807,7 +2833,7 @@ const TXT = {
     cheers: ['Brawo, Łatka!', 'Łap ją, łap!', 'Dalej, dalej!', 'Szybciej, szybciej!', 'Hau hau!', 'Biegnij, Łatka!', 'Mila jest tuż-tuż!', 'Dasz radę!', 'Ale pędzisz!', 'Już ją masz!', 'Brawo, piesku kochany!'],
     w_rain: 'Zaczyna padać!', w_fog: 'Nadciąga mgła…', w_snow: 'Sypie śnieg!', w_clear: 'Przejaśnia się.',
     fin1: 'Mila: „No dobrze… wygrałaś!”', fin2: 'Od dziś biegają razem.',
-    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100',
+    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Feeeeee! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Ojej! Pielucha Jasia! +100', r_ball: 'Gooool! Piłka Piotrusia! +100',
   },
   en: {
     over: 'Level 2', title: 'Chasing Mila', start: 'Run!', again: 'Again', menu: 'Menu',
@@ -2823,7 +2849,7 @@ const TXT = {
     cheers: ['Bravo, Łatka!', 'Get her!', 'Go, go, go!', 'Faster, faster!', 'Woof woof!', 'Run, Łatka!', 'Mila is right there!', 'You can do it!', 'So fast!', 'You have got her!', 'Good girl!'],
     w_rain: 'It starts to rain!', w_fog: 'Fog rolls in…', w_snow: 'It is snowing!', w_clear: 'It clears up.',
     fin1: 'Mila: "All right… you win!"', fin2: 'From now on they run together.',
-    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100',
+    r_bone: 'Kość dr. Alicji! +100', r_sock: 'Yuck! Skarpeta Lesława! +100', r_mirror: 'Lustro Oli! +100', r_brush: 'Zmiotka Agaty! +100', r_diaper: 'Oh my! Pielucha Jasia! +100', r_ball: 'Goal! Piłka Piotrusia! +100',
   },
 };
 let lang = 'pl';
@@ -3280,6 +3306,7 @@ const FRIENDS = [
   { name: 'Karolina', shirt: 0xc2476b, hair: 0x8a3b1e, sc: 0.98, legs: 0x2b2f3a, long: 1 },
   { name: 'Tomek', shirt: 0x2f8f8a, hair: 0x4a3524, sc: 1.05, legs: 0x3a3f4a },
   { name: 'Krzysiek', shirt: 0x7a5bb0, hair: 0x22201e, sc: 1.07, legs: 0x5a4a3a },
+  { name: 'Piotruś', shirt: 0x2f9a4a, hair: 0x4a3320, sc: 0.72, legs: 0xf2f2f2, ball: 1 },
   { name: 'Babcia Małgosia', shirt: 0xa56a9a, hair: 0xd6d6d6, sc: 0.9, legs: 0x6a5a7a, skirt: 1, bun: 1 },
 ];
 const friends = [];
@@ -3297,6 +3324,7 @@ function buildFriends() {
     for (const x of [-0.06, 0.06]) b.box(0.035, 0.035, 0.02, x, 1.55, 0.15, 0x1c1c1c, 0, 0);
     if (!F.cap) b.box(0.08, 0.02, 0.02, 0, 1.47, 0.155, 0x9a3b34, 0, 0);
     g.add(b.mesh());
+    if (F.ball) { const fb = relicModel('ball'); fb.scale.setScalar(0.8); fb.position.set(-0.36, 0.19, 0.22); g.add(fb); }      // Piotruś keeps his football at his feet
     const ab = new Builder(750 + i); ab.box(0.1, 0.5, 0.1, 0, 0, 0, shirt); ab.blob(0.075, 0, 0.56, 0, skin);
     const arm = ab.mesh(); arm.position.set(0.27, 1.28, 0); g.add(arm);                                           // the waving arm, hinged at the shoulder
     const lw = name.length > 9 ? 1.75 : 1.1;
@@ -3307,7 +3335,7 @@ function buildFriends() {
   });
 }
 function placeFriend(f, x, z, yaw) { f.z = -z; f.on = true; f.cheered = false; f.g.visible = true; f.g.position.set(x, 0, z); f.g.rotation.y = yaw; f.label.rotation.y = -yaw; f.label.position.y = 2.08 + (1 / f.sc - 1) * 0.42; }
-const RELICS = ['sock', 'mirror', 'brush', 'diaper', 'bone'];
+const RELICS = ['sock', 'ball', 'mirror', 'brush', 'diaper', 'bone'];
 
 // ------------------------------------------------------------------ level generation
 const gen = { z: 40, safe: 1, relicAt: 260, relicI: 0, powAt: 100 };

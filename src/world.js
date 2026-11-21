@@ -587,14 +587,14 @@ export function buildWorld(scene, tex) {
       const m = new THREE.Mesh(g, doorMat); m.position.set(s * 1.525, P + 3.8, -262.5); m.castShadow = m.receiveShadow = true; scene.add(m); return m;
     };
     const door = { L: mkDoor(-1), R: mkDoor(1), open: 0, target: 0, box: addBox(-3.1, 3.1, -263.4, -261.9, 40), sockets: [] };
-    const glyphs = [[tex.glyphBone, 0xffc247], [tex.glyphSock, 0x63ff3a], [tex.glyphMirror, 0xbfe9ff], [tex.glyphBrush, 0xff8a2e], [tex.glyphDiaper, 0xff8fd0]];
+    const glyphs = [[tex.glyphBone, 0xffc247], [tex.glyphSock, 0x63ff3a], [tex.glyphMirror, 0xbfe9ff], [tex.glyphBrush, 0xff8a2e], [tex.glyphDiaper, 0xff8fd0], [tex.glyphBall, 0xa98bff]];
     glyphs.forEach(([gl, c], i) => {
       const m = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.56, 0.16, 28), new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.6, emissive: new THREE.Color(c), emissiveMap: gl, emissiveIntensity: 0 }));
-      m.rotation.x = Math.PI / 2; m.position.set((i - 2) * 1.72, P + 10.35, -261.05); scene.add(m);
+      m.rotation.x = Math.PI / 2; m.position.set((i - 2.5) * 1.5, P + 10.35, -261.05); scene.add(m);
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.08, 8, 28), stone); ring.position.copy(m.position); scene.add(ring);
       door.sockets.push({ m, lit: 0, color: new THREE.Color(c) });
     });
-    batch.box(stone, 8.6, 1.9, 0.5, 0, P + 10.35, -261.55);
+    batch.box(stone, 9.5, 1.9, 0.5, 0, P + 10.35, -261.55);
     door.update = (dt) => {
       door.open += clamp(door.target - door.open, -dt * 0.22, dt * 0.22);
       const k = sm(0, 1, door.open); door.L.position.x = -1.525 - k * 2.9; door.R.position.x = 1.525 + k * 2.9;
@@ -659,7 +659,11 @@ export function buildWorld(scene, tex) {
     // Jaś's nappy – on the sunny west side of the temple court
     const nappy = mkRelic('diaper', new THREE.Vector3(-15, 10.05, -236), 0xff8fd0, 13);
     nappy.spin.add(relicModel('diaper'));
-    for (const [r, c] of [[brush, 0xffa24a], [nappy, 0xffa6dc]]) { const bm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.18, 22, 14, 1, true), beamMaterial(c, 0.45, U.uTime)); bm.position.y = 11; bm.renderOrder = 9; r.g.add(bm); r.beam = bm; }
+    // Piotruś's football – kicked into the ruins beside Pogodna street, before the bridge
+    world.ballPos = new THREE.Vector3(6.5, 1.0, -29.5);
+    const ball = mkRelic('ball', world.ballPos, 0xa98bff, 13);
+    ball.spin.add(relicModel('ball'));
+    for (const [r, c] of [[brush, 0xffa24a], [nappy, 0xffa6dc], [ball, 0xb9a0ff]]) { const bm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.18, 22, 14, 1, true), beamMaterial(c, 0.45, U.uTime)); bm.position.y = 11; bm.renderOrder = 9; r.g.add(bm); r.beam = bm; }
     // golden bone beam (soft) so it can be seen from the knoll
     const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.2, 26, 14, 1, true), beamMaterial(0xffc860, 0.5, U.uTime)); bb.position.y = 13; bb.renderOrder = 9; bone.g.add(bb); bone.beam = bb;
     world.updaters.push((dt, t) => {

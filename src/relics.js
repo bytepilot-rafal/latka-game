@@ -1,7 +1,7 @@
-// The five relics as 3D models, shared by both levels so they look the same everywhere.
+// The six relics as 3D models, shared by both levels so they look the same everywhere.
 import * as THREE from 'three';
 
-export const RELIC_COLORS = { bone: 0xffc04a, sock: 0x58ff2e, mirror: 0xcfeaff, brush: 0xff8a2e, diaper: 0xff8fd0 };
+export const RELIC_COLORS = { bone: 0xffc04a, sock: 0x58ff2e, mirror: 0xcfeaff, brush: 0xff8a2e, diaper: 0xff8fd0, ball: 0xa98bff };
 
 export function relicModel(id) {
   const s = new THREE.Group(), add = (g, m) => { const o = new THREE.Mesh(g, m); s.add(o); return o; };
@@ -39,6 +39,26 @@ export function relicModel(id) {
       const t = add(new THREE.BoxGeometry(0.09, 0.05, 0.02), tab); t.position.set(sd * 0.13, 0.1, 0.145); t.rotation.y = sd * 0.5;
     }
     s.scale.setScalar(1.25);
+  } else if (id === 'ball') {               // Piotruś's football: white, with black pentagons and stitched seams
+    const R = 0.23, white = new THREE.MeshStandardMaterial({ color: 0xf6f6f2, roughness: 0.55, emissive: 0x8f7ad8, emissiveIntensity: 0.22 }), black = new THREE.MeshStandardMaterial({ color: 0x17171a, roughness: 0.5, side: THREE.DoubleSide });
+    add(new THREE.IcosahedronGeometry(R, 4), white);
+    const ico = new THREE.IcosahedronGeometry(1, 0).toNonIndexed().attributes.position, V = [];
+    for (let i = 0; i < ico.count; i++) { const v = new THREE.Vector3().fromBufferAttribute(ico, i); if (!V.some((q) => q.distanceTo(v) < 1e-3)) V.push(v); }
+    const tri = [], seam = [], put = (arr, v, r) => { const q = v.clone().normalize().multiplyScalar(r); arr.push(q.x, q.y, q.z); };
+    for (const v of V) {
+      const nb = V.filter((q) => q !== v && q.distanceTo(v) < 1.1), ax = new THREE.Vector3().crossVectors(v, nb[0]).normalize(), ay = new THREE.Vector3().crossVectors(v, ax);
+      nb.sort((p, q) => Math.atan2(p.dot(ay), p.dot(ax)) - Math.atan2(q.dot(ay), q.dot(ax)));
+      const c = nb.map((q) => v.clone().lerp(q, 1 / 3));                            // the corners of the pentagon: a third of the way to each neighbour
+      for (let i = 0; i < 5; i++) {
+        const a = c[i], b = c[(i + 1) % 5], m = a.clone().add(b);
+        put(tri, v, R * 1.012); put(tri, a, R * 1.012); put(tri, m, R * 1.012); put(tri, v, R * 1.012); put(tri, m, R * 1.012); put(tri, b, R * 1.012);
+        const far = nb[i].clone().lerp(v, 1 / 3), mid = a.clone().add(far);      // the seam between two white patches, along the edge to the next pentagon
+        put(seam, a, R * 1.006); put(seam, mid, R * 1.006); put(seam, mid, R * 1.006); put(seam, far, R * 1.006);
+      }
+    }
+    const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(tri, 3)); pg.computeVertexNormals(); add(pg, black);
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(seam, 3)); s.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: 0x3a3a40 })));
+    s.rotation.set(0.4, 0, 0.3); s.scale.setScalar(1.3);
   }
   s.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   return s;
