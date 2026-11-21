@@ -78,6 +78,8 @@
   body.night #sun { top: 22px; }
   body.night.touch #bMusic { top: auto; bottom: calc(132px + env(safe-area-inset-bottom)); right: calc(40px + env(safe-area-inset-right)); }
   body.night.touch #bBark { right: calc(34px + env(safe-area-inset-right)); bottom: calc(40px + env(safe-area-inset-bottom)); width: 82px; height: 82px; font-size: 18px; }
+  #nCat { width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: var(--ink); border: 1.5px solid var(--gold); display: grid; place-items: center; font: normal 20px/1 system-ui, sans-serif; opacity: 0; box-shadow: 0 0 16px rgba(255, 200, 90, .7); animation: catPulse .6s ease-in-out infinite alternate; }
+  @keyframes catPulse { from { transform: scale(.88); } to { transform: scale(1.12); } }
   #turn { top: 27vh; left: 0; right: 0; display: flex; justify-content: center; gap: min(34vw, 300px); opacity: 0; font: normal clamp(46px, 9vw, 92px)/1 system-ui, sans-serif; color: var(--gold); text-shadow: 0 3px 14px rgba(0, 0, 0, .8), 0 0 30px rgba(255, 190, 80, .6); transition: opacity .2s; }
   #turn.ask, #turn.left, #turn.right { opacity: 1; }
   #turn.ask span { animation: turnPulse .5s ease-in-out infinite alternate; }
@@ -149,6 +151,7 @@
 <div id="rMila" class="ui"><div id="rTrack"><i id="rDog">🐶</i><i id="rCat">🐱</i></div><div id="rLabel"></div></div>
 <div id="rPow" class="ui"></div>
 <div id="nTop" class="ui"><div id="nCount"></div><div id="nSub"></div></div>
+<div id="nCat" class="ui">🐱</div>
 <div id="nAlert" class="ui"><i>👁</i><div><b id="nBar"></b></div></div>
 <div id="turn" class="ui"><span id="tL">◀</span><span id="tR">▶</span></div>
 <div id="flash"></div>

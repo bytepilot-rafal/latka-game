@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261121-183503';
+  window.BUILD = '20261121-184652';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) location.replace(location.pathname + '?v=' + v + ((location.search.match(/[?&]level=([23])/) || [])[1] ? '&level=' + location.search.match(/[?&]level=([23])/)[1] : ''));
@@ -86,6 +86,8 @@
   body.night #sun { top: 22px; }
   body.night.touch #bMusic { top: auto; bottom: calc(132px + env(safe-area-inset-bottom)); right: calc(40px + env(safe-area-inset-right)); }
   body.night.touch #bBark { right: calc(34px + env(safe-area-inset-right)); bottom: calc(40px + env(safe-area-inset-bottom)); width: 82px; height: 82px; font-size: 18px; }
+  #nCat { width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: var(--ink); border: 1.5px solid var(--gold); display: grid; place-items: center; font: normal 20px/1 system-ui, sans-serif; opacity: 0; box-shadow: 0 0 16px rgba(255, 200, 90, .7); animation: catPulse .6s ease-in-out infinite alternate; }
+  @keyframes catPulse { from { transform: scale(.88); } to { transform: scale(1.12); } }
   #turn { top: 27vh; left: 0; right: 0; display: flex; justify-content: center; gap: min(34vw, 300px); opacity: 0; font: normal clamp(46px, 9vw, 92px)/1 system-ui, sans-serif; color: var(--gold); text-shadow: 0 3px 14px rgba(0, 0, 0, .8), 0 0 30px rgba(255, 190, 80, .6); transition: opacity .2s; }
   #turn.ask, #turn.left, #turn.right { opacity: 1; }
   #turn.ask span { animation: turnPulse .5s ease-in-out infinite alternate; }
@@ -157,6 +159,7 @@
 <div id="rMila" class="ui"><div id="rTrack"><i id="rDog">🐶</i><i id="rCat">🐱</i></div><div id="rLabel"></div></div>
 <div id="rPow" class="ui"></div>
 <div id="nTop" class="ui"><div id="nCount"></div><div id="nSub"></div></div>
+<div id="nCat" class="ui">🐱</div>
 <div id="nAlert" class="ui"><i>👁</i><div><b id="nBar"></b></div></div>
 <div id="turn" class="ui"><span id="tL">◀</span><span id="tR">▶</span></div>
 <div id="flash"></div>
@@ -3730,7 +3733,7 @@ const P = { x: START.x, z: START.z, yaw: Math.PI, speed: 0 };
 const input = { x: 0, y: 0 }, keys = {};
 const audio = new AudioSys();
 let dog, cat, tex, pAdd, pAlpha, moon;
-const boxes = [], circles = [], bushes = [], sectors = [], toys = [], windows = [], mowers = [], puppies = [], rings = [], trail = [];
+const boxes = [], circles = [], bushes = [], sectors = [], toys = [], windows = [], mowers = [], puppies = [], rings = [], trail = [], arrows = []; let glow;
 
 // ------------------------------------------------------------------ geometry helpers (vertex-coloured, merged)
 const worldMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.93, side: THREE.DoubleSide });
@@ -3953,7 +3956,7 @@ const touch = { x: 0, y: 0 };
 
 // ------------------------------------------------------------------ game flow
 function reset() {
-  Object.assign(G, { t: 0, time: 0, alert: 0, seen: 0, stun: 0, wet: 0, fade: 0, home: 0, barkCd: 0, hidden: false, cur: -1, endT: 0 }); G.hints.clear();
+  Object.assign(G, { t: 0, time: 0, alert: 0, seen: 0, stun: 0, wet: 0, fade: 0, home: 0, barkCd: 0, hidden: false, cur: -1, endT: 0, hop: 0, hopV: 0, party: 0, meowed: false }); G.hints.clear();
   Object.assign(P, { x: START.x, z: START.z, yaw: Math.PI, speed: 0 }); trail.length = 0;
   puppies.forEach((p, i) => { const s = GARD[i].spot; Object.assign(p, { x: s.x, z: s.z, state: 'hidden', yipT: 2 + i * 1.3, vy: 0, y: 0, slot: -1 }); p.d.root.visible = false; });
   for (const g of GARD) { g.wake = 0; g.win.material.color.setHex(0x000000); }
@@ -3969,7 +3972,7 @@ function toTitle() { reset(); G.mode = 'title'; $('end').classList.add('hidden')
 function finish(win) {
   const left = Math.max(0, NIGHT - G.time), mm = Math.floor(left / 60), ss = String(Math.floor(left % 60)).padStart(2, '0'), stars = left > 240 ? '★★★' : left > 120 ? '★★☆' : '★☆☆';
   $('endTitle').textContent = T(win ? 'winT' : 'loseT'); $('endText').textContent = win ? T('winX', `${mm}:${ss}`, stars) : T('loseX', G.home);
-  $('end').classList.remove('hidden'); $('menu').style.display = ''; for (const id of ['nTop', 'nAlert', 'sun', 'hint', 'pick']) $(id).style.opacity = 0;
+  $('end').classList.remove('hidden'); $('menu').style.display = ''; for (const id of ['nTop', 'nAlert', 'sun', 'hint', 'pick', 'nCat']) $(id).style.opacity = 0;
 }
 // somebody woke up: the puppies following Łatka bolt back to where they were hiding and she is shooed out to the gate
 function caught(gi) {
@@ -3994,9 +3997,19 @@ function step(dt) {
     const want = Math.atan2(ix, -iy); P.yaw += angDiff(want, P.yaw) * Math.min(1, dt * 12);
     const last = trail[0]; if (!last || Math.hypot(last.x - P.x, last.z - P.z) > 0.16) { trail.unshift({ x: P.x, z: P.z }); if (trail.length > 80) trail.pop(); }
   }
-  P.speed += (sp - P.speed) * Math.min(1, dt * 10); if (G.mode === 'win') P.yaw += angDiff(Math.PI, P.yaw) * Math.min(1, dt * 4);
-  dog.root.position.set(P.x, 0, P.z); dog.root.rotation.y = P.yaw; dog.root.rotation.z = G.stun > 0 ? Math.sin(G.t * 40) * 0.12 : 0;
-  dog.animate(dt, { speed: P.speed, grounded: true, sit: G.mode === 'title' || G.mode === 'win' ? 1 : 0, happy: G.mode === 'win' ? 1 : 0.2, pant: G.mode !== 'play' });
+  P.speed += (sp - P.speed) * Math.min(1, dt * 10); if (G.mode === 'win') {
+    P.yaw += angDiff(Math.PI, P.yaw) * Math.min(1, dt * 4);
+    // Łatka jumps for joy and barks; sparks burst overhead, every window in the street lights up, Mila calls from the roof
+    G.hopV -= 16 * dt; G.hop = Math.max(0, G.hop + G.hopV * dt); G.party -= dt;
+    if (G.endT < 6 && G.party <= 0) { G.party = 0.85; G.hopV = 4.4; G.hop = 0.01; audio.bark(0.95 + Math.random() * 0.2); dog.bark();
+      const c = [[5, 3.5, 1], [5, 1.2, 1.6], [1.4, 3, 5], [2, 5, 1.5]][(Math.random() * 4) | 0], fx = P.x + (Math.random() - 0.5) * 7, fz = P.z + 1.5 + Math.random() * 3.5, fy = 2.2 + Math.random() * 1.6;
+      for (let k = 0; k < 46; k++) { const a = Math.random() * 6.28, b = Math.acos(2 * Math.random() - 1), v = 2.2 + Math.random() * 1.4; pAdd.spawn(fx, fy, fz, Math.sin(b) * Math.cos(a) * v, Math.cos(b) * v, Math.sin(b) * Math.sin(a) * v, 1.2 + Math.random() * 0.6, 0.34, 0.04, c[0], c[1], c[2], 1, 1.6, 1.2); } }
+    if (G.endT > 1.2 && !G.meowed) { G.meowed = true; audio.meow(1.1); }
+    if (G.endT > 0.4 && Math.random() < dt * 5) pAdd.spawn(P.x + (Math.random() - 0.5) * 3, 0.8, P.z + (Math.random() - 0.5) * 3, 0, 0.9, 0, 1.3, 0.16, 0.3, 5, 0.6, 1.6, 1, -0.2, 0.3);
+    for (const g of GARD) g.win.material.color.setRGB(2.2 * Math.min(1, G.endT), 1.7 * Math.min(1, G.endT), 0.8 * Math.min(1, G.endT));
+  }
+  dog.root.position.set(P.x, G.mode === 'win' ? G.hop : 0, P.z); dog.root.rotation.y = P.yaw; dog.root.rotation.z = G.stun > 0 ? Math.sin(G.t * 40) * 0.12 : 0;
+  dog.animate(dt, { speed: P.speed, grounded: !(G.mode === 'win' && G.hop > 0), vy: G.hopV, sit: G.mode === 'title' || (G.mode === 'win' && G.endT > 6.4) ? 1 : 0, happy: G.mode === 'win' ? 1 : 0.2, pant: G.mode !== 'play' });
   if (G.hidden && P.speed > 1 && Math.random() < dt * 14) pAlpha.spawn(P.x + (Math.random() - 0.5), 0.6 + Math.random() * 0.4, P.z + (Math.random() - 0.5), (Math.random() - 0.5), 0.8, (Math.random() - 0.5), 0.6, 0.12, 0.05, 0.25, 0.55, 0.25, 0.8, 3, 1);
 
   // ---- lights, water and other trouble
@@ -4049,10 +4062,14 @@ function step(dt) {
       if (v > 0) { p.x += dx / dd * v * dt; p.z += dz / dd * v * dt; p.yaw = Math.atan2(dx, dz); } p.sp = v;
       const inRing = (q) => Math.hypot(q.x - HOME.x, q.z - (HOME.z - 0.4)) < 2.4;                  // home as soon as Łatka steps into the ring by the kennel
       if (play && (inRing(p) || (inRing(P) && dd < 7))) { p.state = 'home'; p.slot = G.home++; hint('h_home', false); buzz(50); if (audio.on) audio.chime(p.slot); ring(HOME.x, HOME.z - 0.4);
-        if (G.home >= 5) { G.mode = 'win'; G.endT = 0; if (audio.on) audio.fanfare(); } }
+        if (G.home >= 5) { G.mode = 'win'; G.endT = 0; G.party = 0; pick('Hau! Hau! Hau!'); pickT = 3; for (const id of ['nTop', 'nAlert', 'sun', 'hint', 'nCat']) $(id).style.opacity = 0; buzz([60, 40, 60, 40, 120]); if (audio.on) audio.fanfare(); } }
     } else if (p.state === 'flee') {
       const s = GARD[p.i].spot, dx = s.x - p.x, dz = s.z - p.z, dd = Math.hypot(dx, dz);
       if (dd < 0.3) { p.state = 'hidden'; p.d.root.visible = false; p.yipT = 3; } else { p.x += dx / dd * 9 * dt; p.z += dz / dd * 9 * dt; p.yaw = Math.atan2(dx, dz); p.sp = 9; }
+    } else if (G.mode === 'win' && G.endT < 6.4) {            // everybody is home: the puppies race round Łatka, hopping and yapping
+      const a = G.endT * 2.6 + p.i * 1.2566, tx = P.x + Math.sin(a) * 1.7, tz = P.z + Math.cos(a) * 1.7, dx = tx - p.x, dz = tz - p.z, dd = Math.hypot(dx, dz) || 1, v = Math.min(8, dd * 6);
+      p.x += dx / dd * v * dt; p.z += dz / dd * v * dt; p.yaw = a + Math.PI / 2; p.sp = 5;
+      if (p.y <= 0 && Math.random() < dt * 2.2) { p.vy = 3.6 + Math.random() * 1.5; p.y = 0.01; if (audio.on) audio.yip(1.5 + Math.random() * 0.7); p.d.bark(); }
     } else {                                                  // home: trot to a place beside the kennel and settle down
       const tx = HOME.x + 1.5 + (p.slot % 3) * 0.75, tz = HOME.z - 0.5 + Math.floor(p.slot / 3) * 0.8, dx = tx - p.x, dz = tz - p.z, dd = Math.hypot(dx, dz);
       if (dd > 0.12) { p.x += dx / dd * Math.min(4, dd * 4) * dt; p.z += dz / dd * Math.min(4, dd * 4) * dt; p.yaw = Math.atan2(dx, dz); p.sp = 3; } else { p.sp = 0; p.yaw += angDiff(Math.PI, p.yaw) * Math.min(1, dt * 4); }
@@ -4066,8 +4083,15 @@ function step(dt) {
     let best = null, bd = 1e9; for (const p of puppies) if (p.state === 'hidden') { const d = Math.hypot(p.x - P.x, p.z - P.z); if (d < bd) { bd = d; best = p; } }
     if (best) { const g = GARD[best.i], inside = gardenAt(P.x, P.z) === best.i, tx = inside ? clamp(best.x, g.x0 + 1, g.x1 - 1) : g.gx + 1.6, tz = inside ? (g.north ? g.z0 : g.z1) + (g.north ? 0.07 : -0.07) : (g.north ? g.z1 - 0.07 : g.z0 + 0.07);
       if (Math.hypot(tx - Mi.tx, tz - Mi.tz) > 0.5) { Mi.tx = tx; Mi.tz = tz; Mi.hop = 1; }
-      Mi.look = Math.atan2(best.x - Mi.x, best.z - Mi.z); Mi.sparkT -= dt; if (Mi.sparkT <= 0 && play) { Mi.sparkT = 0.12; Mi.sk = ((Mi.sk || 0) + 0.12) % 1.6; if (Mi.sk < 1) pAdd.spawn(Mi.x + Math.sin(Mi.look) * (0.5 + Mi.sk * 2.2), 1.5, Mi.z + Math.cos(Mi.look) * (0.5 + Mi.sk * 2.2), 0, 0.1, 0, 0.5, 0.14, 0.02, 3, 2.4, 1, 1, 0, 1); }
-    } else { Mi.tx = HOME.x; Mi.tz = HOME.z + 1.4; Mi.look = Math.PI; }
+      Mi.look = Math.atan2(best.x - Mi.x, best.z - Mi.z); const reach = Math.min(7, Math.hypot(best.x - Mi.x, best.z - Mi.z) - 1);
+      Mi.sparkT -= dt; if (Mi.sparkT <= 0 && play && reach > 1) { Mi.sparkT = 0.045; Mi.sk = ((Mi.sk || 0) + 0.045) % 1.25; if (Mi.sk < 1) { const d = 0.5 + Mi.sk * reach; pAdd.spawn(Mi.x + Math.sin(Mi.look) * d, lerp(1.5, 0.45, Mi.sk), Mi.z + Math.cos(Mi.look) * d, 0, 0.15, 0, 0.75, 0.26, 0.04, 5, 3.8, 1.2, 1, 0, 1); } }
+      arrows.forEach((m, i) => { const d = 1.3 + i * 1.0, on = play && Mi.hop < 0.05 && reach > d; m.visible = on; if (on) { m.position.set(Mi.x + Math.sin(Mi.look) * d, 0.07, Mi.z + Math.cos(Mi.look) * d); m.rotation.y = Mi.look; m.material.opacity = 0.25 + 0.6 * Math.max(0, Math.sin(G.t * 5 - i * 1.1)); } });
+    } else { Mi.tx = HOME.x; Mi.tz = HOME.z + 1.4; Mi.look = Math.PI; for (const m of arrows) m.visible = false; }
+    glow.visible = !!best && play; if (glow.visible) { glow.position.copy(cat.root.position); glow.position.y += 0.3; glow.scale.setScalar(1 + Math.sin(G.t * 4) * 0.18); }
+    // a little cat marker on the edge of the screen when she is out of view
+    { camera.updateMatrixWorld(); camera.matrixWorldInverse.copy(camera.matrixWorld).invert(); tmpV.set(Mi.x, 1.4, Mi.z).project(camera); const off = !!best && play && (Math.abs(tmpV.x) > 0.93 || Math.abs(tmpV.y) > 0.9 || tmpV.z > 1), el = $('nCat');
+      if (off !== shown.catOn) { shown.catOn = off; el.style.opacity = off ? 1 : 0; }
+      if (off) { const k = 0.86 / Math.max(Math.abs(tmpV.x), Math.abs(tmpV.y), 1e-3), bx = (tmpV.z > 1 ? -tmpV.x : tmpV.x) * k, by = (tmpV.z > 1 ? -tmpV.y : tmpV.y) * k; el.style.left = (50 + bx * 50) + '%'; el.style.top = (50 - by * 50) + '%'; } }
     const k = Math.min(1, dt * 3.5); Mi.x += (Mi.tx - Mi.x) * k; Mi.z += (Mi.tz - Mi.z) * k; Mi.hop = Math.max(0, Mi.hop - dt * 1.4);
     const top = best ? 1.3 : 1.62; cat.root.position.set(Mi.x, top + Math.sin(Mi.hop * Math.PI) * 1.2, Mi.z); cat.root.rotation.y += angDiff(Mi.look, cat.root.rotation.y) * Math.min(1, dt * 5);
     cat.animate(dt, { speed: 0, grounded: true, sit: Mi.hop > 0.05 ? 0 : 1 });
@@ -4080,12 +4104,13 @@ function step(dt) {
   const kc = Math.min(1, dt * 4); cam.x += (P.x - cam.x) * kc; cam.z += (P.z - cam.z) * kc;
   const tall = camera.aspect < 1 ? 1 : 0, ti = G.mode === 'title' || G.mode === 'win' ? 1 : 0, hgt = lerp(12 + tall * 9, 3.2, ti), back = lerp(8.6 + tall * 3, 6.5, ti);
   // in play the camera hangs above and to the south; on the title and at the end it comes down on the lane side, facing the kennel
-  camera.position.lerp(tmpV.set(cam.x + ti * 2.6, hgt, cam.z + lerp(back, -6.2, ti)), Math.min(1, dt * 3)); camera.lookAt(cam.x + ti * 0.9, 0.4 + ti * 0.3, cam.z + lerp(-0.8, 2.2, ti));
+  const sway = G.mode === 'win' ? Math.sin(G.endT * 0.5) * 3.2 : 0;
+  camera.position.lerp(tmpV.set(cam.x + ti * 2.6 + sway, hgt + (G.mode === 'win' ? 0.5 : 0), cam.z + lerp(back, -6.6, ti)), Math.min(1, dt * 3)); camera.lookAt(cam.x + ti * 0.9, 0.4 + ti * 0.3, cam.z + lerp(-0.8, 2.2, ti));
   moon.target.position.set(cam.x, 0, cam.z); moon.position.set(cam.x - 14, 30, cam.z + 12); moon.target.updateMatrixWorld();
   // dawn creeps in over the last minute and a half
   const dawn = sm(NIGHT - 95, NIGHT, G.time); scene.background.setRGB(lerp(0.004, 0.32, dawn), lerp(0.007, 0.26, dawn), lerp(0.02, 0.3, dawn)); moon.intensity = lerp(1.15, 1.9, dawn); scene.fog.color.copy(scene.background); fogUniforms.uFogColor.value.copy(scene.fog.color);
   // ---- endings, HUD, sound
-  if (G.mode === 'win' || G.mode === 'lose') { G.endT += dt; if (G.endT > (G.mode === 'win' ? 3.5 : 1.6) && $('end').classList.contains('hidden')) finish(G.mode === 'win'); }
+  if (G.mode === 'win' || G.mode === 'lose') { G.endT += dt; if (G.endT > (G.mode === 'win' ? 7.6 : 1.6) && $('end').classList.contains('hidden')) finish(G.mode === 'win'); }
   hud(); if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.opacity = 0; } if (pickT > 0) { pickT -= dt; if (pickT <= 0) $('pick').style.opacity = 0; }
   if (audio.on) { audio.music({ tunnel: 0, night: 0.8, win: G.mode === 'win', lost: G.mode === 'lose' }); audio.crickets.gain.setTargetAtTime(0.02, audio.ctx.currentTime, 0.5); if (P.speed > 1 && play) { stepAcc -= dt * (2 + P.speed); if (stepAcc <= 0) { stepAcc = 1; audio.step(false); } } }
   $('touch').classList.toggle('on', play);
@@ -4114,7 +4139,10 @@ async function boot() {
   for (let i = 0; i < 5; i++) { const d = buildDog(tex, { scale: 0.43, head: 1.3, leg: 0.8, ear: 1.15, snout: 0.72 }); scene.add(d.root); puppies.push({ i, d, x: 0, z: 0, state: 'hidden' }); }
   cat = buildCat({ scale: 1.2 }); scene.add(cat.root);
   for (let i = 0; i < 8; i++) { const m = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.5, 28), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2; m.visible = false; m.renderOrder = 6; scene.add(m); rings.push({ m, t: 0 }); }
-  pAdd = new Particles(500, true); pAlpha = new Particles(400, false); scene.add(pAdd.mesh, pAlpha.mesh);
+  glow = new THREE.Mesh(new THREE.SphereGeometry(0.75, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false })); glow.visible = false; scene.add(glow);
+  for (let i = 0; i < 4; i++) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([-0.42, 0, -0.3, 0, 0, 0.36, 0.42, 0, -0.3, 0, 0, -0.06], 3)); g.setIndex([0, 1, 3, 1, 2, 3]);
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); m.visible = false; m.renderOrder = 6; scene.add(m); arrows.push(m); }
+  pAdd = new Particles(700, true); pAlpha = new Particles(400, false); scene.add(pAdd.mesh, pAlpha.mesh);
   reset(); G.mode = 'title'; applyLang();
   $('start').addEventListener('click', startGame);
   $('lang').addEventListener('click', () => { lang = lang === 'pl' ? 'en' : 'pl'; applyLang(); });
