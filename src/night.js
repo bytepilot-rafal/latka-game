@@ -11,6 +11,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createTextures, sm, lerp, clamp, rng, fbm } from './textures.js';
 import { buildDog } from './dog.js';
+import { HQ, addFur, DOG_FUR, CAT_FUR } from './fur.js';
 import { buildCat } from './cat.js';
 import { Particles, fogUniforms, glowMaterial } from './fx.js';
 import { AudioSys } from './audio.js';
@@ -574,9 +575,9 @@ async function boot() {
   const sc = moon.shadow.camera; sc.left = -24; sc.right = 24; sc.top = 24; sc.bottom = -24; sc.near = 1; sc.far = 90; moon.shadow.bias = -0.0008; moon.shadow.normalBias = 0.06; scene.add(moon, moon.target);
   scene.add(new THREE.HemisphereLight(0x5a70c0, 0x1a2416, 0.95));
   buildWorld(); buildGrass();
-  dog = buildDog(tex, { lantern: true }); scene.add(dog.root); if (dog.light) { dog.light.intensity = 26; dog.light.distance = 13; dog.light.decay = 1.6; }
+  dog = buildDog(tex, { lantern: true }); scene.add(dog.root); if (HQ) addFur(dog.root, DOG_FUR); if (dog.light) { dog.light.intensity = 26; dog.light.distance = 13; dog.light.decay = 1.6; }
   for (let i = 0; i < 5; i++) { const d = buildDog(tex, { scale: 0.43, head: 1.3, leg: 0.8, ear: 1.15, snout: 0.72 }); scene.add(d.root); puppies.push({ i, d, x: 0, z: 0, state: 'hidden' }); }
-  cat = buildCat({ scale: 1.2 }); scene.add(cat.root);
+  cat = buildCat({ scale: 1.2 }); scene.add(cat.root); if (HQ) addFur(cat.root, CAT_FUR);
   for (let i = 0; i < 8; i++) { const m = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.5, 28), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2; m.visible = false; m.renderOrder = 6; scene.add(m); rings.push({ m, t: 0 }); }
   glow = new THREE.Mesh(new THREE.SphereGeometry(0.75, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false })); glow.visible = false; scene.add(glow);
   for (let i = 0; i < 4; i++) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([-0.42, 0, -0.3, 0, 0, 0.36, 0.42, 0, -0.3, 0, 0, -0.06], 3)); g.setIndex([0, 1, 3, 1, 2, 3]);

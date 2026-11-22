@@ -62,6 +62,7 @@ podręcznej i, jeśli jest nowszy, sama przeładowuje się do nowej wersji — z
 | `src/raft.js` | poziom 4 „Spływ Narwią”: rzeka, ponton, przeszkody (adres z `?level=4`) |
 | `src/kite.js` | poziom 5 „Latawiec Stasia”: teren, niebo, chmury, lot latawcem (adres z `?level=5`) |
 | `src/real.js` | wspólne elementy naturalnego wyglądu poziomów 3 i 4: niebo, woda, drzewa, ziarnistość terenu, cienie chmur |
+| `src/fur.js` | przełącznik jakości (HQ) i futro Łatki oraz Mili rysowane warstwami |
 | `src/kit.js` | wspólne klocki do budowania scenerii (nowsze poziomy) |
 | `src/relics.js` | modele 3D reliktów, wspólne dla obu poziomów |
 | `src/cat.js` | model i animacja kotki Mili |

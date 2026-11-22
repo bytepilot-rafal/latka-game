@@ -46,7 +46,9 @@
   #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #0b0a09; font-size: 20px; letter-spacing: .3em; color: var(--gold); transition: opacity 1s; z-index: 5; }
   /* level 2 (runner) HUD and the level picker */
   #levels { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
-  #levels button { margin: 0; font-size: 13px; }
+  #levels button, #quality button { margin: 0; font-size: 13px; }
+  #quality { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  #quality button.cur { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 14px rgba(255, 200, 90, .35); }
   #levels button.cur { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 14px rgba(255, 200, 90, .35); }
   #rTop { top: calc(14px + env(safe-area-inset-top)); left: calc(18px + env(safe-area-inset-left)); opacity: 0; text-shadow: 0 1px 5px #000, 0 0 12px rgba(0, 0, 0, .5); }
   #rScore { font-size: clamp(28px, 4.2vw, 46px); line-height: 1; color: var(--gold); }
@@ -170,6 +172,7 @@
   <h1><small data-t="over"></small>Przygody zaginionej Łatki</h1>
   <p class="story" data-t="story"></p>
   <div id="levels"><button class="ghost" data-lv="1">1 · Zaginiona świątynia</button><button class="ghost" data-lv="2">2 · Pościg za Milą</button><button class="ghost" data-lv="3">3 · Nocna wyprawa</button><button class="ghost" data-lv="4">4 · Spływ Narwią</button><button class="ghost" data-lv="5">5 · Latawiec Stasia</button></div>
+  <div id="quality"><button class="ghost" data-q="regular">Regular Quality</button><button class="ghost" data-q="high">High Quality</button></div>
   <div><button id="start" data-t="start"></button><button id="lang" class="ghost">EN</button></div>
   <div class="keys" data-t="keys"></div>
 </div>
@@ -183,7 +186,23 @@
 <script>
   // Level picker (kept visible for testing). The game always opens on level 1: a pick is remembered only for the one
   // reload that follows it, and a ?level= in the address is ignored (except on the developer's own machine).
-  var LEVEL = '1';
+  var LEVEL = '1', QUALITY = 'high';
+  // Picture quality: "high" (the default) adds fur, richer scenery and effects; "regular" is the lighter version. The choice is remembered.
+  (function () {
+    var q = null, p = new URLSearchParams(location.search).get('q');
+    try { q = localStorage.getItem('latka-quality'); } catch (e) { /* storage blocked */ }
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && p) q = p;
+    if (q === 'regular') QUALITY = 'regular';
+    document.querySelectorAll('#quality button').forEach(function (b) {
+      if (b.dataset.q === QUALITY) b.classList.add('cur');
+      b.addEventListener('click', function () {
+        if (b.dataset.q === QUALITY) return;
+        try { localStorage.setItem('latka-quality', b.dataset.q); if (LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) { /* storage blocked */ }
+        if (location.search) history.replaceState(null, '', location.pathname);
+        location.reload();
+      });
+    });
+  })();
   (function () {
     var KEY = 'latka-level', q = new URLSearchParams(location.search).get('level'), dev = /^(localhost|127\.0\.0\.1)$/.test(location.hostname), once = null;
     try { once = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch (e) { /* storage blocked */ }

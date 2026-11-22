@@ -8,6 +8,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createTextures, sm, lerp, clamp } from './textures.js';
 import { buildWorld, H, L, tunnelR, tunnelS, pathX } from './world.js';
 import { buildDog } from './dog.js';
+import { HQ, addFur, DOG_FUR, CAT_FUR } from './fur.js';
 import { buildSky } from './sky.js';
 import { Particles } from './fx.js';
 import { AudioSys } from './audio.js';
@@ -182,7 +183,7 @@ async function boot() {
   const tex = createTextures();
   world = buildWorld(scene, tex);
   sky = buildSky(scene, renderer);
-  dog = buildDog(tex, { lantern: true }); scene.add(dog.root);
+  dog = buildDog(tex, { lantern: true }); scene.add(dog.root); if (HQ) addFur(dog.root, DOG_FUR);
   for (let i = 0; i < 5; i++) {
     const d = buildDog(tex, { scale: 0.43, head: 1.3, leg: 0.8, ear: 1.15, snout: 0.72 });
     d.root.position.set(-2.4 + i * 1.2, 9.9, -269 - (i % 2) * 2.2); d.root.rotation.y = 0; d.root.visible = false; scene.add(d.root);

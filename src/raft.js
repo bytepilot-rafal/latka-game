@@ -6,6 +6,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createTextures, sm, lerp, clamp, rng, fbm } from './textures.js';
 import { Builder, roofGeo, canvasTex, worldMat } from './kit.js';
 import { buildDog } from './dog.js';
+import { HQ, addFur, DOG_FUR, CAT_FUR } from './fur.js';
 import { buildCat } from './cat.js';
 import { Particles, fogUniforms } from './fx.js';
 import { AudioSys } from './audio.js';
@@ -164,6 +165,12 @@ function buildRiver() {
         if (cvk < 0.5) { for (let i = 0; i < 4; i++) { const d = 0.7 + r() * 2.6; b.cone(0.1 + r() * 0.08, 0.3 + r() * 0.35, cx(s) + side * (e + d), bankY(d) - 0.03, -s + (r() - 0.5) * 3, i % 2 ? 0x5a8a3c : 0x6a9644, 5); }
           if (r() < 0.3) { const d = 0.9 + r() * 1.4, rr = 0.6 + r() * 0.5; b.add(leafBlob(rr, 0.8, 7 + k, 1), GREENS[(r() * 5) | 0], cx(s) + side * (e + d), bankY(d) + rr * 0.45, -s + (r() - 0.5) * 2, r() * 3, 0.12); } }
         else if (r() < 0.4) { const d = 1 + r() * 2, lg = new THREE.CylinderGeometry(0.09, 0.12, 1.6 + r(), 7); lg.rotateZ(Math.PI / 2); b.add(lg, 0x8a7458, cx(s) + side * (e + d), bankY(d) + 0.08, -s, r() * 3, 0.06); }
+      }
+      if (HQ) for (let k = 0; k < 5; k++) {                                                    // thickets: willow scrub and tall rushes crowding right down to the water, hiding the line of the bank
+        const s = s0 + r() * CH; if ((side > 0 && s > END - 105) || cove(s, side) > 0.45 || s < 60) continue; const len = 3 + r() * 5, e0 = edge(s, side);
+        for (let i = 0, n = 5 + ((r() * 5) | 0); i < n; i++) { const ss = s + (i / n - 0.5) * len + (r() - 0.5) * 0.8, e = edge(ss, side), d = -0.5 + r() * 2.4, rr = 0.55 + r() * 0.75; b.add(leafBlob(rr, 0.8 + r() * 0.5, 11 + i + k, 1), GREENS[(r() * 5) | 0], cx(ss) + side * (e + d), Math.max(0.1, bankY(Math.max(0, d))) + rr * 0.42, -ss, r() * 3, 0.14); }
+        for (let i = 0; i < 16; i++) { const ss = s + (r() - 0.5) * len, e = edge(ss, side), x = cx(ss) + side * (e - 0.9 + r() * 1.3), h = 1.1 + r() * 1.3; b.cone(0.055, h, x, -0.05, -ss, i % 3 ? 0x6f9a48 : 0x86a552, 4); if (i % 4 === 0) b.cyl(0.05, 0.05, 0.24, x, h * 0.84, -ss, 0x5a3c22, 5); }
+        if (r() < 0.5) TREES.push([cx(s) + side * (e0 + 1.6 + r() * 1.5), bankY(2) - 0.05, -s, 0, 0.3 + r() * 0.16]);
       }
       for (let k = 0; k < 13; k++) {                                                           // reeds at the water's edge
         const s = s0 + r() * CH; if (side > 0 && s > END - 95) continue;
@@ -493,7 +500,7 @@ async function boot() {
   await new Promise((r) => setTimeout(r, 30));
   tex = createTextures();
   buildRiver(); buildCourse(); buildRaft(); buildArtur();
-  dog = buildDog(tex, {}); cat = buildCat({ scale: 1.15 });
+  dog = buildDog(tex, {}); cat = buildCat({ scale: 1.15 }); if (HQ) { addFur(dog.root, DOG_FUR); addFur(cat.root, CAT_FUR); }
   for (let i = 0; i < 5; i++) { const d = buildDog(tex, { scale: 0.43, head: 1.3, leg: 0.8, ear: 1.15, snout: 0.72 }); scene.add(d.root); puppies.push({ d, x: 0, z: 0, y: 0, vy: 0 }); }
   pAdd = new Particles(600, true); pAlpha = new Particles(700, false); scene.add(pAdd.mesh, pAlpha.mesh);
   $('rCat').textContent = '🏖'; $('rCat').style.left = '100%'; $('bJump').style.display = 'none';

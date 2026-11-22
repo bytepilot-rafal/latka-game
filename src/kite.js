@@ -13,6 +13,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createTextures, sm, lerp, clamp, rng, fbm, hash, vnoise } from './textures.js';
 import { Builder, roofGeo, canvasTex, worldMat } from './kit.js';
 import { buildDog } from './dog.js';
+import { HQ, addFur, DOG_FUR, CAT_FUR } from './fur.js';
 import { Particles, fogUniforms } from './fx.js';
 import { AudioSys } from './audio.js';
 
@@ -448,7 +449,7 @@ function buildKite() {
     const n = 22, g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array((n + 1) * 6), 3)); const ix = []; for (let i = 0; i < n; i++) { const a = i * 2; ix.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } g.setIndex(ix);
     const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: cl, side: THREE.DoubleSide, roughness: 0.6 })); m.frustumCulled = false; kite.add(m); tails.push({ m, n, x: sx * 2.55, z: 0.95, ph: sx * 2 + 1, len: 7.5 });
   }
-  dog = buildDog(tex, {}); kite.add(dog.root); dog.root.scale.setScalar(1.25);
+  dog = buildDog(tex, {}); kite.add(dog.root); dog.root.scale.setScalar(1.25); if (HQ) addFur(dog.root, DOG_FUR);
 }
 function animKite(dt) {
   const p = sail.geometry.attributes.position, { NU, NV } = sail.userData, t = G.t, fl = clamp(P.v / 22, 0.5, 1.6);
