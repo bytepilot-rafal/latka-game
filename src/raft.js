@@ -465,7 +465,8 @@ function buildRaft() {
 // codes, as in the old games: type "rafal" during the trip and the raft becomes a speedboat
 let typed = '';
 window.addEventListener('keydown', (e) => { if (e.key.length !== 1) return; typed = (typed + e.key.toLowerCase()).slice(-8); if (typed.endsWith('rafal') && G.mode === 'play') { typed = ''; setBoat(!G.speedboat); }
-  else if (typed.endsWith('stop') && G.mode === 'play') { typed = ''; if (G.speedboat) setBoat(false); pick(lang === 'pl' ? 'KOD: STOP — wszystko wraca do normy' : 'CODE: STOP — everything back to normal'); pickT = 2.6; } });
+  else if (typed.endsWith('stop') && G.mode === 'play') { typed = ''; setTimeout(() => document.body.classList.toggle('clean'), 0);      // the P of the code also toggled the interface: put it back
+    if (G.speedboat) setBoat(false); pick(lang === 'pl' ? 'KOD: STOP — wszystko wraca do normy' : 'CODE: STOP — everything back to normal'); pickT = 2.6; } });
 function setBoat(on) { G.speedboat = on; G.boat.visible = on; for (const c of G.raftParts) c.visible = !on; dog.root.position.y = on ? 0.3 : 0.16; cat.root.position.y = on ? 0.32 : 0.2; if (G.mode === 'play') { pick(T(on ? 'cheatOn' : 'cheatOff')); pickT = 2.6; } if (on) { G.shake = 0.6; buzz([60, 30, 120]); if (audio.on) { audio.rumble(1.4); audio.burst(170, 3, 1.6, 0.25, 'bandpass', 0, 1.6); } } }
 
 // ------------------------------------------------------------------ HUD, input

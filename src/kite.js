@@ -569,7 +569,8 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 // codes, as in the old games: type "rafal" during the flight
 window.addEventListener('keydown', (e) => { if (e.key.length !== 1) return; typed = (typed + e.key.toLowerCase()).slice(-8); if (typed.endsWith('rafal') && G.mode === 'play') { typed = ''; setRocket(!G.rocket); }
-  else if (typed.endsWith('stop') && G.mode === 'play') { typed = ''; if (G.rocket) setRocket(false); pick(lang === 'pl' ? 'KOD: STOP — wszystko wraca do normy' : 'CODE: STOP — everything back to normal'); pickT = 2.6; } });
+  else if (typed.endsWith('stop') && G.mode === 'play') { typed = ''; setTimeout(() => document.body.classList.toggle('clean'), 0);      // the P of the code also toggled the interface: put it back
+    if (G.rocket) setRocket(false); pick(lang === 'pl' ? 'KOD: STOP — wszystko wraca do normy' : 'CODE: STOP — everything back to normal'); pickT = 2.6; } });
 function setRocket(on) { G.rocket = on; rockets.visible = on; if (on) G.jetT = 0; else if (G.jetT < 5) G.jetT = 5; pick(T(on ? 'cheatOn' : 'cheatOff')); pickT = 2.6; if (on) { G.shake = 0.8; buzz([60, 30, 120]); if (audio.on) { audio.rumble(1.6); audio.whoosh(); } } }
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 {

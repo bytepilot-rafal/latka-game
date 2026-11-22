@@ -745,7 +745,8 @@ const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'ri
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return; const a = KEYMAP[e.code];
   if (e.key && e.key.length === 1) { typed = (typed + e.key.toLowerCase()).slice(-8); if (typed.endsWith('skoda') && G.mode === 'play') { typed = ''; setCar(!G.car); }
-    else if (typed.endsWith('stop') && G.mode === 'play') { typed = ''; if (G.car) setCar(false, true); G.rs = 0; pick(lang === 'pl' ? 'KOD: STOP — wszystko wraca do normy' : 'CODE: STOP — everything back to normal'); pickT = 2.6; sparkle(Pl.x, 0.8, -G.dist - 0.5, GOLD, 40); if (audio.on) audio.whoosh(); }
+    else if (typed.endsWith('stop') && G.mode === 'play') { typed = ''; setTimeout(() => document.body.classList.toggle('clean'), 0);      // the P of the code also toggled the interface: put it back
+    if (G.car) setCar(false, true); G.rs = 0; pick(lang === 'pl' ? 'KOD: STOP — wszystko wraca do normy' : 'CODE: STOP — everything back to normal'); pickT = 2.6; sparkle(Pl.x, 0.8, -G.dist - 0.5, GOLD, 40); if (audio.on) audio.whoosh(); }
     else if (typed.endsWith('rs') && G.mode === 'play') { typed = ''; G.rs = Math.min(12, (G.rs || 0) + 1); pick(T('rsOn', (G.car ? 3 : 1) + G.rs)); pickT = 2.4; G.shake = 0.5; buzz([40, 30, 80]); if (audio.on) { audio.whoosh(); audio.rumble(0.8); } } }
   if (a) { act(a); e.preventDefault(); }
   if (e.code === 'KeyM' && audio.on) audio.toggleMusic();
@@ -858,7 +859,7 @@ function buildCar(S) {
 function buildCars() {
   const CHR = '#d9dde2', DK = '#0a0a0c', seam = 'rgba(0,0,0,0.6)';
   // ---- Škoda Superb Combi (third generation, after the facelift): long estate with roof rails, upright chrome slats, crystalline lamps, C-shaped tail lights, ŠKODA across the tailgate
-  const SUPERB_COMBI = { paint: '#7b8087', plate: 'BI LATKA', w: 0.93, endW: 0.8, tumble: 0.5, z0: -2.43, z1: 2.43, rakeF: 0.1, rakeR: 0.09, zf: -1.47, zr: 1.37, ay: 0.345, ar: 0.395, wr: 0.335, spokes: 5, twin: true, bulge: [0.09, 0.05], mirror: -0.92,
+  const SUPERB_COMBI = { paint: '#7b8087', plate: 'ŁATKA', w: 0.93, endW: 0.8, tumble: 0.5, z0: -2.43, z1: 2.43, rakeF: 0.1, rakeR: 0.09, zf: -1.47, zr: 1.37, ay: 0.345, ar: 0.395, wr: 0.335, spokes: 5, twin: true, bulge: [0.09, 0.05], mirror: -0.92,
     top: [[-2.43, 0.7], [-2.3, 0.76], [-1.9, 0.84], [-1.15, 0.94], [-0.3, 1.385], [0.05, 1.455], [0.6, 1.475], [1.72, 1.45], [1.98, 1.4], [2.33, 1.05], [2.43, 0.98]],
     bot: [[-2.43, 0.26], [-2.28, 0.2], [2.25, 0.22], [2.43, 0.34]], belt: [[-1.15, 0.9], [0.4, 0.95], [2.3, 1.03]],
     side(D) {
@@ -917,7 +918,7 @@ function buildCars() {
     extra(g, { paintM }) { const fin = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 8).rotateX(-0.9).scale(0.5, 1, 1.6), paintM); fin.position.set(0, 1.455, 0.98); g.add(fin); } });
   carD = buildCar(SUPERB);                                                                                                     // SUPERB_COMBI stays here, ready to be swapped in
   // ---- Opel Agila B: short tall mini-MPV, big swept-back headlamps, chrome bar with the blitz, tall tail lamps beside the rear window
-  carM = buildCar({ paint: '#14266a', plate: 'BI MILA', w: 0.84, endW: 0.84, tumble: 0.3, z0: -1.87, z1: 1.87, rakeF: 0.24, rakeR: 0.04, zf: -1.2, zr: 1.2, ay: 0.315, ar: 0.365, wr: 0.3, spokes: 7, twin: false, bulge: [0.12, 0.05], mirror: -0.84,
+  carM = buildCar({ paint: '#14266a', plate: 'MILA', w: 0.84, endW: 0.84, tumble: 0.3, z0: -1.87, z1: 1.87, rakeF: 0.24, rakeR: 0.04, zf: -1.2, zr: 1.2, ay: 0.315, ar: 0.365, wr: 0.3, spokes: 7, twin: false, bulge: [0.12, 0.05], mirror: -0.84,
     top: [[-1.87, 0.72], [-1.78, 0.84], [-1.4, 0.97], [-1.0, 1.06], [-0.42, 1.47], [-0.05, 1.57], [0.6, 1.605], [1.38, 1.585], [1.7, 1.55], [1.83, 1.34], [1.87, 1.08]],
     bot: [[-1.87, 0.3], [-1.72, 0.2], [1.72, 0.2], [1.87, 0.3]], belt: [[-1.0, 0.98], [0.2, 1.02], [1.0, 1.07], [1.5, 1.17], [1.87, 1.2]],                      // the window line kicks up behind the rear door
     side(D) {
