@@ -229,13 +229,13 @@ function buildScenery() {
       const u = x / w, n = fbm(x * 0.09, y * 0.09, 4, 5) * 0.5 + r() * 0.5;
       let track = 0; for (const l of [1 / 6, 0.5, 5 / 6]) track = Math.max(track, 1 - sm(0.05, 0.13, Math.abs(u - l)));    // paler worn strip down every lane
       const edge = sm(0.44, 0.5, Math.abs(u - 0.5)), v = 118 + n * 46 + track * 20 - edge * 26, i = (y * w + x) * 4;
-      if (HQ) { const g = v * 1.08 + 14; d[i] = g * 1.1; d[i + 1] = g * 1.0; d[i + 2] = g * 0.8 - edge * 14; d[i + 3] = 255; continue; }        // warmer and lighter: gravel, not asphalt
+      if (HQ) { const g = v * 0.86 + 4; d[i] = g * 1.1; d[i + 1] = g * 1.0; d[i + 2] = g * 0.8 - edge * 14; d[i + 3] = 255; continue; }        // warmer and lighter: gravel, not asphalt
       d[i] = v * 1.05; d[i + 1] = v * 0.99; d[i + 2] = v * 0.9 - edge * 14; d[i + 3] = 255;
     }
     c.putImageData(im, 0, 0);
     for (let i = 0; i < 260; i++) { c.fillStyle = `rgba(${r() < 0.5 ? '70,66,60' : '215,208,196'},${0.25 + r() * 0.4})`; c.fillRect(r() * w, r() * h, 1 + r() * 2.2, 1 + r() * 2.2); }
     if (HQ) {                                                // a gravel lane: sandy, full of small stones, with grass creeping in from the edges
-      for (let i = 0; i < 2600; i++) { const k = r(), x = r() * w, y = r() * h, sz = 0.8 + r() * r() * 3.4; c.fillStyle = k < 0.4 ? `rgba(232,222,198,${0.3 + r() * 0.45})` : k < 0.75 ? `rgba(92,84,72,${0.25 + r() * 0.4})` : `rgba(168,150,120,${0.3 + r() * 0.4})`; c.beginPath(); c.ellipse(x, y, sz, sz * (0.6 + r() * 0.4), r() * 3, 0, 6.3); c.fill(); }
+      for (let i = 0; i < 2600; i++) { const k = r(), x = r() * w, y = r() * h, sz = 0.8 + r() * r() * 3.4; c.fillStyle = k < 0.4 ? `rgba(196,186,164,${0.3 + r() * 0.4})` : k < 0.75 ? `rgba(92,84,72,${0.25 + r() * 0.4})` : `rgba(168,150,120,${0.3 + r() * 0.4})`; c.beginPath(); c.ellipse(x, y, sz, sz * (0.6 + r() * 0.4), r() * 3, 0, 6.3); c.fill(); }
       for (let i = 0; i < 160; i++) { const sd = r() < 0.5, x = sd ? r() * r() * 26 : w - r() * r() * 26; c.fillStyle = `rgba(${78 + r() * 30},${112 + r() * 30},${52 + r() * 20},${0.25 + r() * 0.4})`; c.fillRect(x, r() * h, 1.5 + r() * 2.5, 2 + r() * 5); }
     }
   }, 1, CL / ROADW);
