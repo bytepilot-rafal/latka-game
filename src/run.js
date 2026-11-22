@@ -229,14 +229,14 @@ function buildScenery() {
       const u = x / w, n = fbm(x * 0.09, y * 0.09, 4, 5) * 0.5 + r() * 0.5;
       let track = 0; for (const l of [1 / 6, 0.5, 5 / 6]) track = Math.max(track, 1 - sm(0.05, 0.13, Math.abs(u - l)));    // paler worn strip down every lane
       const edge = sm(0.44, 0.5, Math.abs(u - 0.5)), v = 118 + n * 46 + track * 20 - edge * 26, i = (y * w + x) * 4;
+      if (HQ) { const g = v * 1.08 + 14; d[i] = g * 1.1; d[i + 1] = g * 1.0; d[i + 2] = g * 0.8 - edge * 14; d[i + 3] = 255; continue; }        // warmer and lighter: gravel, not asphalt
       d[i] = v * 1.05; d[i + 1] = v * 0.99; d[i + 2] = v * 0.9 - edge * 14; d[i + 3] = 255;
     }
     c.putImageData(im, 0, 0);
     for (let i = 0; i < 260; i++) { c.fillStyle = `rgba(${r() < 0.5 ? '70,66,60' : '215,208,196'},${0.25 + r() * 0.4})`; c.fillRect(r() * w, r() * h, 1 + r() * 2.2, 1 + r() * 2.2); }
-    if (HQ) {                                                // patched asphalt, cracks, a faded line along each edge
-      for (let i = 0; i < 3; i++) { const x = 20 + r() * (w - 90), y = r() * (h - 50), pw = 30 + r() * 40, ph = 22 + r() * 30; c.fillStyle = 'rgba(48,46,44,.2)'; c.fillRect(x, y, pw, ph); c.strokeStyle = 'rgba(30,28,26,.32)'; c.lineWidth = 1.2; c.strokeRect(x, y, pw, ph); }
-      c.strokeStyle = 'rgba(28,26,24,.6)'; c.lineWidth = 1; for (let i = 0; i < 9; i++) { let x = r() * w, y = r() * h; c.beginPath(); c.moveTo(x, y); for (let k = 0; k < 7; k++) { x += (r() - 0.5) * 26; y += (r() - 0.3) * 20; c.lineTo(x, y); } c.stroke(); }
-      for (const x of [w * 0.045, w * 0.955]) for (let y = 0; y < h; y += 4) { c.fillStyle = `rgba(232,226,208,${0.25 + r() * 0.4})`; c.fillRect(x - 2, y, 4, 4); }
+    if (HQ) {                                                // a gravel lane: sandy, full of small stones, with grass creeping in from the edges
+      for (let i = 0; i < 2600; i++) { const k = r(), x = r() * w, y = r() * h, sz = 0.8 + r() * r() * 3.4; c.fillStyle = k < 0.4 ? `rgba(232,222,198,${0.3 + r() * 0.45})` : k < 0.75 ? `rgba(92,84,72,${0.25 + r() * 0.4})` : `rgba(168,150,120,${0.3 + r() * 0.4})`; c.beginPath(); c.ellipse(x, y, sz, sz * (0.6 + r() * 0.4), r() * 3, 0, 6.3); c.fill(); }
+      for (let i = 0; i < 160; i++) { const sd = r() < 0.5, x = sd ? r() * r() * 26 : w - r() * r() * 26; c.fillStyle = `rgba(${78 + r() * 30},${112 + r() * 30},${52 + r() * 20},${0.25 + r() * 0.4})`; c.fillRect(x, r() * h, 1.5 + r() * 2.5, 2 + r() * 5); }
     }
   }, 1, CL / ROADW);
   const grassT = canvasTex(256, 256, (c, w, h) => {
@@ -244,7 +244,7 @@ function buildScenery() {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const n = fbm(x * 0.05, y * 0.05, 4, 9), k = 0.7 + n * 0.45 + r() * 0.22, i = (y * w + x) * 4; d[i] = 74 * k; d[i + 1] = 128 * k; d[i + 2] = 48 * k; d[i + 3] = 255; }
     c.putImageData(im, 0, 0);
   }, 22, 6);
-  roadM = new THREE.MeshStandardMaterial({ map: roadT, roughness: 0.95 }); grassM = new THREE.MeshStandardMaterial({ map: grassT, roughness: 1 }); roadM.userData.grain = 0.45; grassM.userData.grain = 0.7; roadM.userData.wet = HQ;
+  roadM = new THREE.MeshStandardMaterial({ map: roadT, roughness: 0.95 }); grassM = new THREE.MeshStandardMaterial({ map: grassT, roughness: 1 }); roadM.userData.grain = HQ ? 0.85 : 0.45; grassM.userData.grain = 0.7; roadM.userData.wet = HQ;
   const roadG = new THREE.PlaneGeometry(ROADW, CL); roadG.rotateX(-Math.PI / 2);
   const grassG = new THREE.PlaneGeometry(190, CL); grassG.rotateX(-Math.PI / 2);
 
@@ -336,16 +336,13 @@ function buildScenery() {
         for (let i = 0; i < 3; i++) { const tx = s * (24 + r() * 16), tz = z0 - r() * 12; if (r() < 0.6) spruce(tx, tz, 9 + r() * 6); else tree(tx, tz, 1.6 + r() * 0.9); }
       }
       // verge: tufts and flowers along the edge of the road
-      if (HQ) {                                              // a kerb, fallen leaves in the gutter, real blades of grass on the verge and the lawns
-        b.box(0.16, 0.13, CL, s * (ROADW / 2 + 0.08), 0, -CL / 2, 0xb9b5ab, 0, 0.03);
+      if (HQ) {                                              // fallen leaves at the edge of the lane, real blades of grass on the verge and the lawns
         for (let i = 0; i < 12; i++) { const lg = new THREE.CircleGeometry(0.06 + hr() * 0.05, 5); lg.rotateX(-Math.PI / 2); b.add(lg, [0x9a5a22, 0xb8862e, 0x7a4a1e, 0xc9a23a][i % 4], s * (ROADW / 2 - 0.12 - hr() * hr() * 1.5), 0.012, -hr() * CL, hr() * 6, 0.1); }
         for (let i = 0, nb = isTouch ? 500 : 1400; i < nb; i++) { const strip = i % 3 === 0, x = s * (ROADW / 2 + (strip ? 0.22 + hr() * 0.48 : 0.9 + hr() * hr() * 4.6)), z = -hr() * CL; if (!strip && Math.abs((-z) % 12 - 6) < 0.95) continue; tuft(blades[s], x, z, hr); }
       }
       for (let i = 0; i < 16; i++) { const z = -r() * CL, x = s * (ROADW / 2 + 0.12 + r() * 0.45); if (r() < 0.75) b.cone(0.09 + r() * 0.07, 0.22 + r() * 0.2, x, 0, z, 0x5f9a3c, 5); else b.blob(0.07, x, 0.2, z, [0xf2d24a, 0xf5f5f0, 0xd95f8a][(r() * 3) | 0]); }
     }
     if (ci % 2 === 0) { const s = ci % 4 === 0 ? 1 : -1; b = bs[s]; const x = s * (ROADW / 2 + 0.38); b.cyl(0.05, 0.07, 5.2, x, 0, -6, 0x6d7278); b.box(0.9, 0.06, 0.08, x - s * 0.4, 5.15, -6, 0x6d7278); b.box(0.36, 0.1, 0.18, x - s * 0.82, 5.05, -6, 0xe8e2c8); grp.userData.lamp = { s, x }; }
-    if (HQ && ci % 3 === 1) { for (let k = -3; k <= 3; k++) bs[1].box(0.42, 0.012, 2.6, k * 0.8, 0.003, -15, 0xe9e6dc, 0, 0.02); }                                    // a zebra crossing
-    if (HQ && ci % 2 === 1) bs[1].cyl(0.36, 0.36, 0.012, LX[(ci * 7) % 3] + 0.3, 0.003, -20, 0x3a3c40, 14);                                                       // a manhole cover
     grp.userData.sideL = bs[-1].mesh(); grp.userData.sideR = bs[1].mesh(); grp.add(grp.userData.sideL, grp.userData.sideR);
     if (HQ) for (const sd of [-1, 1]) { const side = grp.userData[sd < 0 ? 'sideL' : 'sideR'];
       gbs[sd].forEach((gb, k) => { if (!gb.g.length) return; const gm = gb.mesh(); gm.material = k ? hq.glassLitM : hq.glassM; gm.castShadow = false; side.add(gm); });
