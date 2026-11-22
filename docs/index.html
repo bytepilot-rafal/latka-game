@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261122-203129';
+  window.BUILD = '20261122-214906';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) { try { if (window.LEVEL && LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) {} location.replace(location.pathname + '?v=' + v); }
@@ -5427,7 +5427,7 @@ const TXT = {
     h_start: 'Przelatuj przez obręcze z chmur. Nurkując, przyspieszasz.', h_thermal: 'Komin ciepłego powietrza — niesie w górę!', h_storm: 'Burza! Trzymaj kurs i nie daj się zepchnąć.',
     h_low: 'Za nisko! W górę!', h_land: 'Ląduj w białym kole na Słonecznej Polanie.', h_balloon: 'Uwaga na balony!', h_stork: 'Bociany! Omiń je.',
     gate: (c) => (c > 1 ? `Obręcz! ×${c}` : 'Obręcz!'), gold: (c) => `Złota obręcz! ×${c * 2}`, miss: 'Obok…', gustL: '≫ Podmuch z lewej!', gustR: 'Podmuch z prawej! ≪', hitT: 'Łup! Wiatrak!', hitP: 'Brrrum! Samolot!', wind: 'Wiatr',
-    cheatOn: 'KOD: RAFAL — silniki rakietowe! Prędkość ×6', cheatOff: 'Silniki rakietowe wyłączone',
+    cheatOn: 'KOD: RAFAL — silniki rakietowe i eskorta F-16! Prędkość ×6', cheatOff: 'Silniki rakietowe wyłączone',
     h_wind: 'Wiatr słabnie! Leć przez obręcze, żeby go złapać.', h_bridge: 'Przeleć pod wiaduktem — między filarami!', h_turbine: 'Wiatraki! Uważaj na łopaty.', h_plane: 'Samolot krąży nad jeziorem — zejdź mu z drogi.', hitB: 'Bum! Balon!', hitS: 'Klekot! Bocian!', crash: 'Auć! Za nisko!',
     k_village: 'wieś', k_river: 'rzeka', k_ruin: 'ruiny w lesie', k_fair: 'festyn balonowy', k_lake: 'jezioro', k_meadow: 'lądowisko',
     p_village: 'Ulica Pogodna', p_river: 'Narew', p_ruin: 'Zaginiona świątynia', p_fair: 'Balony nad lasem', p_lake: 'Jezioro Łabędzie', p_meadow: 'Słoneczna Polana', stas: 'Staś',
@@ -5443,7 +5443,7 @@ const TXT = {
     h_start: 'Fly through the rings of cloud. Diving makes you faster.', h_thermal: 'A thermal — warm air carries you up!', h_storm: 'A storm! Hold your course.',
     h_low: 'Too low! Pull up!', h_land: 'Land in the white circle on Słoneczna Polana.', h_balloon: 'Mind the balloons!', h_stork: 'Storks! Fly around them.',
     gate: (c) => (c > 1 ? `Ring! ×${c}` : 'Ring!'), gold: (c) => `Golden ring! ×${c * 2}`, miss: 'Missed…', gustL: '≫ A gust from the left!', gustR: 'A gust from the right! ≪', hitT: 'Whack! A wind turbine!', hitP: 'Vroom! The plane!', wind: 'Wind',
-    cheatOn: 'CODE: RAFAL — rocket engines! Speed ×6', cheatOff: 'Rocket engines off',
+    cheatOn: 'CODE: RAFAL — rocket engines and an F-16 escort! Speed ×6', cheatOff: 'Rocket engines off',
     h_wind: 'The wind is dropping! Fly through the rings to catch it.', h_bridge: 'Fly under the viaduct — between the piers!', h_turbine: 'Wind turbines! Mind the blades.', h_plane: 'A plane is circling over the lake — keep out of its way.', hitB: 'Bump! A balloon!', hitS: 'Clatter! A stork!', crash: 'Ouch! Too low!',
     k_village: 'village', k_river: 'river', k_ruin: 'ruins in the forest', k_fair: 'balloon fair', k_lake: 'lake', k_meadow: 'landing field',
     p_village: 'Ulica Pogodna', p_river: 'Narew', p_ruin: 'The lost temple', p_fair: 'Balloons over the forest', p_lake: 'Jezioro Łabędzie', p_meadow: 'Słoneczna Polana', stas: 'Staś',
@@ -5526,7 +5526,7 @@ const FOG = new THREE.Color(0.56, 0.7, 0.92);
 const swans = [], tractor = { m: null, x0: -620, z: 250, len: 260 };
 let dog, tex, sun, sky, water, kite, sail, tails = [], pAdd, clouds, bones, nextRing, nextRing2, rain, landRing, arrow, wake, boat, windEl, streaks, plane;
 const turbines = [], cars = [];
-let rockets = null, typed = '';
+let rockets = null, typed = '', jets = [];
 const gates = [], items = [], thermals = [], balloons = [], storks = [], people = [], HOUSES = [];
 const dummy = new THREE.Object3D(), tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3(), tmpC = new THREE.Color();
 
@@ -5904,6 +5904,28 @@ function buildKite() {
       g.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.12).translate(-sx * 0.3, 0.1, 0), new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: 0.9 })));      // the strap to her harness
       g.traverse((o) => { if (o.isMesh) o.castShadow = o.material !== fm; }); rockets.add(g); }
     rockets.visible = false; kite.add(rockets); }
+  // ---- two F-16 fighters that escort the kite for a few seconds after the cheat code
+  { const grey = new THREE.MeshStandardMaterial({ color: 0x8b939c, roughness: 0.42, metalness: 0.55, side: THREE.DoubleSide }), dark = new THREE.MeshStandardMaterial({ color: 0x4d555e, roughness: 0.5, metalness: 0.5, side: THREE.DoubleSide }),
+      glass = new THREE.MeshStandardMaterial({ color: 0x2a2210, roughness: 0.08, metalness: 0.9, envMapIntensity: 1.6 }), black = new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 0.6 }), white = new THREE.MeshStandardMaterial({ color: 0xe8eaec, roughness: 0.4 }),
+      fm = new THREE.MeshBasicMaterial({ color: new THREE.Color(6, 3.2, 1.2), transparent: true, opacity: 0.85, depthWrite: false });
+    const plan = (pts, th) => { const sh = new THREE.Shape(); pts.forEach((q, i) => (i ? sh.lineTo(q[0], q[1]) : sh.moveTo(q[0], q[1]))); return new THREE.ExtrudeGeometry(sh, { depth: th, bevelEnabled: false }); };
+    for (const side of [-1, 1]) { const g = new THREE.Group(), m = new THREE.Group(); g.add(m);
+      const body = new THREE.Mesh(new THREE.LatheGeometry([[0.001, 7.6], [0.1, 7.3], [0.3, 6.3], [0.52, 4.9], [0.7, 3.2], [0.8, 1], [0.82, -3], [0.74, -5.4], [0.62, -6.5], [0.55, -7]].map((q) => new THREE.Vector2(q[0], q[1])), 20).rotateX(-Math.PI / 2).scale(1.08, 0.92, 1), grey);
+      const radome = new THREE.Mesh(new THREE.ConeGeometry(0.325, 1.32, 20).rotateX(-Math.PI / 2).scale(1.08, 0.92, 1).translate(0, 0, -6.95), dark);
+      const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.46, 20, 14).scale(0.95, 1, 3.6).translate(0, 0.5, -3.7), glass);
+      const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.46, 5.2, 12).rotateX(Math.PI / 2).scale(1, 0.8, 1).translate(0, 0.52, 0.4), grey);
+      const intake = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.56, 4.4, 16).rotateX(Math.PI / 2).scale(1.15, 0.62, 1).translate(0, -0.72, -1.0), grey), mouth = new THREE.Mesh(new THREE.CircleGeometry(0.46, 16).scale(1.15, 0.62, 1).rotateY(Math.PI).translate(0, -0.72, -3.21), black);
+      const noz = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.44, 0.9, 16, 1, true).rotateX(Math.PI / 2).translate(0, 0, 7.4), black), flame = new THREE.Mesh(new THREE.ConeGeometry(0.4, 4.2, 14).rotateX(Math.PI / 2).translate(0, 0, 9.8), fm);
+      m.add(body, radome, canopy, spine, intake, mouth, noz, flame);
+      for (const sx of [-1, 1]) {
+        const wing = new THREE.Mesh(plan([[0.6, -4.6], [1.15, -1.3], [4.75, 1.7], [4.75, 2.7], [0.6, 3.1]], 0.1).rotateX(Math.PI / 2).scale(sx, 1, 1).translate(0, 0.02, 0), grey);
+        const stab = new THREE.Mesh(plan([[0.5, 4.5], [2.75, 6.1], [2.75, 6.9], [0.5, 6.7]], 0.08).rotateX(Math.PI / 2).scale(sx, 1, 1).translate(0, -0.12, 0), grey); stab.rotation.z = sx * 0.17;
+        const vent = new THREE.Mesh(plan([[4.4, 0], [5.6, 0], [5.4, 0.85], [4.9, 0.85]], 0.06).rotateY(-Math.PI / 2).translate(0.03, -1.45, 0), dark); vent.position.x = sx * 0.42; vent.rotation.z = -sx * 0.26;
+        const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 2.7, 8).rotateX(Math.PI / 2).translate(sx * 4.83, -0.03, 1.9), white), tipc = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.4, 8).rotateX(-Math.PI / 2).translate(sx * 4.83, -0.03, 0.35), dark);
+        const tank = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10).scale(1, 1, 6.5).translate(sx * 2.2, -0.52, 1.2), grey), pyl = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 1.5).translate(sx * 2.2, -0.2, 1.3), dark);
+        m.add(wing, stab, vent, rail, tipc, tank, pyl); }
+      const fin = new THREE.Mesh(plan([[2.6, 0.5], [5.7, 3.6], [6.7, 3.6], [6.9, 0.5]], 0.1).rotateY(-Math.PI / 2).translate(0.05, 0, 0), grey), finTop = new THREE.Mesh(plan([[5.35, 3.25], [5.7, 3.6], [6.7, 3.6], [6.72, 3.25]], 0.12).rotateY(-Math.PI / 2).translate(0.06, 0, 0), dark);
+      m.add(fin, finTop); m.scale.setScalar(0.62); g.visible = false; g.rotation.order = 'YXZ'; g.userData = { side, flame }; scene.add(g); jets.push(g); } }
 }
 function animKite(dt) {
   const p = sail.geometry.attributes.position, { NU, NV } = sail.userData, t = G.t, fl = clamp(P.v / 22, 0.5, 1.6);
@@ -5946,7 +5968,7 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 // codes, as in the old games: type "rafal" during the flight
 window.addEventListener('keydown', (e) => { if (e.key.length !== 1) return; typed = (typed + e.key.toLowerCase()).slice(-8); if (typed.endsWith('rafal') && G.mode === 'play') { typed = ''; setRocket(!G.rocket); } });
-function setRocket(on) { G.rocket = on; rockets.visible = on; pick(T(on ? 'cheatOn' : 'cheatOff')); pickT = 2.6; if (on) { G.shake = 0.8; buzz([60, 30, 120]); if (audio.on) { audio.rumble(1.6); audio.whoosh(); } } }
+function setRocket(on) { G.rocket = on; rockets.visible = on; if (on) G.jetT = 0; else if (G.jetT < 5) G.jetT = 5; pick(T(on ? 'cheatOn' : 'cheatOff')); pickT = 2.6; if (on) { G.shake = 0.8; buzz([60, 30, 120]); if (audio.on) { audio.rumble(1.6); audio.whoosh(); } } }
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 {
   const zone = $('joyZone'), base = $('joy'), knob = $('joyKnob'), R = 50, NP = { passive: false }; let id = null, ox = 0, oy = 0;
@@ -5967,7 +5989,7 @@ function aim() { const tg = target(); return Math.atan2(tg.x - P.x, -(tg.z - P.z
 function reset() {
   Object.assign(G, { t: G.t, time: 0, lives: 3, bones: 0, score: 0, gi: 0, got: 0, combo: 0, inv: 0, boost: 0, shake: 0, endT: 0, ct: 0, storm: 0, bolt: 3, inTh: 0 }); G.hints.clear(); G.places.clear();
   for (const g of gates) { g.done = false; g.hit = false; } for (const it of items) it.got = false;
-  Object.assign(P, { x: START.x, y: START.y, z: START.z, pitch: 0, roll: 0, v: 30 }); G.rocket = false; if (rockets) rockets.visible = false; Object.assign(G, { wind: 1, gustT: 12, gustOn: 0, gustDir: 1 }); P.yaw = aim();
+  Object.assign(P, { x: START.x, y: START.y, z: START.z, pitch: 0, roll: 0, v: 30 }); G.rocket = false; G.jetT = 99; if (rockets) rockets.visible = false; Object.assign(G, { wind: 1, gustT: 12, gustOn: 0, gustDir: 1 }); P.yaw = aim();
   people.forEach((p) => { p.m.position.set(p.x, p.y, p.z); p.m.rotation.set(0, p.ry, 0); });
   kite.add(dog.root); dog.root.position.set(0, -3.25, 0.15); dog.root.rotation.set(0, Math.PI, 0); if (clouds) clouds.userData.t = 0;
 }
@@ -6076,6 +6098,14 @@ function step(dt) {
   if (G.rocket) { for (const f of rockets.userData.flames) { const k = 0.8 + Math.random() * 0.5; f.scale.set(k, k, 0.8 + Math.random() * 0.6); }
     for (const sx of [-1, 1]) { kite.localToWorld(tmpV.set(sx * 0.62, -2.95, 1.3)); for (let q = 0; q < 2; q++) pAdd.spawn(tmpV.x, tmpV.y, tmpV.z, -Math.sin(P.yaw) * 8 + (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, Math.cos(P.yaw) * 8 + (Math.random() - 0.5) * 3, 0.5, 0.7, 2.4, 6, 3, 0.8, 0.9, 0, 1); }
     G.shake = Math.max(G.shake, 0.25); }
+  if (G.jetT < 8.5) {                                                                               // F-16 escort: 5 s in formation, then both break away outwards
+    const t0 = G.jetT; G.jetT += dt; const t = G.jetT, u = Math.max(0, t - 5), inn = Math.max(0, 1 - t / 0.9), fwd = 5 - 70 * inn * inn + u * 14, lat = 11.5 + 26 * u * u, up = 0.8 + 9 * u * u, bank = Math.min(1.35, u * 3), yo = Math.min(0.95, u * 0.75);
+    if (t0 < 5 && t >= 5 && audio.on) audio.whoosh();
+    for (const j of jets) { const s = j.userData.side, w = Math.sin(G.t * 1.3 + s) * 0.35;
+      j.visible = true; j.position.set(P.x + Math.sin(P.yaw) * (fwd + w) + Math.cos(P.yaw) * s * lat, P.y + up + Math.sin(G.t * 1.7 + s * 2) * 0.3, P.z - Math.cos(P.yaw) * (fwd + w) + Math.sin(P.yaw) * s * lat);
+      j.rotation.set(P.pitch * 0.8 + Math.min(0.5, u * 0.5), -(P.yaw + s * yo), -P.roll * 0.6 - s * bank + Math.sin(G.t * 2.1 + s) * 0.04);
+      const k = 0.8 + Math.random() * 0.4; j.userData.flame.scale.set(k, k, 0.8 + Math.random() * 0.5); }
+  } else if (jets.length && jets[0].visible) for (const j of jets) j.visible = false;
   // ---- things in the sky and on the water
   for (const b of balloons) { b.g.position.y = b.y + Math.sin(G.t * 0.22 + b.ph) * 15; b.g.position.x = b.x + Math.sin(G.t * 0.13 + b.ph) * 6; b.g.rotation.y = G.t * 0.05 + b.ph; }
   for (const s of storks) { const q = Math.sin(G.t * 0.11 + s.ph * 0.3) * 150, fw = Math.cos(G.t * 0.11 + s.ph * 0.3) > 0 ? 1 : -1; s.x = s.mid.x + s.dir.x * (q - s.back * fw) - s.dir.z * s.off; s.z = s.mid.z + s.dir.z * (q - s.back * fw) + s.dir.x * s.off; s.g.position.set(s.x, s.y + Math.sin(G.t * 0.9 + s.ph) * 1.2, s.z); s.g.rotation.y = Math.atan2(-s.dir.x * fw, -s.dir.z * fw); const f = Math.sin(G.t * 5.2 + s.ph * 2) * 0.55; s.wl.rotation.z = -f; s.wr.rotation.z = f; }
