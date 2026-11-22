@@ -527,11 +527,23 @@ function buildProtos() {
     b.box(0.36, 0.52, 0.24, 0, 0.92, -0.05, 0x2f6fb5); b.blob(0.14, 0, 1.6, 0.06, 0xe9b98f, 1); b.blob(0.155, 0, 1.66, 0.04, 0xf2c230, 0.75);       // the rider: jacket, head, helmet
     for (const x of [-0.11, 0.11]) { b.box(0.11, 0.5, 0.13, x, 0.42, -0.02, 0x3a3f4a); b.box(0.09, 0.09, 0.42, x * 1.7, 1.2, 0.22, 0x2f6fb5); }
   });
+  // somebody carving down the lane on a one-wheeled electric board: one fat tyre in the middle, a footpad on each side of it
+  mk('onewheel', (b) => {
+    const tyre = new THREE.CylinderGeometry(0.19, 0.19, 0.2, 18); tyre.rotateZ(Math.PI / 2); b.add(tyre, 0x17171a, 0, 0.19, 0, 0, 0); const hub = new THREE.CylinderGeometry(0.09, 0.09, 0.22, 12); hub.rotateZ(Math.PI / 2); b.add(hub, 0xb9bec6, 0, 0.19, 0, 0, 0);
+    for (const x of [-0.125, 0.125]) b.box(0.03, 0.06, 0.92, x, 0.18, 0, 0x9aa0a8, 0, 0); for (const z of [-0.33, 0.33]) { b.box(0.25, 0.035, 0.3, 0, 0.23, z, 0x1c1d21, 0, 0); b.box(0.2, 0.006, 0.24, 0, 0.266, z, z > 0 ? 0x2a7fd0 : 0x2a2c31, 0, 0); }
+    b.box(0.22, 0.025, 0.42, 0, 0.385, 0, 0x24262b, 0, 0); b.box(0.2, 0.04, 0.02, 0, 0.2, 0.47, 0xf6f6f0, 0, 0); b.box(0.2, 0.04, 0.02, 0, 0.2, -0.47, 0xd8342c, 0, 0);                                         // fender, white light in front, red behind
+    const limb = (r, len, rx, rz, x, y, z, col) => { const c = new THREE.CapsuleGeometry(r, len, 4, 8); c.rotateX(rx); c.rotateZ(rz); b.add(c, col, x, y, z, 0, 0.03); }, JEANS = 0x34507a, HOOD = 0x2a9d8f, skin = 0xe9b98f;
+    limb(0.075, 0.3, 0.42, 0, 0, 0.5, 0.3, JEANS); limb(0.08, 0.3, -0.2, 0, 0, 0.88, 0.2, JEANS); limb(0.075, 0.3, -0.42, 0, 0, 0.5, -0.3, JEANS); limb(0.08, 0.3, 0.2, 0, 0, 0.88, -0.2, JEANS);                    // bent knees, feet on the pads
+    for (const z of [0.36, -0.36]) { const sh = new THREE.SphereGeometry(0.085, 10, 8); sh.scale(1.5, 0.6, 0.9); b.add(sh, 0xf2f2f2, 0.02, 0.31, z, 0, 0.02); }
+    limb(0.17, 0.34, 0.06, 0, 0, 1.36, 0, HOOD); b.box(0.16, 0.34, 0.26, -0.17, 1.2, 0, 0x3a3f46, 0, 0.03);                                                                                                     // hoodie and a backpack
+    limb(0.055, 0.38, 1.2, 0, 0.02, 1.42, 0.42, HOOD); limb(0.055, 0.38, -1.0, 0, 0.02, 1.36, -0.4, HOOD); for (const [y, z] of [[1.34, 0.66], [1.22, -0.62]]) b.add(new THREE.SphereGeometry(0.06, 10, 8), skin, 0.02, y, z, 0, 0.02);   // arms out for balance
+    b.cyl(0.06, 0.065, 0.09, 0, 1.64, 0, skin, 10); b.add(new THREE.SphereGeometry(0.15, 12, 10), skin, 0, 1.84, 0, 0, 0.02); b.add(new THREE.SphereGeometry(0.17, 12, 8, 0, 6.3, 0, 1.7), 0x22242a, 0, 1.86, 0, 0, 0.02); b.box(0.03, 0.05, 0.22, 0.135, 1.85, 0, 0x101114, 0, 0);
+  });
   mk('mower', (b) => { b.box(0.86, 0.2, 1.0, 0, 0.07, 0, 0xf07a1a); b.box(0.7, 0.14, 0.7, 0, 0.27, -0.05, 0xf59a3a); b.box(0.9, 0.07, 1.04, 0, 0.03, 0, 0x2a2a2e); b.box(0.2, 0.05, 0.12, 0, 0.41, 0.1, 0x33d17a, 0, 0); for (const x of [-0.46, 0.46]) for (const z of [-0.36, 0.36]) b.add(lying(0.08, 0.13), 0x1d1d20, x, 0.13, z, 0, 0); });
   { const g = new THREE.CircleGeometry(0.78, 24); g.rotateX(-Math.PI / 2); g.scale(0.96, 1, 1.5); PROTO.puddle = g; MATS.puddle = new THREE.MeshStandardMaterial({ color: 0x4a6f93, roughness: 0.08, transparent: true, opacity: 0.86 }); bendPatch(MATS.puddle); }
 }
-const KIND = { log: 'low', crate: 'low', gate: 'high', binG: 'full', binB: 'full', binY: 'full', planter: 'full', biglog: 'low', line: 'high', pot: 'low', ball: 'low', mower: 'low', bike: 'full', puddle: 'puddle' };
-const MOVE_V = { ball: 5.5, bike: 6.5, mower: 2.6 }, MATS = {};       // things that come towards Łatka, and their speed
+const KIND = { log: 'low', crate: 'low', gate: 'high', binG: 'full', binB: 'full', binY: 'full', planter: 'full', biglog: 'low', line: 'high', pot: 'low', ball: 'low', mower: 'low', bike: 'full', onewheel: 'full', puddle: 'puddle' };
+const MOVE_V = { ball: 5.5, bike: 6.5, onewheel: 6.2, mower: 2.6 }, MATS = {};       // things that come towards Łatka, and their speed
 function getObj(kind) {
   const p = pools[kind] || (pools[kind] = []); let m = p.pop();
   if (!m) { m = new THREE.Mesh(PROTO[kind], MATS[kind] || worldMat); m.castShadow = kind !== 'puddle'; m.receiveShadow = true; m.userData.kind = kind; m.frustumCulled = false; scene.add(m); }
@@ -646,7 +658,7 @@ function genRow() {
   let safe = clamp(prev + (R() < 0.6 ? (R() < 0.5 ? -1 : 1) : 0), 0, 2);
   let dz = sp * lerp(1.3, 0.78, d) + R() * sp * lerp(0.45, 0.25, d); if (safe !== prev) dz += sp * 0.22;
   const q = R(), pick = (a) => a[(R() * a.length) | 0], a1 = 0.08 + d * 0.1, a2 = a1 + 0.08 + d * 0.1, a3 = a2 + (gen.z > 110 ? 0.1 + d * 0.05 : 0);
-  const mover = q >= a2 && q < a3 ? pick(['ball', 'bike', 'mower']) : null; if (mover) dz += 15;    // it will come to meet her, so leave room
+  const mover = q >= a2 && q < a3 ? pick(['ball', 'onewheel', 'mower', 'ball', 'onewheel', 'mower', 'bike']) : null; if (mover) dz += 15;    // it will come to meet her, so leave room
   if (jn && !jn.done && Math.max(gen.z + dz, G.genMin) > jn.J - 32) { gen.hold = true; return; }   // keep the run-up to a junction clear
   const z = Math.max(gen.z + dz, G.genMin), row = { z, cells: [null, null, null], safe, objs: [], hit: false, wide: null };
   if (q < a1) { row.wide = 'biglog'; row.cells = ['low', 'low', 'low']; safe = row.safe = prev; }
@@ -846,11 +858,12 @@ function step(dt) {
     const row = rows[i]; if (row.z > G.dist + 70) break;
     const mv = row.mover, o = row.objs[0];
     if (mv && o) {
-      if (!mv.on && row.z - G.dist < 46) { mv.on = true; if (audio.on) { if (mv.kind === 'bike') { audio.tone(1900, 0.22, 'triangle', 0.13); audio.tone(1900, 0.22, 'triangle', 0.13, 0, 0.25); } else if (mv.kind === 'mower') audio.burst(140, 2, 1.6, 0.25, 'lowpass'); else audio.tone(260, 0.2, 'sine', 0.2, 0.5); } }
+      if (!mv.on && row.z - G.dist < 46) { mv.on = true; if (audio.on) { if (mv.kind === 'bike') { audio.tone(1900, 0.22, 'triangle', 0.13); audio.tone(1900, 0.22, 'triangle', 0.13, 0, 0.25); } else if (mv.kind === 'onewheel') { audio.tone(430, 0.5, 'sawtooth', 0.045, 1.35); audio.tone(860, 0.5, 'sine', 0.03, 1.35); } else if (mv.kind === 'mower') audio.burst(140, 2, 1.6, 0.25, 'lowpass'); else audio.tone(260, 0.2, 'sine', 0.2, 0.5); } }
       if (mv.on && moving) {
         mv.t += dt; row.z = Math.max(i > 0 ? rows[i - 1].z + 4 : -1e9, row.z - mv.v * dt); o.position.z = -row.z;
         if (mv.kind === 'ball') { o.rotation.x += dt * mv.v / 0.3; o.position.y = 0.3 + Math.abs(Math.sin(mv.t * 7)) * 0.1; }
         else if (mv.kind === 'bike') o.rotation.z = Math.sin(mv.t * 5) * 0.05;
+        else if (mv.kind === 'onewheel') { o.rotation.z = Math.sin(mv.t * 2.6) * 0.13; o.rotation.y = Math.sin(mv.t * 2.6) * 0.16; o.rotation.x = -0.05; }      // carving from edge to edge
         else if (Math.random() < dt * 30) pAlpha.spawn(o.position.x + (Math.random() - 0.5) * 0.7, 0.1, o.position.z - 0.4, (Math.random() - 0.5) * 2, 1 + Math.random(), -1 - Math.random(), 0.5, 0.1, 0.3, 0.35, 0.7, 0.25, 0.7, 6, 1);
       }
     }
