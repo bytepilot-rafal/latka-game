@@ -67,6 +67,12 @@ function waveH(x, z, t) {
   const s = -z, e = 1 - sm(0.55, 0.95, Math.abs(x - cx(s)) / half(s)), wob = 1.6 * Math.sin(0.07 * z + 0.31 * x), m1 = 0.6 + 0.4 * Math.sin(0.11 * z - 0.23 * x);
   return (0.23 * m1 * Math.sin(0.55 * z + 2.6 * t + 0.35 * x + wob) + 0.075 * Math.sin(1.3 * z + 4.3 * t - 0.6 * x + 1.7) + 0.12 * Math.sin(0.19 * z + 1.1 * t + 0.1 * x)) * e;
 }
+const WH_DEPTH = 1.25, WH_K = 1.2, whU = { value: Array.from({ length: 12 }, () => new THREE.Vector3(1e6, 1e6, 1)) };       // whirlpools: how deep, how much wider than the pull, and where (for the water shader)
+function surfH(x, z, t) {
+  let h = waveH(x, z, t); if (!HQ) return h;
+  for (const w of whirls) { if (Math.abs(w.s + z) > 6) continue; const rr = Math.hypot(x - w.x, z + w.s) / (w.r * WH_K); if (rr < 1) h = h * sm(0.5, 1, rr) - WH_DEPTH * Math.pow(1 - rr, 2.3); }
+  return h;
+}
 const WAVE_GLSL = `
   float rcx0(float s){ return 26.0 * sin(s * 0.0105) + 12.0 * sin(s * 0.023 + 1.3) + 5.0 * sin(s * 0.051 + 0.4); }
   float rcx(float s){ return (rcx0(s) - rcx0(0.0)) * smoothstep(0.0, 120.0, s); }
@@ -121,7 +127,8 @@ function buildRiver() {
     sh.vertexShader = sh.vertexShader.replace('varying vec3 vWp;', 'varying vec3 vWp; varying vec2 vGrad; varying float vWave, vEdge; uniform float uTime;' + WAVE_GLSL).replace('#include <begin_vertex>', `#include <begin_vertex>
       { float wz = position.z + modelMatrix[3].z, s = -wz, wx = rcx(s) + position.x * (rhalf(s) + 8.0); float h0 = waveH(wx, wz, uTime); vEdge = abs(position.x) * (rhalf(s) + 8.0) / rhalf(s);
         vGrad = vec2(waveH(wx + 0.3, wz, uTime) - h0, waveH(wx, wz + 0.3, uTime) - h0) / 0.3; vWave = h0; transformed.x = wx - modelMatrix[3].x; transformed.y = h0; }`);
-    sh.fragmentShader = sh.fragmentShader.replace('varying vec3 vWp;', 'varying vec3 vWp; varying vec2 vGrad; varying float vWave, vEdge;')
+    sh.uniforms.uWh = whU;
+    sh.fragmentShader = sh.fragmentShader.replace('varying vec3 vWp;', 'varying vec3 vWp; varying vec2 vGrad; varying float vWave, vEdge; uniform vec3 uWh[12];').replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nfor (int i = 0; i < 12; i++) { if (distance(vWp.xz, uWh[i].xy) < uWh[i].z) discard; }')
       .replace('normal = normalize((viewMatrix * vec4(normalize(vec3(n2.x, 1.0, n2.y)), 0.0)).xyz);', 'normal = normalize((viewMatrix * vec4(normalize(vec3(n2.x - vGrad.x, 1.0, n2.y - vGrad.y)), 0.0)).xyz);')
       .replace('diffuseColor.rgb *= mix(1.0, 0.7, smoothstep(0.5, 0.68, cs)); }', 'diffuseColor.rgb *= mix(1.0, 0.7, smoothstep(0.5, 0.68, cs)); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.8, 0.86, 0.88), smoothstep(0.15, 0.38, vWave + (texture2D(uDetail, vWp.xz * 0.07 + vec2(0.0, uTime * 0.3)).r - 0.5) * 0.3) * 0.34); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 0.52, 0.34), smoothstep(0.84, 1.12, vEdge + (texture2D(uDetail, vWp.xz * 0.11).g - 0.5) * 0.12) * 0.62); }');
   };
@@ -229,8 +236,35 @@ function buildCourse() {
   scene.add(b.mesh());
   // whirlpools, fast-water strips, kayakers, pickups
   const spiral = canvasTex(256, 256, (c, w) => { c.clearRect(0, 0, w, w); c.translate(w / 2, w / 2); for (let k = 0; k < 3; k++) { c.rotate(2.094); c.beginPath(); for (let a = 0; a < 9; a += 0.1) { const rr = 6 + a * 13; c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 7; c.stroke(); } });
-  for (const w of whirls) { const g = new THREE.CircleGeometry(w.r, 32); g.rotateX(-Math.PI / 2); w.m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: spiral, transparent: true, opacity: 0.8, depthWrite: false })); w.m.position.set(cx(w.s) + w.u, 0.4, -w.s); w.m.renderOrder = 3; scene.add(w.m);
+  for (const w of whirls) w.x = cx(w.s) + w.u;
+  if (HQ) {                                                  // a real funnel: the surface sinks towards the middle, arms of foam spiral inwards, ripples run round it
+    const fg = new THREE.RingGeometry(0.03, 1, 64, 24); fg.rotateX(-Math.PI / 2);
+    const fm = new THREE.MeshStandardMaterial({ color: 0x2c574f, roughness: 0.1, metalness: 0.3, transparent: true, depthWrite: false });
+    fm.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, RU);
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uTime; varying float vRR, vAng;' + WAVE_GLSL)
+        .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>\n{ float r0 = length(position.xz); vec2 dir = position.xz / max(r0, 1e-4); float dr = ${(WH_DEPTH * 2.3).toFixed(3)} * pow(1.0 - min(r0, 1.0), 1.3); objectNormal = normalize(vec3(-dr * dir.x, 1.0, -dr * dir.y)); }`)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+          { float rr = length(position.xz), ang = atan(position.z, position.x); vec4 wp4 = modelMatrix * vec4(position, 1.0);
+            float rip = sin(ang * 3.0 + rr * 13.0 + uTime * 5.0) * 0.07 * (1.0 - rr) * smoothstep(0.05, 0.3, rr);
+            transformed.y = waveH(wp4.x, wp4.z, uTime) * smoothstep(0.5, 1.0, rr) - ${WH_DEPTH.toFixed(3)} * pow(1.0 - min(rr, 1.0), 2.3) + rip; vRR = rr; vAng = ang; }`);
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uTime; uniform sampler2D uDetail, uWN; varying float vRR, vAng;')
+        .replace('#include <map_fragment>', `#include <map_fragment>
+          { float a2 = uTime * 1.6 / (vRR + 0.22); vec2 q = mat2(cos(a2), -sin(a2), sin(a2), cos(a2)) * (vec2(cos(vAng), sin(vAng)) * vRR);
+            float n = texture2D(uDetail, q * 1.3).r, sp = vAng * 2.0 + log(vRR + 0.06) * 5.5 + uTime * 3.2;
+            float foam = smoothstep(0.55, 0.95, sin(sp) * 0.5 + 0.5 + (n - 0.5) * 0.9) * smoothstep(0.06, 0.28, vRR) * (1.0 - smoothstep(0.72, 0.98, vRR));
+            diffuseColor.rgb = mix(diffuseColor.rgb * mix(0.22, 1.0, smoothstep(0.0, 0.75, vRR)), vec3(0.85, 0.9, 0.92), foam * 0.8); diffuseColor.a *= 1.0 - smoothstep(0.93, 1.0, vRR); }`)
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+          { float a2 = uTime * 1.6 / (vRR + 0.22); vec2 q = mat2(cos(a2), -sin(a2), sin(a2), cos(a2)) * (vec2(cos(vAng), sin(vAng)) * vRR); vec3 tn = texture2D(uWN, q * 1.7).xyz * 2.0 - 1.0; normal = normalize(normal + (viewMatrix * vec4(tn.x, 0.0, tn.y, 0.0)).xyz * 0.3); }`);
+    };
+    fm.customProgramCacheKey = () => 'whirl';
+    for (const w of whirls) { w.m = new THREE.Mesh(fg, fm); w.m.position.set(w.x, 0.02, -w.s); w.m.scale.set(w.r * WH_K, 1, w.r * WH_K); w.m.renderOrder = 3; w.m.frustumCulled = false; w.m.receiveShadow = true; scene.add(w.m); }
+    // bits of driftwood and leaves going round and down
+    G.debris = new THREE.InstancedMesh(new THREE.BoxGeometry(0.34, 0.035, 0.1), new THREE.MeshStandardMaterial({ color: 0x8a7458, roughness: 0.9 }), whirls.length * 6); G.debris.frustumCulled = false; scene.add(G.debris);
+  } else {
+    for (const w of whirls) { const g = new THREE.CircleGeometry(w.r, 32); g.rotateX(-Math.PI / 2); w.m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: spiral, transparent: true, opacity: 0.8, depthWrite: false })); w.m.position.set(w.x, 0.4, -w.s); w.m.renderOrder = 3; scene.add(w.m);
     const dk = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x06202c, transparent: true, opacity: 0.45, depthWrite: false })); dk.position.copy(w.m.position); dk.position.y = 0.39; dk.renderOrder = 2; scene.add(dk); }
+  }
   const arrowT = canvasTex(64, 128, (c, w, h) => { c.clearRect(0, 0, w, h); c.strokeStyle = 'rgba(255,255,255,.8)'; c.lineWidth = 7; c.lineCap = 'round'; for (const y of [34, 98]) { c.beginPath(); c.moveTo(10, y + 16); c.lineTo(w / 2, y - 16); c.lineTo(w - 10, y + 16); c.stroke(); } });
   for (const l of lanes) { const n = Math.round((l.s1 - l.s0) / 2), pos = [], uv = [], idx = [];
     for (let i = 0; i <= n; i++) { const ss = lerp(l.s0, l.s1, i / n); pos.push(cx(ss) + l.u - 1.5, 0.045, -ss, cx(ss) + l.u + 1.5, 0.045, -ss); uv.push(0, i / 2, 1, i / 2); if (i < n) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
@@ -433,7 +467,7 @@ function step(dt) {
   const lim = G.mode === 'land' ? half(G.s) - 0.3 : hw; if (Math.abs(G.u) > lim) { G.u = Math.sign(G.u) * lim; if (play && Math.abs(G.uv) > 1) { G.boost = Math.min(G.boost, -1.2); if (Math.random() < dt * 30) pAlpha.spawn(cx(G.s) + G.u, 0.15, -G.s, 0, 1, 1, 0.5, 0.2, 0.6, 0.8, 0.75, 0.6, 0.5, 3, 1); } G.uv = 0; }
   G.spin += (0 - G.spin) * Math.min(1, dt * 1.8);
   const rx = cx(G.s) + G.u, head = Math.atan2(slope(G.s) + G.uv / Math.max(3, G.v), -1), bob = Math.sin(G.t * 2.3) * 0.045;
-  { const fx = Math.sin(head), fz = Math.cos(head), z0 = -G.s, hF = waveH(rx + fx * 1.0, z0 + fz * 1.0, G.t), hB = waveH(rx - fx * 1.0, z0 - fz * 1.0, G.t), hR = waveH(rx + fz * 0.75, z0 - fx * 0.75, G.t), hL = waveH(rx - fz * 0.75, z0 + fx * 0.75, G.t), k = Math.min(1, dt * 9);
+  { const fx = Math.sin(head), fz = Math.cos(head), z0 = -G.s, hF = surfH(rx + fx * 1.0, z0 + fz * 1.0, G.t), hB = surfH(rx - fx * 1.0, z0 - fz * 1.0, G.t), hR = surfH(rx + fz * 0.75, z0 - fx * 0.75, G.t), hL = surfH(rx - fz * 0.75, z0 + fx * 0.75, G.t), k = Math.min(1, dt * 9);
     G.wy = (G.wy || 0) + ((hF + hB + hR + hL) / 4 - (G.wy || 0)) * k; G.wp = (G.wp || 0) + (-Math.atan((hF - hB) / 2) - (G.wp || 0)) * k; G.wr = (G.wr || 0) + (Math.atan((hR - hL) / 1.5) - (G.wr || 0)) * k; }
   raft.position.set(rx, 0.04 + bob * 0.3 + G.wy, -G.s); raft.rotation.set(G.wp * 1.8 - G.boost * 0.012, head + G.spin, G.wr * 1.8 - G.uv * 0.022 + Math.sin(G.t * 2.1) * 0.02, 'YXZ');
   raft.visible = G.mode !== 'over' || G.endT < 1.2; if (G.mode === 'over') raft.position.y -= G.endT * 0.5;
@@ -457,7 +491,9 @@ function step(dt) {
   for (const p of puppies) { if (p.y > 0 || p.vy > 0) { p.vy -= 18 * dt; p.y = Math.max(0, p.y + p.vy * dt); } const d = (p.x - cx(BEACH.s) - half(BEACH.s)); p.d.root.position.set(p.x, bankY(Math.max(0, d)) * 0.45 + p.y, p.z); p.d.root.rotation.y = p.yaw === undefined ? -Math.PI / 2 : p.yaw; p.d.root.visible = G.s > END - 160; if (p.d.root.visible) p.d.animate(dt, { speed: G.mode === 'win' ? 5 : 0, grounded: p.y <= 0, vy: p.vy, sit: G.mode === 'win' ? 0 : 1, happy: 0.9, pant: true }); }
   // ---- things in the water
   for (const k of kayaks) { if (Math.abs(k.s - G.s) > 130) { k.g.visible = false; continue; } k.g.visible = true; const a = G.t * k.w + k.ph; k.u = Math.sin(a) * k.amp; k.g.position.set(cx(k.s) + k.u, 0.03 + waveH(cx(k.s) + k.u, -k.s, G.t), -k.s); k.g.rotation.y = Math.cos(a) > 0 ? Math.PI / 2 : -Math.PI / 2; k.p.rotation.x = Math.sin(G.t * 4 + k.ph) * 0.6; if (play && k.s - G.s < 45 && k.s > G.s) hint('h_kayak'); }
-  for (const w of whirls) if (Math.abs(w.s - G.s) < 90) w.m.rotation.y = -G.t * 2.4;
+  if (HQ) { let k = 0; for (const w of whirls) if (w.s > G.s - 60 && w.s < G.s + 320 && k < 12) whU.value[k++].set(w.x, -w.s, w.r * WH_K * 0.92); for (; k < 12; k++) whU.value[k].set(1e6, 1e6, 1);
+    whirls.forEach((w, wi) => { for (let i = 0; i < 6; i++) { const u = (G.t * 0.11 + i / 6 + wi * 0.37) % 1, rr = 0.95 - u * 0.88, a = i * 1.047 + wi + G.t * 1.5 / (rr + 0.22), R = rr * w.r * WH_K; dummy.position.set(w.x + Math.cos(a) * R, 0.05 - WH_DEPTH * Math.pow(1 - rr, 2.3), -w.s + Math.sin(a) * R); dummy.rotation.set(0, -a + 1.57, 0.3 * (1 - rr)); dummy.scale.setScalar(0.5 + rr * 0.6); dummy.updateMatrix(); G.debris.setMatrixAt(wi * 6 + i, dummy.matrix); } }); G.debris.instanceMatrix.needsUpdate = true; }
+  else for (const w of whirls) if (Math.abs(w.s - G.s) < 90) w.m.rotation.y = -G.t * 2.4;
   for (const l of lanes) l.m.material.map.offset.y = -G.t * 1.6;
   updateArtur(dt, play);
   let n = 0; for (const it of items) { if (it.got || it.s < G.s - 6 || it.s > G.s + 130) continue; const x = cx(it.s) + it.u; if (it.kind === 'bone') { if (n < 140) { dummy.position.set(x, 0.95 + Math.sin(G.t * 3 + it.s) * 0.08, -it.s); dummy.rotation.set(0.3, G.t * 3 + it.s, 0.5); dummy.scale.setScalar(1.5); dummy.updateMatrix(); boneMesh.setMatrixAt(n++, dummy.matrix); } } else { it.m.position.set(x, 0.9 + Math.sin(G.t * 2.5) * 0.1, -it.s); it.m.rotation.y = G.t * 2; } }
