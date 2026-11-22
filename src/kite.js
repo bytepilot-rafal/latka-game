@@ -201,6 +201,32 @@ function buildLand() {
   wn.repeat.set(SIZE / 22, SIZE / 22);
   water = new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE).rotateX(-Math.PI / 2), patch(new THREE.MeshStandardMaterial({ color: 0x2b4a4a, roughness: 0.13, metalness: 0.35, normalMap: wn, normalScale: new THREE.Vector2(0.22, 0.22) }), false));
   water.receiveShadow = true; scene.add(water);
+  // the Narew itself: a ribbon that follows the bends, with real waves running downstream, streaks of current and foam on the crests
+  { U.uWN = { value: wn }; const HW = 46, AC = 14, pos = [], uv = [], dir = [], idx = []; let u = 0, n = 0;
+    for (let x = -HALF; x <= HALF; x += 3.5, n++) { const z = riverZ(x), sl = (riverZ(x + 2) - riverZ(x - 2)) / 4, l = Math.hypot(1, sl), tx = 1 / l, tz = sl / l; if (n) u += 3.5 * l;
+      for (let k = 0; k <= AC; k++) { const v = k / AC * 2 - 1; pos.push(x - tz * v * HW, 0.05, z + tx * v * HW); uv.push(u, v); dir.push(tx, tz); } }
+    for (let i = 0; i < n - 1; i++) for (let k = 0; k < AC; k++) { const a = i * (AC + 1) + k, b = a + 1, c = a + AC + 1, d = c + 1; idx.push(a, b, c, b, d, c); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setAttribute('aDir', new THREE.Float32BufferAttribute(dir, 2)); g.setIndex(idx); g.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x2f5552, roughness: 0.12, metalness: 0.35 });
+    mat.onBeforeCompile = (s) => {
+      Object.assign(s.uniforms, U);
+      s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 aDir; uniform float uTime; varying vec3 vWp; varying vec2 vRuv, vDir; varying float vWave, vSlope;').replace('#include <begin_vertex>', `#include <begin_vertex>
+        { float ru = uv.x, rv = uv.y, edge = 1.0 - smoothstep(0.5, 0.92, abs(rv));
+          float wob = sin(ru * 0.061 + rv * 2.3) * 1.9 + sin(ru * 0.023 - rv * 3.9 + 1.0) * 1.4, m1 = 0.55 + 0.45 * sin(ru * 0.09 + rv * 3.1 + 0.7), m2 = 0.5 + 0.5 * sin(ru * 0.17 - rv * 4.3);
+          float p1 = ru * 0.42 - uTime * 3.4 + rv * 1.4 + wob, p2 = ru * 0.95 - uTime * 5.6 - rv * 2.3 + 1.7 - wob * 0.8, p3 = ru * 0.15 - uTime * 1.6 + rv * 0.6;
+          vWave = (sin(p1) * 0.3 * m1 + sin(p2) * 0.14 * m2 + sin(p3) * 0.24) * edge; vSlope = (cos(p1) * 0.126 * m1 + cos(p2) * 0.133 * m2 + cos(p3) * 0.036) * edge;
+          transformed.y += vWave; vRuv = uv; vDir = aDir; vWp = (modelMatrix * vec4(transformed, 1.0)).xyz; }`);
+      s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp; varying vec2 vRuv, vDir; varying float vWave, vSlope; uniform sampler2D uDetail, uCloud, uWN; uniform float uTime;')
+        .replace('#include <map_fragment>', `#include <map_fragment>
+        { vec2 q = vec2(vRuv.x, vRuv.y * 46.0); float st = texture2D(uDetail, vec2(q.x * 0.011 - uTime * 0.13, q.y * 0.07)).g, fo = texture2D(uDetail, vec2(q.x * 0.05 - uTime * 0.3, q.y * 0.06)).r;
+          diffuseColor.rgb *= 0.8 + 0.5 * st; diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.8, 0.86, 0.88), smoothstep(0.24, 0.6, vWave + (fo - 0.5) * 0.7) * 0.3 + smoothstep(0.66, 0.8, st * (0.6 + fo)) * 0.3);
+          float cs = texture2D(uCloud, vWp.xz * 0.00042 + uTime * vec2(0.0034, 0.0012)).r; diffuseColor.rgb *= mix(1.0, 0.5, smoothstep(0.5, 0.66, cs)); }`)
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        { vec2 q = vec2(vRuv.x, vRuv.y * 46.0); vec3 a = texture2D(uWN, q * 0.055 - vec2(uTime * 0.3, 0.0)).xyz * 2.0 - 1.0, b = texture2D(uWN, q * 0.16 - vec2(uTime * 0.62, uTime * 0.04)).xyz * 2.0 - 1.0;
+          vec2 n2 = (a.xy + b.xy * 0.7) * 0.3; float al = vSlope + n2.x, ac = n2.y; vec3 wn = normalize(vec3(-al * vDir.x + ac * vDir.y, 1.0, -al * vDir.y - ac * vDir.x)); normal = normalize((viewMatrix * vec4(wn, 0.0)).xyz); }`);
+    };
+    mat.customProgramCacheKey = () => 'narew';
+    const river = new THREE.Mesh(g, mat); river.receiveShadow = true; river.frustumCulled = false; scene.add(river); }
 
   // ---- trees, in chunks so that only the ones in view are drawn
   const v3 = new THREE.Vector3(), paint = (g, fn) => { const p = g.attributes.position, c = new Float32Array(p.count * 3); for (let i = 0; i < p.count; i++) { const q = fn(p.getX(i), p.getY(i), p.getZ(i)); c[i * 3] = q[0]; c[i * 3 + 1] = q[1]; c[i * 3 + 2] = q[2]; } g.setAttribute('color', new THREE.BufferAttribute(c, 3)); g.deleteAttribute('uv'); return g; };
@@ -534,7 +560,7 @@ function step(dt) {
   // ---- things in the sky and on the water
   for (const b of balloons) { b.g.position.y = b.y + Math.sin(G.t * 0.4 + b.ph) * 3; b.g.position.x = b.x + Math.sin(G.t * 0.13 + b.ph) * 6; b.g.rotation.y = G.t * 0.05 + b.ph; }
   for (const s of storks) { const q = Math.sin(G.t * 0.11 + s.ph * 0.3) * 150, fw = Math.cos(G.t * 0.11 + s.ph * 0.3) > 0 ? 1 : -1; s.x = s.mid.x + s.dir.x * (q - s.back * fw) - s.dir.z * s.off; s.z = s.mid.z + s.dir.z * (q - s.back * fw) + s.dir.x * s.off; s.g.position.set(s.x, s.y + Math.sin(G.t * 0.9 + s.ph) * 1.2, s.z); s.g.rotation.y = Math.atan2(-s.dir.x * fw, -s.dir.z * fw); const f = Math.sin(G.t * 5.2 + s.ph * 2) * 0.55; s.wl.rotation.z = -f; s.wr.rotation.z = f; }
-  { const bx = 560 + Math.sin(G.t * 0.045) * 420, dir = Math.cos(G.t * 0.045) > 0 ? 1 : -1, bz = riverZ(bx), a = Math.atan2(dir, dir * (riverZ(bx + 2) - riverZ(bx - 2)) / 4); boat.position.set(bx, 0.15, bz); boat.rotation.y = a + Math.PI; wake.position.set(bx, 0.08, bz); wake.rotation.y = a + Math.PI; }
+  { const bx = 560 + Math.sin(G.t * 0.045) * 420, dir = Math.cos(G.t * 0.045) > 0 ? 1 : -1, bz = riverZ(bx), a = Math.atan2(dir, dir * (riverZ(bx + 2) - riverZ(bx - 2)) / 4); boat.position.set(bx, 0.35 + Math.sin(G.t * 3.1) * 0.12, bz); water.material.normalMap.offset.set(G.t * 0.006, G.t * 0.009); boat.rotation.y = a + Math.PI; wake.position.set(bx, 0.5, bz); wake.rotation.y = a + Math.PI; }
   let n = 0; for (const it of items) { if (it.got) continue; dummy.position.copy(it.p); dummy.position.y += Math.sin(G.t * 2.4 + it.p.x) * 0.4; dummy.rotation.set(0.3, G.t * 2.6 + it.p.z, 0.5); dummy.scale.setScalar(1.7); dummy.updateMatrix(); bones.setMatrixAt(n++, dummy.matrix); } bones.count = n; bones.instanceMatrix.needsUpdate = true;
   const g0 = gates[G.gi], g1 = gates[G.gi + 1], showR = play || G.mode === 'crash';
   nextRing.visible = !!g0 && showR; if (g0) { nextRing.position.copy(g0.p); nextRing.lookAt(tmpV.copy(g0.p).add(g0.t)); nextRing.scale.setScalar(1 + Math.sin(G.t * 5) * 0.03); }
