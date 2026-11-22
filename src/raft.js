@@ -22,7 +22,7 @@ const TXT = {
     time: (t) => `Czas: ${t}`, bones: (n) => `Kości: ${n}`, left: (m) => `Do plaży: ${m} m`, paddle: 'Wiosło',
     h_start: 'Nurt niesie ponton. Steruj na boki; trzymaj wiosło, żeby płynąć szybciej.', h_lane: 'Bystry nurt — tu płynie się szybciej!', h_whirl: 'Wir! Wiosłuj, żeby się wyrwać!',
     h_sand: 'Mielizna — ponton zwalnia.', h_bridge: 'Przepłyń między filarami mostu.', h_kayak: 'Uwaga, kajakarz!', h_beach: 'Widać plażę!',
-    artur: ['Ahoj, Łatka!', 'Trzymajcie się, załogo!', 'Kto pierwszy na plaży?', 'Mila, nie bój się wody!'], arturName: 'Wujek Artur',
+    artur: ['Ahoj, Łatka!', 'Trzymajcie się, załogo!', 'Kto pierwszy na plaży?', 'Mila, nie bój się wody!'], arturName: 'Wujek Artur', rafalName: 'Wujek Rafał', rafal: ['Cześć, Łatka! Patrz, lecę nad wodą!', 'E-foil: zero hałasu, sama frajda!', 'Ścigamy się do plaży?', 'Mila, wskakuj na deskę!'],
     hit: 'Auć! Dziura w pontonie!', patch: 'Łatka na ponton! +1', k_place: 'Narew', p1: 'Most w Serocku', p2: 'Wielkie Zakole', p3: 'Stary Most', p4: 'Plaża',
     winT: 'Dopłynęli!', winX: (t, b, s) => `Łatka i Mila są na plaży. Czas: ${t} · kości: ${b}. ${s}`,
     loseT: 'Ponton zatonął…', loseX: (m) => `Łatka i Mila dopłynęły do brzegu wpław, ${m} m przed plażą. Spróbuj jeszcze raz!`,
@@ -35,7 +35,7 @@ const TXT = {
     time: (t) => `Time: ${t}`, bones: (n) => `Bones: ${n}`, left: (m) => `To the beach: ${m} m`, paddle: 'Paddle',
     h_start: 'The current carries the raft. Steer sideways; hold the paddle to go faster.', h_lane: 'Fast water — the raft speeds up here!', h_whirl: 'A whirlpool! Paddle to break free!',
     h_sand: 'A sandbank — the raft slows down.', h_bridge: 'Pass between the piers of the bridge.', h_kayak: 'Mind the kayaker!', h_beach: 'The beach is in sight!',
-    artur: ['Ahoy, Łatka!', 'Hold on tight, crew!', 'Race you to the beach!', 'Mila, the water is fine!'], arturName: 'Wujek Artur',
+    artur: ['Ahoy, Łatka!', 'Hold on tight, crew!', 'Race you to the beach!', 'Mila, the water is fine!'], arturName: 'Wujek Artur', rafalName: 'Wujek Rafał', rafal: ['Hi, Łatka! Look, I am flying over the water!', 'An e-foil: no noise, all fun!', 'Race you to the beach?', 'Mila, hop on the board!'],
     hit: 'Ouch! A hole in the raft!', patch: 'A patch for the raft! +1', k_place: 'Narew', p1: 'Most w Serocku', p2: 'Wielkie Zakole', p3: 'Stary Most', p4: 'Plaża',
     winT: 'They made it!', winX: (t, b, s) => `Łatka and Mila are on the beach. Time: ${t} · bones: ${b}. ${s}`,
     loseT: 'The raft sank…', loseX: (m) => `Łatka and Mila swam ashore ${m} m short of the beach. Try again!`,
@@ -347,13 +347,43 @@ function buildArtur() {
   const t = canvasTex(384, 88, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(12,9,6,.72)'; c.beginPath(); if (c.roundRect) c.roundRect(4, 4, w - 8, h - 8, 34); else c.rect(4, 4, w - 8, h - 8); c.fill(); c.strokeStyle = '#ffd27a'; c.lineWidth = 3; c.stroke(); c.fillStyle = '#ffd27a'; c.font = 'italic 50px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(TXT.pl.arturName, w / 2, h / 2 + 3); });
   A.label = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, depthWrite: false, fog: false })); A.label.renderOrder = 50; A.label.position.y = 2.5; g.add(A.label);
   g.traverse((o) => { o.frustumCulled = false; }); g.visible = false; scene.add(g); A.g = g;
+  A.who = [{ g, arm: A.arm, label: A.label, name: 'arturName', lines: 'artur', foil: false }, buildRafal()];
+}
+// Wujek Rafał on an e-foil: an electric surfboard that flies above the water on a mast with a hydrofoil underneath.
+function buildRafal() {
+  const g = new THREE.Group(), b = new Builder(1600), CARBON = 0x1b1d22, TEAL = 0x2a9d8f, ALU = 0xb9bec6, skin = 0xe8b890, SUIT = 0x1c2c44, DECK = 0.95;
+  const outline = (k) => { const sh = new THREE.Shape(), P = [[0.24, -0.8], [0.29, -0.55], [0.31, -0.1], [0.28, 0.3], [0.18, 0.62], [0, 0.82]]; sh.moveTo(0, -0.8); sh.lineTo(P[0][0] * k, P[0][1] * k); for (let i = 1; i < P.length; i++) sh.quadraticCurveTo(P[i - 1][0] * k * 1.06, (P[i - 1][1] + P[i][1]) / 2 * k, P[i][0] * k, P[i][1] * k); for (let i = P.length - 2; i >= 0; i--) sh.quadraticCurveTo(-P[i + 1][0] * k * 1.06, (P[i + 1][1] + P[i][1]) / 2 * k, -P[i][0] * k, P[i][1] * k); sh.lineTo(0, -0.8 * k); return sh; };
+  { const bg = new THREE.ExtrudeGeometry(outline(1), { depth: 0.09, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.03, bevelSegments: 3, curveSegments: 10 }); bg.rotateX(Math.PI / 2); b.add(bg, CARBON, 0, DECK - 0.01, 0, 0, 0.02);        // the board: a carbon shell...
+    const pg = new THREE.ExtrudeGeometry(outline(0.84), { depth: 0.012, bevelEnabled: false, curveSegments: 10 }); pg.rotateX(Math.PI / 2); b.add(pg, 0x3a3f46, 0, DECK + 0.03, -0.04, 0, 0.03);                                                  // ...a grippy deck pad...
+    b.box(0.05, 0.004, 1.2, 0, DECK + 0.03, -0.02, TEAL, 0, 0); for (const sx of [-0.2, 0.2]) b.box(0.012, 0.004, 0.9, sx, DECK + 0.03, -0.1, TEAL, 0, 0); b.box(0.22, 0.03, 0.1, 0, DECK + 0.02, 0.5, ALU, 0, 0); }                                  // ...stripes and the battery hatch
+  { const mg = new THREE.CylinderGeometry(0.5, 0.5, 0.84, 12); mg.scale(0.036, 1, 0.26); b.add(mg, ALU, 0, DECK - 0.5, -0.3, 0, 0.02);                                                                                                           // the mast, a slim wing section
+    const fus = new THREE.CapsuleGeometry(0.04, 0.72, 4, 10); fus.rotateX(Math.PI / 2); b.add(fus, CARBON, 0, 0.04, -0.2, 0, 0); const mot = new THREE.CapsuleGeometry(0.06, 0.22, 4, 10); mot.rotateX(Math.PI / 2); b.add(mot, ALU, 0, 0.04, -0.52, 0, 0.02);
+    const duct = new THREE.CylinderGeometry(0.09, 0.08, 0.1, 14, 1, true); duct.rotateX(Math.PI / 2); b.add(duct, CARBON, 0, 0.04, -0.74, 0, 0);                                                                                                // fuselage, motor pod, ducted propeller
+    for (const sd of [-1, 1]) { const w = new THREE.BoxGeometry(0.44, 0.014, 0.17); w.translate(sd * 0.22, 0, 0); w.rotateZ(-sd * 0.12); const q = w.attributes.position; for (let i = 0; i < q.count; i++) { const t = Math.abs(q.getX(i)) / 0.44; q.setZ(i, q.getZ(i) * (1 - t * 0.55) - t * 0.06); } b.add(w, TEAL, 0, 0.05, 0.16, 0, 0.02);      // the front wing, swept and tapered
+      const st = new THREE.BoxGeometry(0.19, 0.01, 0.08); st.translate(sd * 0.095, 0, 0); st.rotateZ(sd * 0.1); b.add(st, TEAL, 0, 0.05, -0.62, 0, 0.02); } }                                                                                      // and the small stabiliser at the back
+  // the rider, standing sideways like a surfer: knees bent, a helmet, an impact vest, the remote in his leading hand
+  const limb = (r, len, rx, x, y, z, col) => { const c = new THREE.CapsuleGeometry(r, len, 4, 8); c.rotateX(rx); b.add(c, col, x, y, z, 0, 0.03); }, ball = (r, x, y, z, col, sx = 1, sy = 1, sz = 1) => { const sg = new THREE.SphereGeometry(r, 12, 10); sg.scale(sx, sy, sz); b.add(sg, col, x, y, z, 0, 0.02); };
+  limb(0.08, 0.34, 0.5, 0, DECK + 0.26, 0.3, SUIT); limb(0.085, 0.34, -0.25, 0, DECK + 0.66, 0.2, SUIT); limb(0.08, 0.34, -0.55, 0, DECK + 0.26, -0.34, SUIT); limb(0.085, 0.34, 0.3, 0, DECK + 0.66, -0.22, SUIT);
+  for (const z of [0.4, -0.44]) ball(0.09, 0.02, DECK + 0.06, z, 0x15161a, 1.5, 0.6, 0.9);
+  limb(0.17, 0.36, 0.1, 0, DECK + 1.2, 0, SUIT); limb(0.19, 0.2, 0.1, 0, DECK + 1.24, 0.01, 0xe8552e); b.box(0.2, 0.05, 0.3, 0.1, DECK + 1.32, 0.01, 0x15161a, 0, 0);                                                                              // torso in an orange impact vest
+  limb(0.055, 0.4, 1.15, 0.04, DECK + 1.3, 0.4, SUIT); ball(0.06, 0.06, DECK + 1.2, 0.63, skin); b.box(0.05, 0.05, 0.13, 0.06, DECK + 1.24, 0.7, 0xf2c21c, 0, 0);                                                                                 // leading arm and the hand remote
+  b.cyl(0.06, 0.065, 0.09, 0, DECK + 1.5, 0, skin, 10); ball(0.15, 0, DECK + 1.7, 0, skin, 0.95, 1.05, 1); { const hg = new THREE.SphereGeometry(0.17, 14, 8, 0, 6.3, 0, 1.75); b.add(hg, 0xf2f2f2, 0, DECK + 1.72, 0, 0, 0.02); }
+  b.box(0.04, 0.05, 0.22, 0.135, DECK + 1.71, 0, 0x101114, 0, 0); b.box(0.02, 0.03, 0.34, 0.01, DECK + 1.6, 0, 0x101114, 0, 0); b.box(0.06, 0.02, 0.12, 0.14, DECK + 1.62, 0, 0x5a4634, 0, 0);                                                      // sunglasses, helmet strap, a short beard
+  g.add(b.mesh());
+  const ab = new Builder(1601); { const c = new THREE.CapsuleGeometry(0.055, 0.4, 4, 8); c.translate(0, 0.25, 0); ab.add(c, SUIT, 0, 0, 0, 0, 0.03); ab.add(new THREE.SphereGeometry(0.06, 10, 8), skin, 0, 0.54, 0, 0, 0.02); }
+  const arm = ab.mesh(); arm.position.set(0.02, DECK + 1.42, -0.2); g.add(arm);
+  const t = canvasTex(384, 88, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(12,9,6,.72)'; c.beginPath(); if (c.roundRect) c.roundRect(4, 4, w - 8, h - 8, 34); else c.rect(4, 4, w - 8, h - 8); c.fill(); c.strokeStyle = '#ffd27a'; c.lineWidth = 3; c.stroke(); c.fillStyle = '#ffd27a'; c.font = 'italic 50px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(TXT.pl.rafalName, w / 2, h / 2 + 3); });
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, depthWrite: false, fog: false })); label.renderOrder = 50; label.position.y = 3.4; g.add(label);
+  g.traverse((o) => { o.frustumCulled = false; if (o.isMesh) o.castShadow = true; }); g.visible = false; scene.add(g);
+  return { g, arm, label, name: 'rafalName', lines: 'rafal', foil: true };
 }
 function updateArtur(dt, play) {
   if (A.mode === 'off') {
     A.timer -= play ? dt : 0;
     if (play && A.timer <= 0 && G.s > 70 && G.s < END - 240) {
-      A.mode = A.n++ % 2 ? 'back' : 'pass'; A.side = G.u > 0 ? -1 : 1; A.s = A.mode === 'pass' ? G.s - 40 : G.s + 150; A.u = A.side * (half(A.s) - 1.7); A.said = false; A.drop = 0; A.g.visible = true;
-      if (audio.on) audio.burst(170, 3, 1.6, 0.22, 'bandpass', 0, 1.6);
+      A.mode = A.n++ % 2 ? 'back' : 'pass'; A.side = G.u > 0 ? -1 : 1; A.s = A.mode === 'pass' ? G.s - 40 : G.s + 150; A.u = A.side * (half(A.s) - 1.7); A.said = false; A.drop = 0;
+      const w = A.who[(A.k = (A.k || 0) + 1) % 2 ? 0 : 1]; A.cur = w; A.g = w.g; A.arm = w.arm; A.label = w.label; for (const q of A.who) q.g.visible = q === w;      // wujek Artur and wujek Rafał take turns
+      if (audio.on) audio.burst(w.foil ? 420 : 170, 3, 1.6, w.foil ? 0.06 : 0.22, 'bandpass', 0, 1.6);
     }
     return;
   }
@@ -364,12 +394,14 @@ function updateArtur(dt, play) {
   if (Math.abs(A.s - G.s) < 9 && Math.abs(want - G.u) < 3) want = G.u + (A.u >= G.u ? 1 : -1) * 3.2;            // give the raft room
   want = clamp(want, -h, h); const du = clamp(want - A.u, -8 * dt, 8 * dt); A.u += du;
   const x = cx(A.s) + A.u, yaw = Math.atan2(dir * slope(A.s) + du / Math.max(1e-3, dt) / sp, -dir);
-  A.g.position.set(x, 0.07 + Math.abs(Math.sin(G.t * 9)) * 0.07 + waveH(x, -A.s, G.t), -A.s); A.g.rotation.set(-0.08 + Math.sin(G.t * 9) * 0.03, yaw, -clamp(du / Math.max(1e-3, dt), -8, 8) * 0.04, 'YXZ');
-  const dist = camera.position.distanceTo(A.g.position), k = clamp(dist / 12, 1, 7); A.label.scale.set(3.1 * k, 0.71 * k, 1); A.label.position.y = 2.3 + 0.35 * k;
+  const foil = A.cur && A.cur.foil;
+  if (foil) { A.g.position.set(x, -0.3 + Math.sin(G.t * 1.7) * 0.05 + waveH(x, -A.s, G.t) * 0.25, -A.s); A.g.rotation.set(-0.03 + Math.sin(G.t * 1.3) * 0.03, yaw, -clamp(du / Math.max(1e-3, dt), -8, 8) * 0.075 + Math.sin(G.t * 2.1) * 0.03, 'YXZ'); }      // the e-foil flies level and leans into its turns
+  else { A.g.position.set(x, 0.07 + Math.abs(Math.sin(G.t * 9)) * 0.07 + waveH(x, -A.s, G.t), -A.s); A.g.rotation.set(-0.08 + Math.sin(G.t * 9) * 0.03, yaw, -clamp(du / Math.max(1e-3, dt), -8, 8) * 0.04, 'YXZ'); }
+  const dist = camera.position.distanceTo(A.g.position), k = clamp(dist / 12, 1, 7); A.label.scale.set(3.1 * k, 0.71 * k, 1); A.label.position.y = (foil ? 3.3 : 2.3) + 0.35 * k;
   A.wave = Math.max(0, A.wave - dt); A.arm.rotation.z = A.wave > 0 ? -0.4 + Math.sin(G.t * 12) * 0.5 : 2.6;
-  for (let i = 0; i < 3; i++) if (Math.random() < dt * 40) { A.g.localToWorld(tmpV.set((Math.random() - 0.5) * 0.8, 0.1, -1.6)); pAlpha.spawn(tmpV.x, 0.15, tmpV.z, (Math.random() - 0.5) * 2.5, 1.5 + Math.random() * 2.5, dir * (2 + Math.random() * 3), 0.7, 0.2, 0.7, 0.95, 0.98, 1, 0.7, 8, 0.6); }
+  for (let i = 0; i < (foil ? 1 : 3); i++) if (Math.random() < dt * 40) { A.g.localToWorld(tmpV.set((Math.random() - 0.5) * (foil ? 0.15 : 0.8), foil ? 0.4 : 0.1, foil ? -0.4 : -1.6)); pAlpha.spawn(tmpV.x, 0.15, tmpV.z, (Math.random() - 0.5) * 2.5, 1.5 + Math.random() * 2.5, dir * (2 + Math.random() * 3), 0.7, 0.2, 0.7, 0.95, 0.98, 1, 0.7, 8, 0.6); }
   const near = Math.abs(A.s - G.s);
-  if (play && !A.said && near < 7) { A.said = true; A.wave = 2.5; pick(`${T('arturName')}: ${T('artur')[(A.n + ((Math.random() * 2) | 0)) % T('artur').length]}`); pickT = 2.6; buzz(30); if (audio.on) { audio.burst(260, 2, 0.9, 0.3, 'bandpass', 0, 0.6); audio.bark(1.1); dog.bark(); } }
+  if (play && !A.said && near < 7) { A.said = true; A.wave = 2.5; pick(`${T(A.cur.name)}: ${T(A.cur.lines)[(A.n + ((Math.random() * 2) | 0)) % T(A.cur.lines).length]}`); pickT = 2.6; buzz(30); if (audio.on) { audio.burst(260, 2, 0.9, 0.3, 'bandpass', 0, 0.6); audio.bark(1.1); dog.bark(); } }
   if (play && near < 3.2 && Math.abs(A.u - G.u) < 4) G.uv += Math.sign(G.u - A.u || 1) * 7 * dt;                // his wash nudges the raft aside
   if (play && A.mode === 'pass' && A.s > G.s + 9 && A.drop < 9 && A.s - (A.lastDrop || 0) > 3.2) { A.lastDrop = A.s; A.drop++; items.push({ s: A.s - 2.5, u: A.u, kind: 'bone', got: false, dyn: true }); }
   if ((A.mode === 'pass' && A.s > G.s + 135) || (A.mode === 'back' && A.s < G.s - 28) || A.s > END - 60 || !play && near > 60) { A.mode = 'off'; A.g.visible = false; A.timer = 16 + Math.random() * 12; A.lastDrop = 0; }
@@ -440,7 +472,7 @@ function reset() {
   Object.assign(G, { t: 0, time: 0, s: 0, u: 0, uv: 0, v: 0, boost: 0, lives: 3, bones: 0, inv: 0, cd: 0, stroke: 0, spin: 0, shake: 0, endT: 0, places: 0, landed: 0, hopD: 0, hopC: 0 }); G.hints.clear();
   for (let i = items.length - 1; i >= 0; i--) if (items[i].dyn) items.splice(i, 1);
   for (const it of items) { it.got = false; if (it.m) it.m.visible = true; }
-  Object.assign(A, { mode: 'off', timer: 9, n: 0, lastDrop: 0 }); A.g.visible = false;
+  Object.assign(A, { mode: 'off', timer: 9, n: 0, lastDrop: 0, k: 0 }); for (const q of A.who) q.g.visible = false;
   raft.add(dog.root); dog.root.position.set(0, 0.16, 0.48); dog.root.rotation.set(0, 0, 0); raft.add(cat.root); cat.root.position.set(0, 0.2, -0.62); cat.root.rotation.set(0, 0, 0); raft.visible = true; raft.rotation.set(0, Math.PI, 0);
   puppies.forEach((p, i) => { p.x = cx(BEACH.s) + half(BEACH.s) + 4 + (i % 3) * 1.1; p.z = -BEACH.s - 2 + Math.floor(i / 3) * 1.4 + i * 0.5; p.y = 0; p.vy = 0; });
 }
