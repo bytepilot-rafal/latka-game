@@ -9,6 +9,7 @@ import { buildDog } from './dog.js';
 import { buildCat } from './cat.js';
 import { Particles, fogUniforms } from './fx.js';
 import { AudioSys } from './audio.js';
+import { makeUniforms, patchMat, plantTrees, leafBlob } from './real.js';
 
 const $ = (id) => document.getElementById(id);
 const TXT = {
@@ -61,7 +62,8 @@ const G = { mode: 'load', t: 0, time: 0, alert: 0, seen: 0, stun: 0, wet: 0, fad
 const P = { x: START.x, z: START.z, yaw: Math.PI, speed: 0 };
 const input = { x: 0, y: 0 }, keys = {};
 const audio = new AudioSys();
-let dog, cat, tex, pAdd, pAlpha, moon;
+let dog, cat, tex, pAdd, pAlpha, moon, RU;
+const TREES = [];
 const boxes = [], circles = [], bushes = [], sectors = [], toys = [], windows = [], mowers = [], puppies = [], rings = [], trail = [], arrows = []; let glow;
 
 // ------------------------------------------------------------------ geometry helpers (vertex-coloured, merged)
@@ -115,6 +117,7 @@ const fwd = (g) => (g.north ? Math.PI : 0);            // the direction from the
 
 function buildWorld() {
   const b = new Builder(11), r = b.r;
+  RU = makeUniforms(); patchMat(worldMat, RU, { grain: 0.4, cloud: 0.32, cs: 0.012 });
   // ground: grass everywhere, a gravel lane between the two rows of gardens
   const grassT = canvasTex(256, 256, (c, w, h) => {
     const im = c.createImageData(w, h), d = im.data, q = rng(4);
@@ -126,11 +129,11 @@ function buildWorld() {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = 112 + fbm(x * 0.09, y * 0.09, 4, 5) * 30 + q() * 30, i = (y * w + x) * 4; d[i] = v * 1.04; d[i + 1] = v * 0.98; d[i + 2] = v * 0.9; d[i + 3] = 255; }
     c.putImageData(im, 0, 0);
   }, 22, 2);
-  const flat = (w, d, x, z, t, y) => { const g = new THREE.PlaneGeometry(w, d); g.rotateX(-Math.PI / 2); const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: t, roughness: 1 })); m.position.set(x, y, z); m.receiveShadow = true; scene.add(m); return m; };
+  const flat = (w, d, x, z, t, y) => { const g = new THREE.PlaneGeometry(w, d); g.rotateX(-Math.PI / 2); const m = new THREE.Mesh(g, patchMat(new THREE.MeshStandardMaterial({ map: t, roughness: 1 }), RU, { grain: 0.75, cloud: 0.32, cs: 0.012 })); m.position.set(x, y, z); m.receiveShadow = true; scene.add(m); return m; };
   flat(170, 130, 0, 0, grassT, 0); flat(96, 6.2, 0, 0.5, laneT, 0.012);
   boxes.push({ x0: -60, x1: -40, z0: -40, z1: 40 }, { x0: 40, x1: 60, z0: -40, z1: 40 }, { x0: -60, x1: 60, z0: -40, z1: -27.5 }, { x0: -60, x1: 60, z0: 28.5, z1: 40 });      // the edge of the map
   for (const x of [-40, 40]) for (let z = -27; z < 29; z += 1.6) b.cone(0.75 + r() * 0.2, 2.6 + r() * 1.2, x, 0, z, z % 3 ? 0x1f4a2a : 0x265832, 8);
-  for (let x = -38; x < 39; x += 2.2) { b.cone(1.5 + r(), 6 + r() * 4, x, 0, -30 - r() * 3, 0x1c4228, 8); b.cone(1.5 + r(), 6 + r() * 4, x, 0, 31 + r() * 3, 0x1c4228, 8); }
+  for (let x = -38; x < 39; x += 2.2) { for (const sd of [-1, 1]) { const w = r(), h = 6 + r() * 4, z = sd < 0 ? -30 - r() * 3 : 31 + r() * 3; r(); TREES.push([x + (w - 0.5) * 1.2, 0, z, (x / 2.2 | 0) % 4 === 0 ? 2 : 1, h / 12]); } }
 
   const fence = (xa, za, xb, zb) => {       // axis-aligned run of picket fence, with its collision box
     const len = Math.hypot(xb - xa, zb - za), alongX = Math.abs(xb - xa) > Math.abs(zb - za), n = Math.max(1, Math.round(len / 0.3));
@@ -162,13 +165,13 @@ function buildWorld() {
   b.box(1.9, 1.15, 2.2, HOME.x, 0, HOME.z + 1.4, 0xb5653a); b.add(roofGeo(2.5, 0.9, 2.7), 0x8a2f24, HOME.x, 1.15, HOME.z + 1.4, 0, 0.04); b.box(0.8, 0.8, 0.06, HOME.x, 0, HOME.z + 0.28, 0x1a1210, 0, 0);
   boxes.push({ x0: HOME.x - 1.05, x1: HOME.x + 1.05, z0: HOME.z + 0.35, z1: HOME.z + 2.6 });
   b.box(0.9, 0.1, 0.9, HOME.x - 1.9, 0, HOME.z + 0.2, 0xd8d0c0); b.cyl(0.32, 0.24, 0.16, HOME.x - 1.9, 0.1, HOME.z + 0.2, 0xc7352b, 12);          // a rug and a bowl
-  for (let x = -8; x <= 8; x += 1.25) { b.blob(0.8, x, 0.7, 14.2, 0x2a5e30, 0.9); } boxes.push({ x0: -9, x1: 9, z0: 13.6, z1: 15 });
+  for (let x = -8; x <= 8; x += 1.25) { b.add(leafBlob(0.85, 0.9, x + 20, 1), 0x2a5a2f, x, 0.7, 14.2, r() * 3, 0.12); } boxes.push({ x0: -9, x1: 9, z0: 13.6, z1: 15 });
   const home = new THREE.Mesh(new THREE.RingGeometry(2.2, 2.45, 40), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); home.rotation.x = -Math.PI / 2; home.position.set(HOME.x, 0.05, HOME.z - 0.4); scene.add(home); G.homeRing = home;
-  for (const x of [-30, -12, 6, 24]) { b.cyl(0.05, 0.07, 4.2, x, 0, 3.3, 0x6d7278); const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), glowM); l.position.set(x, 4.2, 3.3); scene.add(l); }
+  for (const x of [-30, -12, 6, 24]) { b.cyl(0.05, 0.07, 4.2, x, 0, 3.3, 0x6d7278); const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), glowM); l.position.set(x, 4.2, 3.3); scene.add(l); const pl = new THREE.PointLight(0xffc27a, 34, 15, 1.7); pl.position.set(x, 3.9, 3.3); scene.add(pl); }
 
   // ---- what stands in each garden
-  const tree = (x, z, sc = 1) => { b.cyl(0.14 * sc, 0.2 * sc, 2.2 * sc, x, 0, z, 0x4d3a2a); b.blob(1.5 * sc, x, 3.1 * sc, z, 0x24552c, 0.9); b.blob(1.1 * sc, x + 0.9 * sc, 2.7 * sc, z + 0.3, 0x2b6234); circles.push({ x, z, r: 0.35 * sc }); };
-  const bush = (g, u, v) => { const p = at(g, u, v); for (let k = 0; k < 6; k++) b.blob(0.6 + r() * 0.25, p.x + (r() - 0.5) * 1.4, 0.45 + r() * 0.2, p.z + (r() - 0.5) * 1.4, k % 2 ? 0x2f6a34 : 0x3a7a3c, 0.8); bushes.push({ x: p.x, z: p.z, r: 1.25 }); };
+  const tree = (x, z, sc = 1) => { r(); r(); r(); r(); r(); r(); TREES.push([x, 0, z, 0, sc * 0.5]); circles.push({ x, z, r: 0.35 * sc }); };
+  const bush = (g, u, v) => { const p = at(g, u, v); for (let k = 0; k < 6; k++) b.add(leafBlob(0.6 + r() * 0.25, 0.8, k + 2, 1), k % 2 ? 0x2c5f31 : 0x366f38, p.x + (r() - 0.5) * 1.4, 0.45 + r() * 0.2, p.z + (r() - 0.5) * 1.4, r() * 3, 0.12); bushes.push({ x: p.x, z: p.z, r: 1.25 }); };
   const lamp = (g, u, v, ang, amp, sp, rad = 7.5, half = 0.42) => {
     const p = at(g, u, v); b.cyl(0.05, 0.07, 2.6, p.x, 0, p.z, 0x6d7278); b.box(0.3, 0.14, 0.3, p.x, 2.6, p.z, 0x3a3d42); circles.push({ x: p.x, z: p.z, r: 0.2 });
     const m = sectorMesh(rad, half, lightM); m.position.set(p.x, 0.06, p.z); scene.add(m); const hd = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), glowM); hd.position.set(p.x, 2.55, p.z); scene.add(hd);
@@ -221,6 +224,7 @@ function buildWorld() {
   { const p = at(g5, 0.17, 0.52); b.cyl(1.5, 1.5, 0.1, p.x, 0.55, p.z, 0x1c1c22, 18); for (let k = 0; k < 6; k++) b.cyl(0.04, 0.04, 0.55, p.x + Math.cos(k) * 1.4, 0, p.z + Math.sin(k) * 1.4, 0x4a6fb5, 6); }
   spot(g5, 0.17, 0.52); tree(at(g5, 0.9, 0.3).x, at(g5, 0.9, 0.3).z, 0.9);
   scene.add(b.mesh());
+  plantTrees(scene, TREES, patchMat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94 }), RU, { cloud: 0.32, cs: 0.012 }), rng(77), 0.85);
 }
 
 // ------------------------------------------------------------------ helpers
@@ -437,7 +441,8 @@ function step(dt) {
   camera.position.lerp(tmpV.set(cam.x + ti * 2.6 + sway, hgt + (G.mode === 'win' ? 0.5 : 0), cam.z + lerp(back, -6.6, ti)), Math.min(1, dt * 3)); camera.lookAt(cam.x + ti * 0.9, 0.4 + ti * 0.3, cam.z + lerp(-0.8, 2.2, ti));
   moon.target.position.set(cam.x, 0, cam.z); moon.position.set(cam.x - 14, 30, cam.z + 12); moon.target.updateMatrixWorld();
   // dawn creeps in over the last minute and a half
-  const dawn = sm(NIGHT - 95, NIGHT, G.time); scene.background.setRGB(lerp(0.004, 0.32, dawn), lerp(0.007, 0.26, dawn), lerp(0.02, 0.3, dawn)); moon.intensity = lerp(1.15, 1.9, dawn); scene.fog.color.copy(scene.background); fogUniforms.uFogColor.value.copy(scene.fog.color);
+  RU.uTime.value = G.t; if (Math.random() < dt * 4) pAdd.spawn(P.x + (Math.random() - 0.5) * 30, 0.4 + Math.random() * 1.5, P.z + (Math.random() - 0.5) * 22, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.4, 3.5, 0.09, 0.05, 1.6, 2.3, 0.6, 0.9, 0, 0);      // fireflies
+  const dawn = sm(NIGHT - 95, NIGHT, G.time); scene.background.setRGB(lerp(0.004, 0.32, dawn), lerp(0.007, 0.26, dawn), lerp(0.02, 0.3, dawn)); moon.intensity = lerp(1.55, 2.0, dawn); scene.fog.color.copy(scene.background); fogUniforms.uFogColor.value.copy(scene.fog.color);
   // ---- endings, HUD, sound
   if (G.mode === 'win' || G.mode === 'lose') { G.endT += dt; if (G.endT > (G.mode === 'win' ? 7.6 : 1.6) && $('end').classList.contains('hidden')) finish(G.mode === 'win'); }
   hud(); if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.opacity = 0; } if (pickT > 0) { pickT -= dt; if (pickT <= 0) $('pick').style.opacity = 0; }
@@ -460,9 +465,9 @@ async function boot() {
   await new Promise((r) => setTimeout(r, 30));
   tex = createTextures();
   scene.fog = new THREE.FogExp2(0x050814, 0.012); fogUniforms.uFogDensity.value = 0.012;
-  moon = new THREE.DirectionalLight(0xa9bcff, 1.15); moon.castShadow = true; moon.shadow.mapSize.set(1024, 1024);
+  moon = new THREE.DirectionalLight(0xa9bcff, 1.55); moon.castShadow = true; moon.shadow.mapSize.set(2048, 2048);
   const sc = moon.shadow.camera; sc.left = -24; sc.right = 24; sc.top = 24; sc.bottom = -24; sc.near = 1; sc.far = 90; moon.shadow.bias = -0.0008; moon.shadow.normalBias = 0.06; scene.add(moon, moon.target);
-  scene.add(new THREE.HemisphereLight(0x5a70c0, 0x1a2416, 1.25));
+  scene.add(new THREE.HemisphereLight(0x5a70c0, 0x1a2416, 0.95));
   buildWorld();
   dog = buildDog(tex, { lantern: true }); scene.add(dog.root); if (dog.light) { dog.light.intensity = 26; dog.light.distance = 13; dog.light.decay = 1.6; }
   for (let i = 0; i < 5; i++) { const d = buildDog(tex, { scale: 0.43, head: 1.3, leg: 0.8, ear: 1.15, snout: 0.72 }); scene.add(d.root); puppies.push({ i, d, x: 0, z: 0, state: 'hidden' }); }

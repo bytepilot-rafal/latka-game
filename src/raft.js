@@ -9,6 +9,7 @@ import { buildDog } from './dog.js';
 import { buildCat } from './cat.js';
 import { Particles, fogUniforms } from './fx.js';
 import { AudioSys } from './audio.js';
+import { makeUniforms, patchMat, waterMat, daySky, plantTrees, leafBlob } from './real.js';
 
 const $ = (id) => document.getElementById(id);
 const TXT = {
@@ -69,59 +70,44 @@ const G = { mode: 'load', t: 0, time: 0, s: 0, u: 0, uv: 0, v: 0, boost: 0, live
 const keys = {}, touch = { x: 0 }, input = { x: 0, paddle: false };
 const audio = new AudioSys();
 let dog, cat, tex, pAdd, pAlpha, sun, hemi, skyU, water, waterU, raft, paddles = [], boneMesh, puppies = [];
+let RU, sky;
 const obs = [], items = [], events = [], lanes = [], whirls = [], kayaks = [];
 const A = { mode: 'off', timer: 9, s: 0, u: 0, side: 1, said: false, drop: 0, n: 0, wave: 0 };       // wujek Artur on his jet ski
 const dummy = new THREE.Object3D(), tmpV = new THREE.Vector3(), tmpC = new THREE.Color();
 
 function buildRiver() {
+  RU = makeUniforms(); patchMat(worldMat, RU, { cloud: 0.36 }); const landMat = patchMat(worldMat.clone(), RU, { grain: 0.55, cloud: 0.36 }), TREES = [];
   // sky
   skyU = { uTop: { value: new THREE.Color(0.05, 0.27, 0.9) }, uHor: { value: new THREE.Color(0.6, 0.8, 1.0) }, uSun: { value: new THREE.Color(1, 0.94, 0.8) }, uSunDir: { value: new THREE.Vector3(0.35, 0.62, -0.7).normalize() }, uTime: { value: 0 } };
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(700, 32, 16), new THREE.ShaderMaterial({ uniforms: skyU, side: THREE.BackSide, depthWrite: false, fog: false,
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(700, 32, 16), new THREE.ShaderMaterial({ uniforms: skyU, side: THREE.BackSide, depthWrite: false, fog: false, transparent: true,
     vertexShader: 'varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: `uniform vec3 uTop, uHor, uSun, uSunDir; uniform float uTime; varying vec3 vDir;
       float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
       float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }
       float fb(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.07 + 7.1; a *= 0.5; } return s / 0.9375; }
-      void main(){ vec3 d = normalize(vDir); float h = max(d.y, 0.0); vec3 c = mix(uHor, uTop, pow(h, 0.5));
-        float sd = max(dot(d, uSunDir), 0.0); c += uSun * (pow(sd, 40.0) * 0.4 + pow(sd, 5.0) * 0.18 + smoothstep(0.9993, 0.99965, sd) * 8.0);
-        if (d.y > 0.0) { vec2 q = d.xz / (d.y + 0.11) * 0.7 + vec2(uTime * 0.008, 0.0); float n = fb(q) * 0.68 + fb(q * 3.1 + 5.0) * 0.32, cov = smoothstep(0.56, 0.75, n) * smoothstep(0.0, 0.16, d.y);
-          float lit = clamp((fb(q) - fb(q + normalize(uSunDir.xz) * 0.16)) * 3.2 + 0.55, 0.0, 1.0); c = mix(c, mix(mix(uTop, uHor, 0.55) * 0.7, vec3(1.08), lit), cov * 0.92); }
-        c = mix(c, uHor, exp(-h * 11.0) * 0.7); gl_FragColor = vec4(c, 1.0);
+      void main(){ vec3 d = normalize(vDir); vec3 c = vec3(0.0); float al = 0.0;
+        float sd = max(dot(d, uSunDir), 0.0);
+        if (d.y > 0.0) { vec2 q = d.xz / (d.y + 0.11) * 0.7 + vec2(uTime * 0.008, 0.0); float n = fb(q) * 0.68 + fb(q * 3.1 + 5.0) * 0.32, cov = smoothstep(0.62, 0.82, n) * smoothstep(0.0, 0.16, d.y);
+          float lit = clamp((fb(q) - fb(q + normalize(uSunDir.xz) * 0.16)) * 3.2 + 0.55, 0.0, 1.0); c = mix(mix(uTop, uHor, 0.5) * 0.62, vec3(1.02, 1.0, 0.97) + uSun * pow(sd, 6.0) * 0.25, lit); al = cov * 0.93 * smoothstep(0.02, 0.14, d.y); }
+        gl_FragColor = vec4(c, al);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }` }));
   dome.frustumCulled = false; dome.renderOrder = -10; scene.add(dome); G.dome = dome;
-  sun = new THREE.DirectionalLight(0xfff0d8, 3.2); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+  sky = daySky(renderer, scene, skyU.uSunDir.value, { gain: 0.36, size: 800, turbidity: 2, rayleigh: 3 }); scene.environmentIntensity = 0.45;
+  sun = new THREE.DirectionalLight(0xfff0d8, 2.7); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   const sc = sun.shadow.camera; sc.left = -20; sc.right = 20; sc.top = 26; sc.bottom = -16; sc.near = 1; sc.far = 140; sun.shadow.bias = -0.0007; sun.shadow.normalBias = 0.06; scene.add(sun, sun.target);
-  hemi = new THREE.HemisphereLight(0xbcd8ff, 0x55683a, 1.05); scene.add(hemi);
-  scene.fog = new THREE.FogExp2(0xa8cdf0, 0.0085); fogUniforms.uFogColor.value.copy(scene.fog.color); fogUniforms.uFogDensity.value = 0.0085;
+  hemi = new THREE.HemisphereLight(0xbcd8ff, 0x55683a, 0.3); scene.add(hemi);
+  scene.fog = new THREE.FogExp2(0xa9c6e6, 0.0062); fogUniforms.uFogColor.value.copy(scene.fog.color); fogUniforms.uFogDensity.value = 0.0062;
 
   // water: one sheet that travels with the raft; ripples run downstream, the sun glints on them
-  waterU = { uTime: { value: 0 }, uDeep: { value: new THREE.Color(0.05, 0.22, 0.3) }, uShal: { value: new THREE.Color(0.12, 0.4, 0.42) }, uSky: { value: new THREE.Color(0.55, 0.75, 0.95) }, uSun: { value: new THREE.Color(1, 0.95, 0.8) }, uSunDir: skyU.uSunDir, uFog: { value: scene.fog.color }, uFogD: { value: 0.0085 } };
-  const wg = new THREE.PlaneGeometry(260, 420); wg.rotateX(-Math.PI / 2);
-  water = new THREE.Mesh(wg, new THREE.ShaderMaterial({ uniforms: waterU,
-    vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
-    fragmentShader: `uniform float uTime, uFogD; uniform vec3 uDeep, uShal, uSky, uSun, uSunDir, uFog; varying vec3 vW;
-      float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-      float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }
-      float fb(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 3; i++) { s += a * vn(p); p = p * 2.1 + 3.7; a *= 0.5; } return s / 0.875; }
-      void main(){ vec2 p = vW.xz; float t = uTime;
-        float n1 = fb(p * 0.3 + vec2(0.0, t * 0.8)), n2 = fb(p * 0.95 + vec2(t * 0.15, t * 1.5)), n3 = fb(p * 0.3 + vec2(4.0, t * 0.8 + 2.0));
-        vec3 nrm = normalize(vec3((n1 - 0.5) * 0.55 + (n2 - 0.5) * 0.3, 1.0, (n3 - 0.5) * 0.55));
-        vec3 V = normalize(cameraPosition - vW); float fres = pow(1.0 - max(dot(V, nrm), 0.0), 3.0);
-        vec3 col = mix(uDeep, uShal, n1 * 0.7); col = mix(col, uSky, clamp(fres, 0.0, 1.0) * 0.8);
-        col += uSun * pow(max(dot(nrm, normalize(V + uSunDir)), 0.0), 120.0) * 1.8;
-        col += vec3(1.0) * smoothstep(0.74, 0.84, n2) * 0.1;
-        float d = length(cameraPosition - vW); col = mix(col, uFog, 1.0 - exp(-uFogD * uFogD * d * d));
-        gl_FragColor = vec4(col, 1.0);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }` }));
+  waterU = RU; const wg = new THREE.PlaneGeometry(260, 420); wg.rotateX(-Math.PI / 2);
+  water = new THREE.Mesh(wg, waterMat(RU, { color: 0x2c574f, flow: 1.6, scale: 1.5, strength: 0.17 })); water.receiveShadow = true;
   water.frustumCulled = false; scene.add(water);
 
   // banks: a ribbon of sand rising into meadow on each side, with trees, reeds and the odd house
-  const SAND = new THREE.Color(0xd9c58e), GRASS = new THREE.Color(0x4f8f3a), GRASS2 = new THREE.Color(0x3f7a30), DARK = new THREE.Color(0x4a5a3a);
-  const GREENS = [0x3f7a2c, 0x4f8a34, 0x356b2a, 0x5c9440, 0x6fa040];
+  const SAND = new THREE.Color(0xcdbb8c), GRASS = new THREE.Color(0x58883a), GRASS2 = new THREE.Color(0x487632), DARK = new THREE.Color(0x4a5a3a);
+  const GREENS = [0x35602a, 0x436d30, 0x2f5626, 0x4c7436, 0x587a3a];
   for (let s0 = -40; s0 < LEN; s0 += CH) {
     const pos = [], col = [], idx = [], b = new Builder(500 + s0), r = b.r, N = CH / 2;
     for (const side of [-1, 1]) {
@@ -140,9 +126,9 @@ function buildRiver() {
       for (let k = 0; k < 15; k++) {
         const s = s0 + r() * CH, d = 3.5 + r() * r() * 44, x = cx(s) + side * (half(s) + d), y = bankY(d) - 0.05, q = r();
         if (side > 0 && s > END - 95 && d < 20) continue;                                     // keep the beach clear
-        if (q < 0.4) { const h = 5 + r() * 5; b.cyl(0.02 * h, 0.035 * h, h * 0.3, x, y, -s, 0x5a4030); for (let i = 0; i < 4; i++) b.cone(h * (0.25 - i * 0.045), h * 0.36, x, y + h * (0.18 + i * 0.2), -s, i % 2 ? 0x2f5d33 : 0x27502d, 8); }
-        else if (q < 0.8) { const sc = 0.8 + r() * 0.9; b.cyl(0.14 * sc, 0.22 * sc, 2.2 * sc, x, y, -s, 0x5d4632); b.blob(1.6 * sc, x, y + 3.2 * sc, -s, GREENS[(r() * 5) | 0], 0.9); b.blob(1.2 * sc, x + sc, y + 2.7 * sc, -s + 0.5, GREENS[(r() * 5) | 0]); b.blob(1.1 * sc, x - 0.9 * sc, y + 2.9 * sc, -s - 0.5, GREENS[(r() * 5) | 0]); }
-        else { for (let i = 0; i < 3; i++) b.blob(0.6 + r() * 0.5, x + (r() - 0.5) * 2, y + 0.4, -s + (r() - 0.5) * 2, GREENS[(r() * 5) | 0], 0.75); }
+        if (q < 0.4) TREES.push([x, y, -s, 1, (5 + r() * 5) / 13.5]);
+        else if (q < 0.8) TREES.push([x, y, -s, r() < 0.8 ? 0 : 2, 0.42 + r() * 0.42]);
+        else { for (let i = 0; i < 3; i++) { const rr = 0.6 + r() * 0.5; b.add(leafBlob(rr, 0.75, 3 + k + i, 1), GREENS[(r() * 5) | 0], x + (r() - 0.5) * 2, y + 0.4, -s + (r() - 0.5) * 2, r() * 3, 0.12); } }
       }
       for (let k = 0; k < 9; k++) {                                                            // reeds at the water's edge
         const s = s0 + r() * CH; if (side > 0 && s > END - 95) continue;
@@ -155,9 +141,10 @@ function buildRiver() {
       }
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
-    const bank = new THREE.Mesh(g, worldMat); bank.receiveShadow = true; scene.add(bank);
+    const bank = new THREE.Mesh(g, landMat); bank.receiveShadow = true; scene.add(bank);
     if (!b.empty) scene.add(b.mesh());
   }
+  plantTrees(scene, TREES, patchMat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94 }), RU, { cloud: 0.36 }), rng(321), 1.15);
   // the bridges: a deck high over the water on piers that have to be passed between
   BR.forEach((s, bi) => {
     const b = new Builder(900 + bi), x = cx(s), w = half(s) * 2 + 34, col = bi ? 0x8a6a4a : 0xb9b4aa;
@@ -438,7 +425,7 @@ function step(dt) {
   else if (win) { const a = 0.4 + Math.sin(G.endT * 0.4) * 0.5, bx = cx(BEACH.s) + half(BEACH.s) + 3.2; camera.position.lerp(tmpV.set(bx - 5.5 - tall * 2, 2.2, -BEACH.s + Math.sin(a) * 6), Math.min(1, dt * 2)); camera.lookAt(bx + 0.5, 0.9, -BEACH.s); }
   else { const hd = Math.atan(slope(G.s)) * 0.8, back = 7.6 + tall * 2.5 + clamp(G.v - 7, 0, 5) * 0.25; camera.position.lerp(tmpV.set(rx * 0.85 + cx(G.s) * 0.15 - Math.sin(hd) * back, 4.3 + tall * 1.6, -G.s + Math.cos(hd) * back), Math.min(1, dt * 5)); camera.position.x += (Math.random() - 0.5) * sh; camera.position.y += (Math.random() - 0.5) * sh; camera.lookAt(lerp(rx, cx(G.s + 11), 0.6), 0.6, -G.s - 11); }
   const fov = 60 + tall * 8 + clamp(G.v - 7, 0, 6) * 1.6; if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
-  water.position.set(cx(G.s + 60), 0, -G.s - 110); waterU.uTime.value = G.t; skyU.uTime.value = G.t; G.dome.position.copy(camera.position);
+  water.position.set(cx(G.s + 60), 0, -G.s - 110); waterU.uTime.value = G.t; skyU.uTime.value = G.t; G.dome.position.copy(camera.position); sky.position.copy(camera.position);
   sun.target.position.set(rx, 0, -G.s - 6); sun.position.copy(sun.target.position).addScaledVector(skyU.uSunDir.value, 70); sun.target.updateMatrixWorld();
   // ---- endings, HUD, sound
   if (G.mode === 'win' || G.mode === 'over') { G.endT += dt; if (G.endT > (win ? 8 : 2) && $('end').classList.contains('hidden')) finish(win); }
