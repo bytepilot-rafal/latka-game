@@ -3,7 +3,7 @@
 // (s, u) – distance downstream and offset from the middle – and x = cx(s) + u, z = -s.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { createTextures, sm, lerp, clamp, rng } from './textures.js';
+import { createTextures, sm, lerp, clamp, rng, fbm } from './textures.js';
 import { Builder, roofGeo, canvasTex, worldMat } from './kit.js';
 import { buildDog } from './dog.js';
 import { buildCat } from './cat.js';
@@ -64,14 +64,14 @@ const slope = (s) => (cx(s + 1) - cx(s - 1)) / 2;
 // Waves running downstream. The same formula is written out in the water's vertex shader, so what floats sits on what is drawn.
 function waveH(x, z, t) {
   const s = -z, e = 1 - sm(0.55, 0.95, Math.abs(x - cx(s)) / half(s)), wob = 1.6 * Math.sin(0.07 * z + 0.31 * x), m1 = 0.6 + 0.4 * Math.sin(0.11 * z - 0.23 * x);
-  return (0.15 * m1 * Math.sin(0.55 * z + 2.6 * t + 0.35 * x + wob) + 0.055 * Math.sin(1.3 * z + 4.3 * t - 0.6 * x + 1.7) + 0.08 * Math.sin(0.19 * z + 1.1 * t + 0.1 * x)) * e;
+  return (0.23 * m1 * Math.sin(0.55 * z + 2.6 * t + 0.35 * x + wob) + 0.075 * Math.sin(1.3 * z + 4.3 * t - 0.6 * x + 1.7) + 0.12 * Math.sin(0.19 * z + 1.1 * t + 0.1 * x)) * e;
 }
 const WAVE_GLSL = `
   float rcx0(float s){ return 26.0 * sin(s * 0.0105) + 12.0 * sin(s * 0.023 + 1.3) + 5.0 * sin(s * 0.051 + 0.4); }
   float rcx(float s){ return (rcx0(s) - rcx0(0.0)) * smoothstep(0.0, 120.0, s); }
   float rhalf(float s){ return 6.4 + 1.5 * sin(s * 0.013 + 2.0) + 4.5 * smoothstep(${(1500 - 70).toFixed(1)}, ${(1500 + 30).toFixed(1)}, s); }
   float waveH(float x, float z, float t){ float s = -z, e = 1.0 - smoothstep(0.55, 0.95, abs(x - rcx(s)) / rhalf(s)), wob = 1.6 * sin(0.07 * z + 0.31 * x), m1 = 0.6 + 0.4 * sin(0.11 * z - 0.23 * x);
-    return (0.15 * m1 * sin(0.55 * z + 2.6 * t + 0.35 * x + wob) + 0.055 * sin(1.3 * z + 4.3 * t - 0.6 * x + 1.7) + 0.08 * sin(0.19 * z + 1.1 * t + 0.1 * x)) * e; }`;
+    return (0.23 * m1 * sin(0.55 * z + 2.6 * t + 0.35 * x + wob) + 0.075 * sin(1.3 * z + 4.3 * t - 0.6 * x + 1.7) + 0.12 * sin(0.19 * z + 1.1 * t + 0.1 * x)) * e; }`;
 const PROFILE = [[-0.9, -0.55], [0, 0.03], [1.8, 0.26], [4.5, 1.0], [10, 1.45], [75, 1.9]];
 const bankY = (d) => { for (let i = 1; i < PROFILE.length; i++) if (d <= PROFILE[i][0]) { const a = PROFILE[i - 1], b = PROFILE[i]; return lerp(a[1], b[1], (d - a[0]) / (b[0] - a[0])); } return 1.9; };
 const BEACH = { s: END + 34 };
@@ -113,16 +113,16 @@ function buildRiver() {
 
   // water: one sheet that travels with the raft; ripples run downstream, the sun glints on them
   // the water is a ribbon that the vertex shader lays along the river and lifts into waves
-  waterU = RU; const wg = new THREE.PlaneGeometry(2, 420, 26, isTouch ? 300 : 420); wg.rotateX(-Math.PI / 2);
+  waterU = RU; const wg = new THREE.PlaneGeometry(2, 420, 36, isTouch ? 300 : 420); wg.rotateX(-Math.PI / 2);
   const wm = waterMat(RU, { color: 0x2c574f, flow: 1.6, scale: 1.5, strength: 0.17 }), wbase = wm.onBeforeCompile;
   wm.onBeforeCompile = (sh) => {
     wbase(sh);
-    sh.vertexShader = sh.vertexShader.replace('varying vec3 vWp;', 'varying vec3 vWp; varying vec2 vGrad; varying float vWave; uniform float uTime;' + WAVE_GLSL).replace('#include <begin_vertex>', `#include <begin_vertex>
-      { float wz = position.z + modelMatrix[3].z, s = -wz, wx = rcx(s) + position.x * (rhalf(s) + 2.6); float h0 = waveH(wx, wz, uTime);
+    sh.vertexShader = sh.vertexShader.replace('varying vec3 vWp;', 'varying vec3 vWp; varying vec2 vGrad; varying float vWave, vEdge; uniform float uTime;' + WAVE_GLSL).replace('#include <begin_vertex>', `#include <begin_vertex>
+      { float wz = position.z + modelMatrix[3].z, s = -wz, wx = rcx(s) + position.x * (rhalf(s) + 8.0); float h0 = waveH(wx, wz, uTime); vEdge = abs(position.x) * (rhalf(s) + 8.0) / rhalf(s);
         vGrad = vec2(waveH(wx + 0.3, wz, uTime) - h0, waveH(wx, wz + 0.3, uTime) - h0) / 0.3; vWave = h0; transformed.x = wx - modelMatrix[3].x; transformed.y = h0; }`);
-    sh.fragmentShader = sh.fragmentShader.replace('varying vec3 vWp;', 'varying vec3 vWp; varying vec2 vGrad; varying float vWave;')
+    sh.fragmentShader = sh.fragmentShader.replace('varying vec3 vWp;', 'varying vec3 vWp; varying vec2 vGrad; varying float vWave, vEdge;')
       .replace('normal = normalize((viewMatrix * vec4(normalize(vec3(n2.x, 1.0, n2.y)), 0.0)).xyz);', 'normal = normalize((viewMatrix * vec4(normalize(vec3(n2.x - vGrad.x, 1.0, n2.y - vGrad.y)), 0.0)).xyz);')
-      .replace('diffuseColor.rgb *= mix(1.0, 0.7, smoothstep(0.5, 0.68, cs)); }', 'diffuseColor.rgb *= mix(1.0, 0.7, smoothstep(0.5, 0.68, cs)); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.8, 0.86, 0.88), smoothstep(0.1, 0.26, vWave + (texture2D(uDetail, vWp.xz * 0.07 + vec2(0.0, uTime * 0.3)).r - 0.5) * 0.3) * 0.32); }');
+      .replace('diffuseColor.rgb *= mix(1.0, 0.7, smoothstep(0.5, 0.68, cs)); }', 'diffuseColor.rgb *= mix(1.0, 0.7, smoothstep(0.5, 0.68, cs)); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.8, 0.86, 0.88), smoothstep(0.15, 0.38, vWave + (texture2D(uDetail, vWp.xz * 0.07 + vec2(0.0, uTime * 0.3)).r - 0.5) * 0.3) * 0.34); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 0.52, 0.34), smoothstep(0.84, 1.12, vEdge + (texture2D(uDetail, vWp.xz * 0.11).g - 0.5) * 0.12) * 0.62); }');
   };
   wm.customProgramCacheKey = () => 'narew-waves';
   water = new THREE.Mesh(wg, wm); water.receiveShadow = true;
@@ -131,15 +131,19 @@ function buildRiver() {
   // banks: a ribbon of sand rising into meadow on each side, with trees, reeds and the odd house
   const SAND = new THREE.Color(0xcdbb8c), GRASS = new THREE.Color(0x58883a), GRASS2 = new THREE.Color(0x487632), DARK = new THREE.Color(0x4a5a3a);
   const GREENS = [0x35602a, 0x436d30, 0x2f5626, 0x4c7436, 0x587a3a];
+  const fadeS = (s) => (1 - sm(END - 150, END - 105, s)) * sm(30, 80, s);
+  const cove = (s, side) => sm(0.56, 0.72, fbm(s / 46 + side * 9.3, 3.3, 2, 17)) * fadeS(s);                                   // here and there the bank opens into a small sandy bay
+  const shore = (s, side) => (0.2 + 3.6 * Math.pow(fbm(s * 0.075 + side * 5.1, side * 2.7, 3, 31), 1.6) + cove(s, side) * 2.8) * fadeS(s);
+  const edge = (s, side) => half(s) + shore(s, side);
   for (let s0 = -40; s0 < LEN; s0 += CH) {
     const pos = [], col = [], idx = [], b = new Builder(500 + s0), r = b.r, N = CH / 2;
     for (const side of [-1, 1]) {
       const base = pos.length / 3;
       for (let i = 0; i <= N; i++) {
-        const s = s0 + i * 2, beach = side > 0 ? sm(END - 90, END - 20, s) : 0;
+        const s = s0 + i * 2, beach = side > 0 ? sm(END - 90, END - 20, s) : 0, cv = cove(s, side);
         PROFILE.forEach(([d, y], j) => {
-          const dd = d * (1 + beach * (j > 1 && j < 5 ? 1.6 : 0)); pos.push(cx(s) + side * (half(s) + dd), y * (1 - beach * 0.55) + (j === 0 ? 0 : 0), -s);
-          const c = tmpC.copy(j <= 2 ? SAND : j === 3 ? GRASS : j === 4 ? GRASS2 : GRASS).lerp(SAND, j >= 3 ? beach * (j === 5 ? 0.25 : 1) : 0); if (j === 0) c.copy(DARK);
+          const dd = d * (1 + beach * (j > 1 && j < 5 ? 1.6 : 0)); pos.push(cx(s) + side * (edge(s, side) + dd), y * (1 - beach * 0.55), -s);
+          const c = tmpC.copy(j <= 2 ? SAND : j === 3 ? GRASS : j === 4 ? GRASS2 : GRASS).lerp(SAND, j >= 3 ? Math.max(beach * (j === 5 ? 0.25 : 1), j === 3 ? cv : j === 4 ? cv * 0.55 : 0) : 0); if (j === 0) c.copy(DARK); if (j === 1) c.multiplyScalar(0.74);
           const k = 0.92 + r() * 0.16; col.push(c.r * k, c.g * k, c.b * k);
         });
       }
@@ -147,20 +151,28 @@ function buildRiver() {
       for (let i = 0; i < N; i++) for (let j = 0; j < P - 1; j++) { const a = base + i * P + j, c = a + P; if (side > 0) idx.push(a, c, a + 1, a + 1, c, c + 1); else idx.push(a, a + 1, c, a + 1, c + 1, c); }
       // what grows and stands on this stretch of bank
       for (let k = 0; k < 15; k++) {
-        const s = s0 + r() * CH, d = 3.5 + r() * r() * 44, x = cx(s) + side * (half(s) + d), y = bankY(d) - 0.05, q = r();
-        if (side > 0 && s > END - 95 && d < 20) continue;                                     // keep the beach clear
+        const s = s0 + r() * CH, d = 3.5 + r() * r() * 44, x = cx(s) + side * (edge(s, side) + d), y = bankY(d) - 0.05, q = r();
+        if ((side > 0 && s > END - 95 && d < 20) || (cove(s, side) > 0.5 && d < 9)) continue;      // keep the beaches clear
         if (q < 0.4) TREES.push([x, y, -s, 1, (5 + r() * 5) / 13.5]);
         else if (q < 0.8) TREES.push([x, y, -s, r() < 0.8 ? 0 : 2, 0.42 + r() * 0.42]);
         else { for (let i = 0; i < 3; i++) { const rr = 0.6 + r() * 0.5; b.add(leafBlob(rr, 0.75, 3 + k + i, 1), GREENS[(r() * 5) | 0], x + (r() - 0.5) * 2, y + 0.4, -s + (r() - 0.5) * 2, r() * 3, 0.12); } }
       }
-      for (let k = 0; k < 9; k++) {                                                            // reeds at the water's edge
+      for (let k = 0; k < 8; k++) {                                                            // the waterline: lily pads in the calm water, pebbles, tufts of grass, a bush leaning over, driftwood
+        const s = s0 + r() * CH; if (side > 0 && s > END - 100) continue; const e = edge(s, side), sh = shore(s, side), cvk = cove(s, side);
+        if (sh > 0.9) for (let i = 0, n = 3 + ((r() * 4) | 0); i < n; i++) { const lg = new THREE.CircleGeometry(0.15 + r() * 0.13, 9, 0.35, 5.8); lg.rotateX(-Math.PI / 2); const lx = cx(s) + side * (e - 0.25 - r() * Math.min(2.4, sh - 0.3)), lz = -s + (r() - 0.5) * 2.2; b.add(lg, [0x3f7a34, 0x4c8a3a, 0x356b2c][i % 3], lx, 0.04, lz, r() * 6, 0.08); if (r() < 0.22) b.blob(0.07, lx, 0.09, lz, 0xf6f2ee, 0.7); }
+        for (let i = 0; i < 3; i++) b.blob(0.1 + r() * 0.16, cx(s) + side * (e - 0.3 + r() * 1.1), 0.04, -s + (r() - 0.5) * 3, [0x8a877f, 0x9a958a, 0x74716a][i], 0.6);
+        if (cvk < 0.5) { for (let i = 0; i < 4; i++) { const d = 0.7 + r() * 2.6; b.cone(0.1 + r() * 0.08, 0.3 + r() * 0.35, cx(s) + side * (e + d), bankY(d) - 0.03, -s + (r() - 0.5) * 3, i % 2 ? 0x5a8a3c : 0x6a9644, 5); }
+          if (r() < 0.3) { const d = 0.9 + r() * 1.4, rr = 0.6 + r() * 0.5; b.add(leafBlob(rr, 0.8, 7 + k, 1), GREENS[(r() * 5) | 0], cx(s) + side * (e + d), bankY(d) + rr * 0.45, -s + (r() - 0.5) * 2, r() * 3, 0.12); } }
+        else if (r() < 0.4) { const d = 1 + r() * 2, lg = new THREE.CylinderGeometry(0.09, 0.12, 1.6 + r(), 7); lg.rotateZ(Math.PI / 2); b.add(lg, 0x8a7458, cx(s) + side * (e + d), bankY(d) + 0.08, -s, r() * 3, 0.06); }
+      }
+      for (let k = 0; k < 13; k++) {                                                           // reeds at the water's edge
         const s = s0 + r() * CH; if (side > 0 && s > END - 95) continue;
-        const x0 = cx(s) + side * (half(s) + 0.1 + r() * 0.5); for (let i = 0; i < 5; i++) { const x = x0 + (r() - 0.5) * 0.9, z = -s + (r() - 0.5) * 1.6, h = 0.9 + r() * 0.9; b.cone(0.05, h, x, 0, z, 0x6f9a48, 4); if (i % 2) b.cyl(0.045, 0.045, 0.22, x, h * 0.86, z, 0x5a3c22, 5); }
+        if (cove(s, side) > 0.6) continue; const x0 = cx(s) + side * (edge(s, side) - 0.5 + r() * 0.9); for (let i = 0; i < 5; i++) { const x = x0 + (r() - 0.5) * 0.9, z = -s + (r() - 0.5) * 1.6, h = 0.9 + r() * 0.9; b.cone(0.05, h, x, 0, z, 0x6f9a48, 4); if (i % 2) b.cyl(0.045, 0.045, 0.22, x, h * 0.86, z, 0x5a3c22, 5); }
       }
       if (r() < 0.3 && !(side > 0 && s0 > END - 140)) {                                        // a house up on the bank, sometimes with a jetty below it
-        const s = s0 + 8 + r() * 24, d = 16 + r() * 10, x = cx(s) + side * (half(s) + d), y = bankY(d) - 0.1, wall = [0xeadcbe, 0xf3efe4, 0xe7c98c, 0xcfd8cf][(r() * 4) | 0];
+        const s = s0 + 8 + r() * 24, d = 16 + r() * 10, x = cx(s) + side * (edge(s, side) + d), y = bankY(d) - 0.1, wall = [0xeadcbe, 0xf3efe4, 0xe7c98c, 0xcfd8cf][(r() * 4) | 0];
         b.box(7, 3, 6, x, y, -s, wall, 0, 0.03); b.add(roofGeo(7.8, 2.4, 6.9), [0x9a3b2e, 0x80402f, 0x55565c][(r() * 3) | 0], x, y + 3, -s, 0, 0.04); b.box(1.1, 1.2, 0.08, x - 1.8, y + 1.2, -s + 3.02, 0x2c3f52, 0, 0); b.box(1.1, 1.2, 0.08, x + 1.8, y + 1.2, -s + 3.02, 0x2c3f52, 0, 0);
-        const jx = cx(s) + side * (half(s) + 0.4); b.box(3.6, 0.12, 1.3, jx, 0.35, -s, 0x8a6a45); for (const dx of [-1.5, 1.5]) for (const dz of [-0.5, 0.5]) b.cyl(0.07, 0.07, 1.0, jx + dx, -0.5, -s + dz, 0x5d4632, 6);
+        const jx = cx(s) + side * (edge(s, side) - 0.6); b.box(3.6, 0.12, 1.3, jx, 0.35, -s, 0x8a6a45); for (const dx of [-1.5, 1.5]) for (const dz of [-0.5, 0.5]) b.cyl(0.07, 0.07, 1.0, jx + dx, -0.5, -s + dz, 0x5d4632, 6);
       }
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
@@ -196,8 +208,8 @@ function buildCourse() {
     if (type === 'bridge') { const bs = BR.find((q) => Math.abs(q - s) < 26); gap = 0; events.push({ s: bs, gap: 0, type }); s = bs + 30; continue; }
     const ev = { s, gap, type }; events.push(ev);
     if (type === 'rocks') { const n = 3 + (R() < d ? 1 : 0) + (R() < 0.4 ? 1 : 0); for (let i = 0; i < n; i++) { let u, t = 0; do { u = (R() * 2 - 1) * h; } while (Math.abs(u - gap) < 2.7 && t++ < 20); if (Math.abs(u - gap) >= 2.7) rock(s + (R() - 0.5) * 5, u, 0.8 + R() * 0.5); } }
-    else if (type === 'log') { const side = gap > 0 ? -1 : 1, len = clamp(Math.abs(side * h - gap) - 2.7, 2, 9), uc = side * h - side * len / 2, x = cx(s) + uc, g = new THREE.CylinderGeometry(0.3, 0.34, len, 10); g.rotateZ(Math.PI / 2); b.add(g, 0x6b4a32, x, 0.12, -s); b.cyl(0.06, 0.08, 0.5, x + len * 0.2, 0.3, -s, 0x5c3f2a); for (let k = 0; k <= Math.floor(len / 1.1); k++) obs.push({ type: 'log', s, u: uc - len / 2 + 0.4 + k * 1.1, r: 0.55 }); }
-    else if (type === 'sand') { const u = clamp(gap + (R() < 0.5 ? -1 : 1) * (3.4 + R() * 2), -h, h), x = cx(s) + u, g = new THREE.CylinderGeometry(2.6, 3.0, 0.14, 18); g.scale(1, 3.4, 1); b.add(g, 0xe2cf9a, x, 0.05, -s, 0, 0.03); b.blob(0.3, x + 0.8, 0.34, -s - 0.5, 0x8a877f, 0.5); obs.push({ type: 'sand', s, u, r: 2.6 }); }
+    else if (type === 'log') { const side = gap > 0 ? -1 : 1, len = clamp(Math.abs(side * h - gap) - 2.7, 2, 9), uc = side * h - side * len / 2, x = cx(s) + uc, g = new THREE.CylinderGeometry(0.3, 0.34, len, 10); g.rotateZ(Math.PI / 2); b.add(g, 0x6b4a32, x, 0.2, -s); b.cyl(0.06, 0.08, 0.5, x + len * 0.2, 0.3, -s, 0x5c3f2a); for (let k = 0; k <= Math.floor(len / 1.1); k++) obs.push({ type: 'log', s, u: uc - len / 2 + 0.4 + k * 1.1, r: 0.55 }); }
+    else if (type === 'sand') { const u = clamp(gap + (R() < 0.5 ? -1 : 1) * (3.4 + R() * 2), -h, h), x = cx(s) + u, g = new THREE.CylinderGeometry(2.6, 3.0, 0.14, 18); g.scale(1, 4.6, 1); b.add(g, 0xe2cf9a, x, 0.1, -s, 0, 0.03); b.blob(0.3, x + 0.8, 0.46, -s - 0.5, 0x8a877f, 0.5); obs.push({ type: 'sand', s, u, r: 2.6 }); }
     else if (type === 'whirl') { const u = clamp(gap + (R() < 0.5 ? -1 : 1) * (4 + R() * 1.5), -h + 1, h - 1); whirls.push({ s, u, r: 2.7 }); obs.push({ type: 'whirl', s, u, r: 2.7 }); }
     else if (type === 'kayak') { kayaks.push({ s, amp: h - 0.6, w: 0.5 + R() * 0.35, ph: R() * 6, u: 0 }); ev.kayak = kayaks[kayaks.length - 1]; }
     else if (type === 'lane') { lanes.push({ s0: s - 4, s1: s + 34, u: gap }); ev.lane = true; }
@@ -210,13 +222,13 @@ function buildCourse() {
   scene.add(b.mesh());
   // whirlpools, fast-water strips, kayakers, pickups
   const spiral = canvasTex(256, 256, (c, w) => { c.clearRect(0, 0, w, w); c.translate(w / 2, w / 2); for (let k = 0; k < 3; k++) { c.rotate(2.094); c.beginPath(); for (let a = 0; a < 9; a += 0.1) { const rr = 6 + a * 13; c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 7; c.stroke(); } });
-  for (const w of whirls) { const g = new THREE.CircleGeometry(w.r, 32); g.rotateX(-Math.PI / 2); w.m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: spiral, transparent: true, opacity: 0.8, depthWrite: false })); w.m.position.set(cx(w.s) + w.u, 0.27, -w.s); w.m.renderOrder = 3; scene.add(w.m);
-    const dk = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x06202c, transparent: true, opacity: 0.45, depthWrite: false })); dk.position.copy(w.m.position); dk.position.y = 0.26; dk.renderOrder = 2; scene.add(dk); }
+  for (const w of whirls) { const g = new THREE.CircleGeometry(w.r, 32); g.rotateX(-Math.PI / 2); w.m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: spiral, transparent: true, opacity: 0.8, depthWrite: false })); w.m.position.set(cx(w.s) + w.u, 0.4, -w.s); w.m.renderOrder = 3; scene.add(w.m);
+    const dk = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x06202c, transparent: true, opacity: 0.45, depthWrite: false })); dk.position.copy(w.m.position); dk.position.y = 0.39; dk.renderOrder = 2; scene.add(dk); }
   const arrowT = canvasTex(64, 128, (c, w, h) => { c.clearRect(0, 0, w, h); c.strokeStyle = 'rgba(255,255,255,.8)'; c.lineWidth = 7; c.lineCap = 'round'; for (const y of [34, 98]) { c.beginPath(); c.moveTo(10, y + 16); c.lineTo(w / 2, y - 16); c.lineTo(w - 10, y + 16); c.stroke(); } });
   for (const l of lanes) { const n = Math.round((l.s1 - l.s0) / 2), pos = [], uv = [], idx = [];
     for (let i = 0; i <= n; i++) { const ss = lerp(l.s0, l.s1, i / n); pos.push(cx(ss) + l.u - 1.5, 0.045, -ss, cx(ss) + l.u + 1.5, 0.045, -ss); uv.push(0, i / 2, 1, i / 2); if (i < n) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
-    l.m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: arrowT, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide })); l.m.renderOrder = 3; l.m.position.y = 0.24; scene.add(l.m); }
+    l.m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: arrowT, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide })); l.m.renderOrder = 3; l.m.position.y = 0.36; scene.add(l.m); }
   kayaks.forEach((k, i) => { const kb = new Builder(1300 + i), col = [0xe2402f, 0xf2c230, 0x2f8fe0, 0x3fae5a][i % 4];
     kb.blob(1, 0, 0.12, 0, col, 0.2, 0.34, 1.9); kb.blob(0.26, 0, 0.3, -0.1, 0x1c1c22, 0.4, 1, 1.4); kb.box(0.36, 0.5, 0.24, 0, 0.32, -0.15, 0xf07a1a); kb.blob(0.14, 0, 1.0, -0.15, 0xe8b890); kb.blob(0.15, 0, 1.07, -0.17, 0xffffff, 0.7);
     k.g = new THREE.Group(); k.g.add(kb.mesh()); const pb = new Builder(1350 + i); pb.cyl(0.025, 0.025, 2.2, 0, -1.1, 0, 0x3a3a3e, 6); pb.box(0.2, 0.36, 0.03, 0, 0.92, 0, col); pb.box(0.2, 0.36, 0.03, 0, -1.28, 0, col); k.p = pb.mesh(); k.p.position.set(0, 0.72, 0.15); k.p.rotation.z = Math.PI / 2; k.g.add(k.p); scene.add(k.g); obs.push({ type: 'kayak', k, r: 1.25 }); });
@@ -416,7 +428,7 @@ function step(dt) {
   const rx = cx(G.s) + G.u, head = Math.atan2(slope(G.s) + G.uv / Math.max(3, G.v), -1), bob = Math.sin(G.t * 2.3) * 0.045;
   { const fx = Math.sin(head), fz = Math.cos(head), z0 = -G.s, hF = waveH(rx + fx * 1.0, z0 + fz * 1.0, G.t), hB = waveH(rx - fx * 1.0, z0 - fz * 1.0, G.t), hR = waveH(rx + fz * 0.75, z0 - fx * 0.75, G.t), hL = waveH(rx - fz * 0.75, z0 + fx * 0.75, G.t), k = Math.min(1, dt * 9);
     G.wy = (G.wy || 0) + ((hF + hB + hR + hL) / 4 - (G.wy || 0)) * k; G.wp = (G.wp || 0) + (-Math.atan((hF - hB) / 2) - (G.wp || 0)) * k; G.wr = (G.wr || 0) + (Math.atan((hR - hL) / 1.5) - (G.wr || 0)) * k; }
-  raft.position.set(rx, 0.04 + bob * 0.3 + G.wy, -G.s); raft.rotation.set(G.wp * 1.25 - G.boost * 0.012, head + G.spin, G.wr * 1.25 - G.uv * 0.022, 'YXZ');
+  raft.position.set(rx, 0.04 + bob * 0.3 + G.wy, -G.s); raft.rotation.set(G.wp * 1.8 - G.boost * 0.012, head + G.spin, G.wr * 1.8 - G.uv * 0.022 + Math.sin(G.t * 2.1) * 0.02, 'YXZ');
   raft.visible = G.mode !== 'over' || G.endT < 1.2; if (G.mode === 'over') raft.position.y -= G.endT * 0.5;
   if (play && G.inv > 0) raft.visible = Math.floor(G.t * 14) % 2 === 0;
   for (const p of paddles) { const k = Math.sin(G.stroke * Math.PI); p.piv.rotation.x = -0.5 + k * 1.3; p.piv.rotation.z = p.sd * (0.7 + k * 0.25); }

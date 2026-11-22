@@ -77,7 +77,7 @@ const P = { x: START.x, z: START.z, yaw: Math.PI, speed: 0 };
 const input = { x: 0, y: 0 }, keys = {};
 const audio = new AudioSys();
 let dog, cat, tex, pAdd, pAlpha, moon, RU;
-const TREES = [];
+const TREES = [], SMOKE = [], MOTHS = [], bats = []; let hog, tvGlow;
 const boxes = [], circles = [], bushes = [], sectors = [], toys = [], windows = [], mowers = [], puppies = [], rings = [], trail = [], arrows = []; let glow;
 
 // ------------------------------------------------------------------ geometry helpers (vertex-coloured, merged)
@@ -256,7 +256,55 @@ function buildWorld() {
   bush(g5, 0.5, 0.28); bush(g5, 0.9, 0.12); bush(g5, 0.1, 0.34); bush(g5, 0.62, 0.5);
   { const p = at(g5, 0.17, 0.52); b.cyl(1.5, 1.5, 0.1, p.x, 0.55, p.z, 0x1c1c22, 18); for (let k = 0; k < 6; k++) b.cyl(0.04, 0.04, 0.55, p.x + Math.cos(k) * 1.4, 0, p.z + Math.sin(k) * 1.4, 0x4a6fb5, 6); }
   spot(g5, 0.17, 0.52); tree(at(g5, 0.9, 0.3).x, at(g5, 0.9, 0.3).z, 0.9);
+  // ---- everything that makes the street look lived in (kept to the corners and the fence lines, clear of the routes)
+  const solidC = (p, rad) => circles.push({ x: p.x, z: p.z, r: rad }), solidB = (x, z, w, d) => boxes.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2 });
+  GARD.forEach((g, gi) => {                                                                          // wheelie bins and a letter box at every gate, smoke from two chimneys
+    const zg = g.north ? g.z1 : g.z0, s = g.north ? 1 : -1, hc = at(g, 0.5, 0.84);
+    [[0, 0x2f6b3a], [1, 0xd9b233]].forEach(([k, col]) => { const x = g.gx + 2.7 + k * 0.75, z = zg + s * 0.6; b.box(0.55, 0.95, 0.6, x, 0, z, col, 0, 0.04); b.box(0.6, 0.07, 0.66, x, 0.95, z, 0x1f2a22, 0, 0); });
+    solidB(g.gx + 3.07, zg + s * 0.6, 1.45, 0.75); b.box(0.36, 0.26, 0.22, g.gx - 1.6, 1.0, zg + s * 0.28, [0xc0392b, 0x2c5f8a, 0xd8d8d2, 0x2f6b3a, 0x8a5a2a][gi], 0, 0.02);
+    if (gi === 1 || gi === 3) SMOKE.push({ x: hc.x + 2.5, z: hc.z });
+  });
+  for (const x of [-30, -12, 6, 24]) MOTHS.push({ x, y: 4.1, z: 3.3 });
+  for (const [x, z, col, ry] of [[-35.6, -1.25, 0x7a1f1f, 0], [36.2, 2.25, 0x2f4a6a, Math.PI]]) {                   // two parked cars at the ends of the lane
+    const car = new Builder(90 + x), c = Math.cos(ry); car.box(4.3, 0.62, 1.8, 0, 0.3, 0, col, 0, 0.02); car.box(2.3, 0.56, 1.62, -0.25 * c, 0.92, 0, col, 0, 0.02); car.box(2.34, 0.4, 1.66, -0.25 * c, 0.98, 0, 0x10161e, 0, 0);
+    for (const sx of [-1.35, 1.35]) for (const sz of [-0.86, 0.86]) { const wg = new THREE.CylinderGeometry(0.33, 0.33, 0.22, 12); wg.rotateX(Math.PI / 2); car.add(wg, 0x15151a, sx, 0.33, sz, 0, 0); }
+    for (const sz of [-0.6, 0.6]) { car.box(0.06, 0.16, 0.34, 2.15 * c, 0.6, sz, 0xf2ecd0, 0, 0); car.box(0.06, 0.14, 0.34, -2.15 * c, 0.62, sz, 0x8a1818, 0, 0); }
+    const m = car.mesh(); m.position.set(x, 0, z); scene.add(m); solidB(x, z, 4.5, 2.0);
+  }
+  { b.cyl(0.46, 0.46, 0.03, 8, 0.0, 0.6, 0x34363a, 16); b.box(0.5, 0.03, 0.34, -19, 0.0, 3.4, 0x2c2e32, 0, 0);                        // a manhole, a drain, a bench, a hydrant, fallen leaves
+    b.box(1.8, 0.08, 0.5, -6, 0.44, 3.35, 0x7a5a3a); b.box(1.8, 0.5, 0.08, -6, 0.5, 3.6, 0x7a5a3a); for (const dx of [-0.8, 0.8]) b.box(0.08, 0.44, 0.5, -6 + dx, 0, 3.35, 0x3a3d42); solidB(-6, 3.4, 1.9, 0.6);
+    b.cyl(0.13, 0.16, 0.6, 14.5, 0, 3.45, 0xc0392b, 10); b.blob(0.15, 14.5, 0.66, 3.45, 0xc0392b, 0.8); solidC({ x: 14.5, z: 3.45 }, 0.22);
+    for (let i = 0; i < 90; i++) { const lg = new THREE.CircleGeometry(0.07 + r() * 0.05, 5); lg.rotateX(-Math.PI / 2); b.add(lg, [0x9a5a22, 0xb8862e, 0x7a4a1e, 0xc9a23a][i % 4], -38 + r() * 76, 0.02, -2.5 + r() * 6, r() * 6, 0.1); } }
+  { const p = at(g1, 0.075, 0.88);                                                                 // Dziadek Lesław: a wood pile, a rain barrel, a vegetable patch
+    b.box(1.0, 1.1, 2.6, p.x, 0, p.z, 0x6b4a32, 0, 0.05); for (let i = 0; i < 12; i++) { const lg = new THREE.CylinderGeometry(0.15, 0.15, 0.06, 8); lg.rotateZ(Math.PI / 2); b.add(lg, 0xc9a877, p.x + 0.52, 0.2 + ((i / 4) | 0) * 0.33, p.z - 0.95 + (i % 4) * 0.62 + (((i / 4) | 0) % 2) * 0.2, 0, 0.08); } solidB(p.x, p.z, 1.2, 2.8);
+    const q = at(g1, 0.2, 0.95); b.cyl(0.42, 0.38, 0.95, q.x, 0, q.z, 0x2c5f8a, 12); b.cyl(0.4, 0.4, 0.02, q.x, 0.9, q.z, 0x0c1420, 12); solidC(q, 0.5);
+    const v = at(g1, 0.15, 0.73); b.box(3.6, 0.12, 2.2, v.x, 0, v.z, 0x3d2c1e, 0, 0.04); for (let i = 0; i < 4; i++) for (let k = 0; k < 7; k++) b.add(leafBlob(0.16, 0.8, i + k, 1), i % 2 ? 0x4f8a34 : 0x6a9a3a, v.x - 1.5 + k * 0.5, 0.24, v.z - 0.8 + i * 0.53, r() * 3, 0.12); }
+  { const a = at(g2, 0.06, 0.8), c = at(g2, 0.22, 0.8);                                             // Babcia Małgosia: washing on the line, garden gnomes, a bird bath, a bench
+    for (const q of [a, c]) { b.cyl(0.05, 0.06, 2.1, q.x, 0, q.z, 0xb8b8b8, 6); solidC(q, 0.12); } b.box(c.x - a.x, 0.02, 0.02, (a.x + c.x) / 2, 2.0, a.z, 0xd8d8d8, 0, 0);
+    [[0.18, 0xf4f1ea, 1.2], [0.5, 0x9ec4e8, 0.9], [0.8, 0xf0b6c8, 1.05]].forEach(([k, col, h]) => b.box(0.9, h, 0.03, lerp(a.x, c.x, k), 2.0 - h, a.z, col, 0, 0.02));
+    for (const [u, v] of [[0.2, 0.58], [0.8, 0.58], [0.6, 0.74]]) { const q = at(g2, u, v); b.cyl(0.1, 0.13, 0.26, q.x, 0, q.z, 0x2c5f8a, 8); b.blob(0.1, q.x, 0.36, q.z, 0xe8b890); b.cone(0.1, 0.26, q.x, 0.4, q.z, 0xc0392b, 8); }
+    const bb = at(g2, 0.87, 0.84); b.cyl(0.1, 0.16, 0.7, bb.x, 0, bb.z, 0xa8a49a, 10); b.cyl(0.5, 0.3, 0.14, bb.x, 0.7, bb.z, 0xb5b0a6, 14); b.cyl(0.42, 0.42, 0.02, bb.x, 0.83, bb.z, 0x1a2836, 14); solidC(bb, 0.5);
+    const bn = at(g2, 0.9, 0.7); b.box(0.5, 0.08, 1.7, bn.x, 0.42, bn.z, 0x7a5a3a); b.box(0.08, 0.5, 1.7, bn.x + 0.26, 0.46, bn.z, 0x7a5a3a); solidB(bn.x, bn.z, 0.7, 1.8); }
+  { const q = at(g3, 0.13, 0.85);                                                                  // dr Alicja: a patio with a table, chairs and a barbecue
+    b.box(3.6, 0.06, 3.6, q.x, 0, q.z, 0x8f8b82, 0, 0.04); b.cyl(0.7, 0.7, 0.06, q.x, 0.72, q.z, 0xe8e2d4, 16); b.cyl(0.06, 0.08, 0.72, q.x, 0, q.z, 0x3a3d42, 8); solidC(q, 0.8);
+    for (let k = 0; k < 4; k++) { const a = k * 1.571 + 0.4, x = q.x + Math.cos(a) * 1.2, z = q.z + Math.sin(a) * 1.2; b.box(0.45, 0.05, 0.45, x, 0.42, z, 0xf1ede2, a); b.box(0.45, 0.5, 0.05, x + Math.cos(a) * 0.2, 0.46, z + Math.sin(a) * 0.2, 0xf1ede2, -a + Math.PI / 2); for (const d of [-0.18, 0.18]) b.box(0.04, 0.42, 0.04, x + d, 0, z + d, 0x9a968d, 0, 0); }
+    const g = at(g3, 0.22, 0.74); b.cyl(0.32, 0.2, 0.26, g.x, 0.62, g.z, 0x1c1c20, 12); for (const d of [-0.18, 0.18]) b.box(0.04, 0.62, 0.04, g.x + d, 0, g.z + d * 0.6, 0x3a3d42, 0, 0); b.cyl(0.33, 0.33, 0.03, g.x, 0.88, g.z, 0x55585c, 12); solidC(g, 0.4); }
+  { const q = at(g4, 0.88, 0.84);                                                                  // Agata: a swing, bikes against the fence
+    for (const dx of [-1.3, 1.3]) { for (const dz of [-0.5, 0.5]) b.box(0.08, 2.2, 0.08, q.x + dx, 0, q.z + dz, 0xc0392b, 0, 0.02); solidC({ x: q.x + dx, z: q.z }, 0.35); } b.box(2.8, 0.09, 0.09, q.x, 2.15, q.z, 0xc0392b, 0, 0.02);
+    for (const dx of [-0.55, 0.55]) { b.box(0.5, 0.05, 0.22, q.x + dx, 0.55, q.z, 0xf2c230, 0, 0.02); for (const d of [-0.22, 0.22]) b.box(0.02, 1.6, 0.02, q.x + dx + d, 0.57, q.z, 0x9a9a9a, 0, 0); }
+    [[0.045, 0.78, 0x2c7fb8], [0.045, 0.9, 0xd9483b]].forEach(([u, v, col]) => { const k = at(g4, u, v); for (const dz of [-0.5, 0.5]) { const wg = new THREE.TorusGeometry(0.3, 0.03, 6, 16); wg.rotateY(Math.PI / 2); b.add(wg, 0x1a1a1e, k.x, 0.33, k.z + dz, 0, 0); } b.box(0.04, 0.04, 1.0, k.x, 0.55, k.z, col, 0, 0); b.box(0.04, 0.4, 0.04, k.x, 0.45, k.z - 0.15, col, 0, 0); b.box(0.3, 0.04, 0.04, k.x, 0.9, k.z + 0.45, 0x22222a, 0, 0); b.box(0.12, 0.05, 0.22, k.x, 0.82, k.z - 0.18, 0x22222a, 0, 0); }); }
+  { const q = at(g5, 0.12, 0.92), gh = at(g5, 0.87, 0.85);                                         // Tomek: a football goal, a greenhouse
+    for (const dx of [-1.5, 1.5]) { b.box(0.08, 1.9, 0.08, q.x + dx, 0, q.z, 0xf2f2f2, 0, 0); solidC({ x: q.x + dx, z: q.z }, 0.14); } b.box(3.08, 0.08, 0.08, q.x, 1.86, q.z, 0xf2f2f2, 0, 0); b.blob(0.13, q.x + 0.7, 0.13, q.z - 1.6, 0xf4f4f0);
+    b.box(2.6, 1.7, 3.6, gh.x, 0, gh.z, 0xbfd8cf, 0, 0.02); b.add(roofGeo(2.8, 0.9, 3.8), 0xcfe6dc, gh.x, 1.7, gh.z, 0, 0.02); for (const dz of [-1.8, -0.6, 0.6, 1.8]) b.box(2.66, 1.74, 0.06, gh.x, 0, gh.z + dz, 0xf1f1ee, 0, 0); solidB(gh.x, gh.z, 2.9, 3.9); }
+  { TREES.push([6.5, 0, 10.5, 0, 0.62]); circles.push({ x: 6.5, z: 10.5, r: 0.3 }); const tg = new THREE.TorusGeometry(0.3, 0.1, 8, 16); b.add(tg, 0x17171a, 5.1, 0.85, 10.2, 0.5, 0); b.box(0.025, 2.2, 0.025, 5.1, 1.15, 10.2, 0xb9a57a, 0, 0);      // Łatka's own yard: a tyre swing, flower pots, a ball
+    for (const dx of [-1.6, 1.5, 2.1]) { b.cyl(0.2, 0.14, 0.3, HOME.x + dx, 0, HOME.z + 2.4, 0xb5583a, 10); b.add(leafBlob(0.24, 0.9, 5 + dx, 1), 0x4f8a34, HOME.x + dx, 0.5, HOME.z + 2.4, 0, 0.1); b.blob(0.08, HOME.x + dx + 0.08, 0.7, HOME.z + 2.4, [0xe85d8f, 0xf4d44a, 0xf2f2f2][((dx + 2) | 0) % 3]); }
+    b.blob(0.14, HOME.x + 2.6, 0.14, HOME.z - 0.9, 0xd9483b); }
   scene.add(b.mesh());
+  // the hedgehog that patrols the lane, the bats, the flicker of a television behind Tomek's window
+  { const hb = new Builder(404), body = new THREE.SphereGeometry(0.17, 10, 8); body.scale(1, 0.8, 1.45); hb.add(body, 0x5a4634, 0, 0.13, 0, 0, 0.05); for (let i = 0; i < 26; i++) hb.cone(0.03, 0.12, (hb.r() - 0.5) * 0.26, 0.2 + hb.r() * 0.06, -0.15 + hb.r() * 0.3, 0x3a2c20, 4); hb.cone(0.06, 0.14, 0, 0.06, 0.26, 0xcbb089, 6); hb.blob(0.02, 0, 0.1, 0.34, 0x111111); hog = hb.mesh(); scene.add(hog); }
+  for (let i = 0; i < 3; i++) { const g = new THREE.Group(), wm = new THREE.MeshBasicMaterial({ color: 0x07080c, side: THREE.DoubleSide }), mk = (sd) => { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.12, sd * 0.5, 0, -0.02, 0, 0, 0.14, sd * 0.5, 0, -0.02, sd * 0.42, 0, 0.2, 0, 0, 0.14], 3)); return new THREE.Mesh(wg, wm); }, wl = mk(-1), wr = mk(1); g.add(wl, wr); scene.add(g); bats.push({ g, wl, wr, ph: i * 2.1, cx: -18 + i * 18, cz: i % 2 ? 12 : -12 }); }
+  { const h5 = at(g5, 0.5, 0.84), f5 = h5.z - 5.6 / 2; tvGlow = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 3.6).rotateX(-Math.PI / 2), glowMaterial(0xa890ff, 0.2)); tvGlow.position.set(h5.x + 3.2, 0.21, f5 - 1.5); tvGlow.renderOrder = 4; scene.add(tvGlow);
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 1.05), new THREE.MeshBasicMaterial({ color: 0x9a86ff })); pane.position.set(h5.x + 3.2, 1.95, f5 - 0.1); pane.rotation.y = Math.PI; scene.add(pane); tvGlow.userData.pane = pane; }
   plantTrees(scene, TREES, patchMat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94 }), RU, { cloud: 0.32, cs: 0.012 }), rng(77), 0.85);
 }
 
@@ -491,6 +539,13 @@ function step(dt) {
   camera.position.lerp(tmpV.set(cam.x + ti * 2.6 + sway, hgt + (G.mode === 'win' ? 0.5 : 0), cam.z + lerp(back, -6.6, ti)), Math.min(1, dt * 3)); camera.lookAt(cam.x + ti * 0.9, 0.4 + ti * 0.3, cam.z + lerp(-0.8, 2.2, ti));
   moon.target.position.set(cam.x, 0, cam.z); moon.position.set(cam.x - 14, 30, cam.z + 12); moon.target.updateMatrixWorld();
   // dawn creeps in over the last minute and a half
+  // night life: moths at the lamps, smoke from the chimneys, the hedgehog, bats, the television, an owl now and then
+  for (const m of MOTHS) if (Math.abs(m.x - P.x) < 26 && Math.random() < dt * 9) pAdd.spawn(m.x + (Math.random() - 0.5) * 1.2, m.y + (Math.random() - 0.5) * 0.9, m.z + (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 2.2, (Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 2.2, 0.6, 0.06, 0.04, 2.6, 2.3, 1.7, 0.9, 0, 1.5);
+  for (const c of SMOKE) if (Math.random() < dt * 4) pAlpha.spawn(c.x + (Math.random() - 0.5) * 0.2, 5.7, c.z, 0.25 + Math.random() * 0.15, 0.55, (Math.random() - 0.5) * 0.12, 4.5, 0.3, 1.5, 0.42, 0.45, 0.55, 0.2, -0.02, 0.15);
+  { const hx = Math.sin(G.t * 0.016) * 30, dir = Math.cos(G.t * 0.016) > 0 ? 1 : -1; hog.position.set(hx, Math.abs(Math.sin(G.t * 9)) * 0.012, -2.25); hog.rotation.y = dir * Math.PI / 2; }
+  for (const bt of bats) { const a = G.t * 0.55 + bt.ph; bt.g.position.set(bt.cx + Math.sin(a) * 15, 6.2 + Math.sin(a * 2.3) * 0.9, bt.cz + Math.sin(a * 2) * 7); bt.g.rotation.y = Math.atan2(Math.cos(a) * 15, Math.cos(a * 2) * 14); const f = Math.sin(G.t * 22 + bt.ph) * 0.8; bt.wl.rotation.z = -f; bt.wr.rotation.z = f; }
+  { const k = 0.55 + 0.45 * Math.sin(G.t * 7.3) * Math.sin(G.t * 2.9 + 1) + (Math.sin(G.t * 31) > 0.9 ? 0.4 : 0); tvGlow.material.uniforms.uStrength.value = 0.1 + 0.12 * k; tvGlow.userData.pane.material.color.setRGB(0.45 + 0.35 * k, 0.4 + 0.3 * k, 0.9); }
+  if (audio.on && G.mode === 'play' && Math.random() < dt / 22) { audio.tone(392, 0.32, 'sine', 0.04); audio.tone(330, 0.7, 'sine', 0.045, 0, 0.42); }
   RU.uTime.value = G.t; if (Math.random() < dt * 4) pAdd.spawn(P.x + (Math.random() - 0.5) * 30, 0.4 + Math.random() * 1.5, P.z + (Math.random() - 0.5) * 22, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.4, 3.5, 0.09, 0.05, 1.6, 2.3, 0.6, 0.9, 0, 0);      // fireflies
   const dawn = sm(NIGHT - 95, NIGHT, G.time); scene.background.setRGB(lerp(0.004, 0.32, dawn), lerp(0.007, 0.26, dawn), lerp(0.02, 0.3, dawn)); moon.intensity = lerp(1.55, 2.0, dawn); scene.fog.color.copy(scene.background); fogUniforms.uFogColor.value.copy(scene.fog.color);
   // ---- endings, HUD, sound
