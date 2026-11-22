@@ -160,7 +160,7 @@ function buildRiver() {
       // what grows and stands on this stretch of bank
       for (let k = 0; k < 15; k++) {
         const s = s0 + r() * CH, d = 3.5 + r() * r() * 44, x = cx(s) + side * (edge(s, side) + d), y = bankY(d) - 0.05, q = r();
-        if ((side > 0 && s > END - 95 && d < 20) || (cove(s, side) > 0.5 && d < 9)) continue;      // keep the beaches clear
+        if ((side > 0 && s > END - 95 && d < 20) || (cove(s, side) > 0.5 && d < 9) || (HQ && side > 0 && s > 64 && s < 112 && d < 26)) continue;      // keep the beaches clear
         if (q < 0.4) TREES.push([x, y, -s, 1, (5 + r() * 5) / 13.5]);
         else if (q < 0.8) TREES.push([x, y, -s, r() < 0.8 ? 0 : 2, 0.42 + r() * 0.42]);
         else { for (let i = 0; i < 3; i++) { const rr = 0.6 + r() * 0.5; b.add(leafBlob(rr, 0.75, 3 + k + i, 1), GREENS[(r() * 5) | 0], x + (r() - 0.5) * 2, y + 0.4, -s + (r() - 0.5) * 2, r() * 3, 0.12); } }
@@ -174,7 +174,7 @@ function buildRiver() {
         else if (r() < 0.4) { const d = 1 + r() * 2, lg = new THREE.CylinderGeometry(0.09, 0.12, 1.6 + r(), 7); lg.rotateZ(Math.PI / 2); b.add(lg, 0x8a7458, cx(s) + side * (e + d), bankY(d) + 0.08, -s, r() * 3, 0.06); }
       }
       if (HQ) for (let k = 0; k < 5; k++) {                                                    // thickets: willow scrub and tall rushes crowding right down to the water, hiding the line of the bank
-        const s = s0 + r() * CH; if ((side > 0 && s > END - 105) || cove(s, side) > 0.45 || s < 60) continue; const len = 3 + r() * 5, e0 = edge(s, side);
+        const s = s0 + r() * CH; if ((side > 0 && s > END - 105) || cove(s, side) > 0.45 || s < 60 || (side > 0 && s < 114)) continue; const len = 3 + r() * 5, e0 = edge(s, side);
         for (let i = 0, n = 5 + ((r() * 5) | 0); i < n; i++) { const ss = s + (i / n - 0.5) * len + (r() - 0.5) * 0.8, e = edge(ss, side), d = -0.5 + r() * 2.4, rr = 0.55 + r() * 0.75; b.add(leafBlob(rr, 0.8 + r() * 0.5, 11 + i + k, 1), GREENS[(r() * 5) | 0], cx(ss) + side * (e + d), Math.max(0.1, bankY(Math.max(0, d))) + rr * 0.42, -ss, r() * 3, 0.14); }
         for (let i = 0; i < 16; i++) { const ss = s + (r() - 0.5) * len, e = edge(ss, side), x = cx(ss) + side * (e - 0.9 + r() * 1.3), h = 1.1 + r() * 1.3; b.cone(0.055, h, x, -0.05, -ss, i % 3 ? 0x6f9a48 : 0x86a552, 4); if (i % 4 === 0) b.cyl(0.05, 0.05, 0.24, x, h * 0.84, -ss, 0x5a3c22, 5); }
         if (r() < 0.5) TREES.push([cx(s) + side * (e0 + 1.6 + r() * 1.5), bankY(2) - 0.05, -s, 0, 0.3 + r() * 0.16]);
@@ -192,6 +192,38 @@ function buildRiver() {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
     const bank = new THREE.Mesh(g, landMat); bank.receiveShadow = true; scene.add(bank);
     if (!b.empty) scene.add(b.mesh());
+  }
+  if (HQ) {                                                  // Tawerna Cicha Zatoka: fried fish on a terrace over the water, just past the first bridge, on the right
+    const s = 88, e = edge(s, 1), X = (d) => cx(s) + e + d, Z = (dz) => -s + dz, tb = new Builder(970), DARK = 0x5d4632, DY = 1.25, skin = 0xe8b890;
+    tb.box(10.5, 0.2, 15, X(3.2), DY - 0.2, Z(0), 0xa98454, 0, 0.05); for (const dx of [-1.6, 3, 7.8]) for (const dz of [-7, 0, 7]) tb.cyl(0.13, 0.15, 2.2, X(dx), -1, Z(dz), DARK, 6);                         // the terrace on its posts
+    for (let i = 0; i < 15; i++) tb.box(0.06, 0.02, 15, X(-1.7 + i * 0.72), DY + 0.005, Z(0), 0x7a5a36, 0, 0);
+    for (const dz of [-7.4, -3.7, 0, 3.7, 7.4]) tb.box(0.1, 0.95, 0.1, X(-1.95), DY, Z(dz), DARK, 0, 0); for (const y of [0.45, 0.92]) tb.box(0.06, 0.07, 15, X(-1.95), DY + y, Z(0), DARK, 0, 0);                    // railing on the river side
+    tb.box(7.4, 3.3, 11, X(12), 1.35, Z(0), 0xb98a5c, 0, 0.04); for (let i = 0; i < 7; i++) tb.box(0.03, 0.04, 11, X(8.29), 1.7 + i * 0.44, Z(0), 0x8a6238, 0, 0); tb.add(roofGeo(9.2, 2.7, 12.6), 0x8a3528, X(12), 4.65, Z(0), 0, 0.05);     // the house of planks under a red roof
+    tb.box(0.08, 2.1, 1.1, X(8.27), 1.35, Z(3.6), 0x4a3524, 0, 0); for (const dz of [-3.2, 0.2]) { tb.box(0.08, 1.2, 1.6, X(8.27), 2.45, Z(dz), 0xf4f1ea, 0, 0); tb.box(0.09, 1.0, 1.4, X(8.25), 2.55, Z(dz), 0xffc97a, 0, 0); }    // door and lit windows
+    tb.box(1.3, 1.0, 2.6, X(7.4), DY, Z(-5.6), 0x3a3d42, 0, 0.03); tb.box(1.1, 0.12, 2.4, X(7.4), DY + 1.0, Z(-5.6), 0x1c1c20, 0, 0); tb.cyl(0.16, 0.16, 2.6, X(7.9), DY + 1.1, Z(-6.5), 0x4a4d52, 8); for (let i = 0; i < 4; i++) tb.blob(0.14, X(7.3 + (i % 2) * 0.3), DY + 1.2, Z(-6.2 + i * 0.4), 0xd9a441, 0.5);   // the fryer
+    [[0.6, -4.6, 0xd8342c], [0.6, 0, 0x2f6fb0], [0.6, 4.6, 0xf2c21c], [4.6, -2.3, 0x2a9d5c], [4.6, 2.4, 0xd8342c]].forEach(([dx, dz, col], ti) => {
+      tb.box(1.0, 0.07, 1.9, X(dx), DY + 0.75, Z(dz), 0xc9a877, 0, 0.03); for (const a of [-0.7, 0.7]) { tb.box(0.08, 0.75, 0.08, X(dx), DY, Z(dz + a), DARK, 0, 0); }
+      for (const sd of [-1, 1]) { tb.box(0.34, 0.06, 1.8, X(dx + sd * 0.82), DY + 0.44, Z(dz), 0xa98454, 0, 0.03); for (const a of [-0.7, 0.7]) tb.box(0.06, 0.44, 0.3, X(dx + sd * 0.82), DY, Z(dz + a), DARK, 0, 0); }
+      tb.cyl(0.035, 0.035, 2.5, X(dx), DY + 0.75, Z(dz), 0xd8d0c0, 6); tb.cone(1.5, 0.55, X(dx), DY + 3.1, Z(dz), col, 10);                                                                                              // parasol
+      for (const a of [-0.5, 0.5]) { tb.cyl(0.17, 0.17, 0.03, X(dx), DY + 0.8, Z(dz + a), 0xf4f4f0, 10); const fg = new THREE.SphereGeometry(0.1, 8, 6); fg.scale(1.7, 0.4, 0.8); tb.add(fg, 0xd9902a, X(dx), DY + 0.86, Z(dz + a), ti + a, 0.05); }      // plates of fried fish
+      for (const [sd, a] of [[-1, -0.45], [1, 0.45], [ti % 2 ? -1 : 1, 0.5 * (ti % 2 ? 1 : -1)]].slice(0, ti === 1 ? 2 : 3)) { const px = X(dx + sd * 0.82), pz = Z(dz + a), c2 = [0x2c5fa8, 0xc0392b, 0xf2efe8, 0x2f6b3a, 0xd98a2a][(ti * 2 + (sd > 0 ? 1 : 0)) % 5];
+        tb.add(new THREE.CapsuleGeometry(0.19, 0.38, 4, 8), c2, px, DY + 0.85, pz, 0, 0.03); tb.add(new THREE.SphereGeometry(0.15, 10, 8), skin, px, DY + 1.36, pz, 0, 0.02); const hg = new THREE.SphereGeometry(0.16, 10, 6, 0, 6.3, 0, 1.7); tb.add(hg, [0x4a3320, 0xd8b45a, 0x22201e, 0xb9b9b9][(ti + (sd > 0 ? 2 : 0)) % 4], px, DY + 1.38, pz, 0, 0.04);
+        tb.add(new THREE.CapsuleGeometry(0.1, 0.4, 4, 6).rotateZ(Math.PI / 2), 0x34507a, px - sd * 0.25, DY + 0.52, pz, 0, 0.03); }                                                                                      // guests on the benches
+    });
+    { const hull = new THREE.SphereGeometry(1, 12, 8, 0, 6.3, 1.57, 1.57); hull.scale(0.75, 0.5, 2.1); tb.add(hull, 0x2f6fb0, X(-3.4), 0.42, Z(5.2), 0.15, 0.03); tb.box(1.3, 0.05, 0.25, X(-3.4), 0.3, Z(5.2), 0xc9a877, 0.15, 0); }                       // a rowing boat moored below
+    for (let i = 0; i < 9; i++) tb.blob(0.07, X(-1.95), DY + 2.5 - Math.sin(i / 8 * Math.PI) * 0.35, Z(-7.2 + i * 1.8), [0xffd27a, 0xff8a5a, 0x9ad0ff][i % 3], 1);                                                                          // a string of lights
+    for (const dz of [-7.3, 7.3]) tb.cyl(0.05, 0.06, 2.6, X(-1.95), DY, Z(dz), DARK, 6);
+    for (const dx of [-0.6, 5.8]) tb.cyl(0.11, 0.13, 6.9, X(dx), 0.2, Z(9.6), DARK, 6);                                                                                                                                     // the posts of the big sign
+    scene.add(tb.mesh());
+    const board = (w, h) => canvasTex(1024, Math.round(1024 * h / w), (c, W, H) => {
+      c.fillStyle = '#17324d'; c.fillRect(0, 0, W, H); c.strokeStyle = '#f2dca0'; c.lineWidth = 12; c.strokeRect(14, 14, W - 28, H - 28); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#f2dca0';
+      c.font = `bold ${H * 0.2}px Georgia, serif`; c.fillText('T A W E R N A', W / 2, H * 0.22); c.font = `bold italic ${H * 0.36}px Georgia, serif`; c.fillStyle = '#ffffff'; c.fillText('Cicha Zatoka', W / 2, H * 0.53); c.font = `${H * 0.13}px Georgia, serif`; c.fillStyle = '#f2dca0'; c.fillText('smażona ryba prosto z Narwi', W / 2, H * 0.83);
+      for (const sx of [0.1, 0.9]) { c.save(); c.translate(W * sx, H * 0.24); c.scale(sx < 0.5 ? 1 : -1, 1); c.fillStyle = '#f2b23a'; c.beginPath(); c.ellipse(0, 0, H * 0.13, H * 0.06, 0, 0, 6.3); c.fill(); c.beginPath(); c.moveTo(-H * 0.11, 0); c.lineTo(-H * 0.2, -H * 0.07); c.lineTo(-H * 0.2, H * 0.07); c.fill(); c.fillStyle = '#17324d'; c.beginPath(); c.arc(H * 0.07, -H * 0.012, H * 0.012, 0, 6.3); c.fill(); c.restore(); }
+    });
+    const mkSign = (w, h, x, y, z, ry) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: board(w, h), side: THREE.DoubleSide })); m.position.set(x, y, z); m.rotation.y = ry; scene.add(m); };
+    mkSign(8.4, 3.0, X(2.6), 5.9, Z(9.6), -0.42);            // faces the raft as it comes out from under the bridge
+    mkSign(6.4, 2.3, X(8.2), 5.6, Z(0), -Math.PI / 2);       // and one on the roof, facing the river
+    G.tavern = { x: X(7.9), y: DY + 3.8, z: Z(-6.5), s };
   }
   plantTrees(scene, TREES, patchMat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94 }), RU, { cloud: 0.36 }), rng(321), 1.15);
   // the bridges: a deck high over the water on piers that have to be passed between
@@ -490,6 +522,7 @@ function step(dt) {
   }
   for (const p of puppies) { if (p.y > 0 || p.vy > 0) { p.vy -= 18 * dt; p.y = Math.max(0, p.y + p.vy * dt); } const d = (p.x - cx(BEACH.s) - half(BEACH.s)); p.d.root.position.set(p.x, bankY(Math.max(0, d)) * 0.45 + p.y, p.z); p.d.root.rotation.y = p.yaw === undefined ? -Math.PI / 2 : p.yaw; p.d.root.visible = G.s > END - 160; if (p.d.root.visible) p.d.animate(dt, { speed: G.mode === 'win' ? 5 : 0, grounded: p.y <= 0, vy: p.vy, sit: G.mode === 'win' ? 0 : 1, happy: 0.9, pant: true }); }
   // ---- things in the water
+  if (G.tavern && Math.abs(G.tavern.s - G.s) < 130 && Math.random() < dt * 6) pAlpha.spawn(G.tavern.x + (Math.random() - 0.5) * 0.2, G.tavern.y, G.tavern.z, 0.3 + Math.random() * 0.3, 0.7, -0.2 + Math.random() * 0.2, 3.5, 0.3, 1.6, 0.6, 0.6, 0.62, 0.22, -0.02, 0.2);      // smoke from the fryer
   for (const k of kayaks) { if (Math.abs(k.s - G.s) > 130) { k.g.visible = false; continue; } k.g.visible = true; const a = G.t * k.w + k.ph; k.u = Math.sin(a) * k.amp; k.g.position.set(cx(k.s) + k.u, 0.03 + waveH(cx(k.s) + k.u, -k.s, G.t), -k.s); k.g.rotation.y = Math.cos(a) > 0 ? Math.PI / 2 : -Math.PI / 2; k.p.rotation.x = Math.sin(G.t * 4 + k.ph) * 0.6; if (play && k.s - G.s < 45 && k.s > G.s) hint('h_kayak'); }
   if (HQ) { let k = 0; for (const w of whirls) if (w.s > G.s - 60 && w.s < G.s + 320 && k < 12) whU.value[k++].set(w.x, -w.s, w.r * WH_K * 0.92); for (; k < 12; k++) whU.value[k].set(1e6, 1e6, 1);
     whirls.forEach((w, wi) => { for (let i = 0; i < 6; i++) { const u = (G.t * 0.11 + i / 6 + wi * 0.37) % 1, rr = 0.95 - u * 0.88, a = i * 1.047 + wi + G.t * 1.5 / (rr + 0.22), R = rr * w.r * WH_K; dummy.position.set(w.x + Math.cos(a) * R, 0.05 - WH_DEPTH * Math.pow(1 - rr, 2.3), -w.s + Math.sin(a) * R); dummy.rotation.set(0, -a + 1.57, 0.3 * (1 - rr)); dummy.scale.setScalar(0.5 + rr * 0.6); dummy.updateMatrix(); G.debris.setMatrixAt(wi * 6 + i, dummy.matrix); } }); G.debris.instanceMatrix.needsUpdate = true; }
