@@ -48,11 +48,11 @@ export function waterMat(U, { color = 0x2f5a50, flow = 1, scale = 1, strength = 
 }
 
 // A physically based daytime sky. `gain` scales what the camera sees, so a level can keep its own exposure.
-export function daySky(renderer, scene, sunDir, { gain = 1, size = 800, turbidity = 3.2, rayleigh = 2.0 } = {}) {
+export function daySky(renderer, scene, sunDir, { gain = 1, size = 800, turbidity = 3.2, rayleigh = 2.0, show = true } = {}) {
   const sky = new Sky(), su = sky.material.uniforms; su.turbidity.value = turbidity; su.rayleigh.value = rayleigh; su.mieCoefficient.value = 0.004; su.mieDirectionalG.value = 0.83; su.sunPosition.value.copy(sunDir);
   const pm = new THREE.PMREMGenerator(renderer), es = new THREE.Scene(); es.add(sky); scene.environment = pm.fromScene(es).texture; pm.dispose();
   if (gain !== 1) { sky.material.fragmentShader = sky.material.fragmentShader.replace('gl_FragColor = vec4( retColor, 1.0 );', `gl_FragColor = vec4( retColor * ${gain.toFixed(3)}, 1.0 );`); sky.material.needsUpdate = true; }
-  sky.scale.setScalar(size); sky.renderOrder = -20; sky.frustumCulled = false; scene.add(sky); return sky;
+  sky.scale.setScalar(size); sky.renderOrder = -20; sky.frustumCulled = false; if (show) scene.add(sky); return sky;
 }
 
 // ---- vegetation
