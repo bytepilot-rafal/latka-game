@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261122-200050';
+  window.BUILD = '20261122-200820';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) { try { if (window.LEVEL && LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) {} location.replace(location.pathname + '?v=' + v); }
@@ -5576,8 +5576,8 @@ function buildLand() {
     for (let i = 0; i < 7; i++) { const sb = new Builder(820 + i), w = 0xf6f5f0, body = new THREE.SphereGeometry(0.55, 10, 8); body.scale(1, 0.7, 1.7); sb.add(body, w, 0, 0.25, 0, 0, 0.02); sb.box(0.16, 0.75, 0.16, 0, 0.45, 0.75, w, 0, 0); sb.box(0.16, 0.16, 0.45, 0, 1.12, 0.92, w, 0, 0); sb.box(0.1, 0.08, 0.2, 0, 1.1, 1.22, 0xe8872a, 0, 0); const m = sb.mesh(); m.scale.setScalar(1.5); scene.add(m); swans.push({ m, r: 45 + i * 11, ph: i * 1.3, sp: 0.02 + (i % 3) * 0.006 }); }
     const tb = new Builder(840); tb.box(1.9, 1.3, 3.4, 0, 0.9, 0, 0xc0392b, 0, 0.02); tb.box(1.7, 1.3, 1.5, 0, 2.2, -0.7, 0x2a3038, 0, 0); for (const sx of [-1.05, 1.05]) { const wg = new THREE.CylinderGeometry(1.0, 1.0, 0.5, 14); wg.rotateZ(Math.PI / 2); tb.add(wg, 0x1a1a1c, sx, 1.0, -0.9, 0, 0); const fg = new THREE.CylinderGeometry(0.55, 0.55, 0.35, 12); fg.rotateZ(Math.PI / 2); tb.add(fg, 0x1a1a1c, sx * 0.9, 0.55, 1.3, 0, 0); } tb.box(3.2, 0.5, 1.2, 0, 0.3, -2.6, 0x55585c, 0, 0);
     tractor.m = tb.mesh(); scene.add(tractor.m);
-    // a geothermal drilling rig at work on the bank of the Narew, right beside the route: a truck with a tall yellow mast, timber mats, a crew of two
-    { const RX = 385, RZ = riverZ(385) + 64, gy = groundAt(RX, RZ) + 0.05, rb = new Builder(860), YEL = 0xf2c21c, at = (x, y, z) => [RX + x, gy + y, RZ + z];
+    // a geothermal drilling rig at work at the edge of the village, right beside the route down to the river: a truck with a tall yellow mast, timber mats, a crew of two
+    { const RX = -206, RZ = 446, gy = groundAt(RX, RZ) + 0.05, rb = new Builder(860), YEL = 0xf2c21c, at = (x, y, z) => [RX + x, gy + y, RZ + z];
       const bx = (w, h, d, x, y, z, col, jit = 0.03) => rb.box(w, h, d, RX + x, gy + y, RZ + z, col, 0, jit), wheel = (x, z) => { const wg = new THREE.CylinderGeometry(0.58, 0.58, 0.42, 14); wg.rotateX(Math.PI / 2); rb.add(wg, 0x18181a, RX + x, gy + 0.75, RZ + z, 0, 0); };
       bx(20, 0.06, 14, 0.5, 0, 0, 0xc4ae82, 0.05); for (let i = 0; i < 6; i++) bx(13, 0.16, 0.95, 0.5, 0.06, -2.6 + i * 1.02, i % 2 ? 0xb89a68 : 0xa98a5a, 0.06);                         // sand and timber mats
       bx(8.2, 0.35, 2.3, 0, 1.15, 0, 0x3a3d42); bx(2.3, 2.0, 2.4, -3.2, 1.5, 0, 0xf1f1ee); bx(0.08, 0.9, 2.1, -4.36, 2.35, 0, 0x1c2630, 0); for (const sz of [-1.21, 1.21]) bx(1.2, 0.8, 0.06, -3.1, 2.4, sz, 0x1c2630, 0);   // chassis and the white cab
