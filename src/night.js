@@ -304,7 +304,8 @@ function buildWorld() {
   // the hedgehog that patrols the lane, the bats, the flicker of a television behind Tomek's window
   // hedgehogs on their rounds: one on each side of the lane, one in every garden, one in Łatka's own yard
   const G1 = (g, u, v) => { const q = at(g, u, v); return [q.x, q.z]; };
-  [[[-30, -2.25], [30, -2.25], 0.016], [[26, 2.3], [-28, 2.3], 0.019], [G1(g1, 0.28, 0.24), G1(g1, 0.72, 0.44), 0.06], [G1(g2, 0.18, 0.14), G1(g2, 0.82, 0.2), 0.07], [G1(g3, 0.3, 0.74), G1(g3, 0.72, 0.7), 0.08], [G1(g4, 0.2, 0.24), G1(g4, 0.8, 0.66), 0.05], [G1(g5, 0.3, 0.76), G1(g5, 0.72, 0.16), 0.055], [[-5, 7.2], [5.5, 9.4], 0.09]]
+  [[[-30, -2.25], [30, -2.25], 0.016], [[26, 2.3], [-28, 2.3], 0.019], [G1(g1, 0.28, 0.24), G1(g1, 0.72, 0.44), 0.06], [G1(g2, 0.18, 0.14), G1(g2, 0.82, 0.2), 0.07], [G1(g3, 0.3, 0.74), G1(g3, 0.72, 0.7), 0.08], [G1(g4, 0.2, 0.24), G1(g4, 0.8, 0.66), 0.05], [G1(g5, 0.3, 0.76), G1(g5, 0.72, 0.16), 0.055], [[-5, 7.2], [5.5, 9.4], 0.09],
+    [[-34, 0.3], [34, 0.7], 0.013], [G1(g1, 0.15, 0.52), G1(g1, 0.56, 0.2), 0.065], [G1(g2, 0.24, 0.46), G1(g2, 0.76, 0.5), 0.075], [G1(g3, 0.2, 0.3), G1(g3, 0.76, 0.26), 0.06], [G1(g4, 0.76, 0.16), G1(g4, 0.3, 0.7), 0.05], [G1(g5, 0.15, 0.2), G1(g5, 0.6, 0.4), 0.07], [[8, 6.2], [4, 12.4], 0.085], [[-8, 11.5], [-2, 12.8], 0.1]]
     .forEach(([a, b2, sp], i) => { const hb = new Builder(404 + i), body = new THREE.SphereGeometry(0.17, 10, 8); body.scale(1, 0.8, 1.45); hb.add(body, 0x5a4634, 0, 0.13, 0, 0, 0.05); for (let i = 0; i < 26; i++) hb.cone(0.03, 0.12, (hb.r() - 0.5) * 0.26, 0.2 + hb.r() * 0.06, -0.15 + hb.r() * 0.3, 0x3a2c20, 4); hb.cone(0.06, 0.14, 0, 0.06, 0.26, 0xcbb089, 6); hb.blob(0.02, 0, 0.1, 0.34, 0x111111); const m = hb.mesh(); scene.add(m); hogs.push({ m, ax: a[0], az: a[1], bx: b2[0], bz: b2[1], sp: sp, ph: i * 1.9, x: 0, z: 0 }); });
   for (let i = 0; i < 3; i++) { const g = new THREE.Group(), wm = new THREE.MeshBasicMaterial({ color: 0x07080c, side: THREE.DoubleSide }), mk = (sd) => { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.12, sd * 0.5, 0, -0.02, 0, 0, 0.14, sd * 0.5, 0, -0.02, sd * 0.42, 0, 0.2, 0, 0, 0.14], 3)); return new THREE.Mesh(wg, wm); }, wl = mk(-1), wr = mk(1); g.add(wl, wr); scene.add(g); bats.push({ g, wl, wr, ph: i * 2.1, cx: -18 + i * 18, cz: i % 2 ? 12 : -12 }); }
   { const h5 = at(g5, 0.5, 0.84), f5 = h5.z - 5.6 / 2; tvGlow = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 3.6).rotateX(-Math.PI / 2), glowMaterial(0xa890ff, 0.2)); tvGlow.position.set(h5.x + 3.2, 0.21, f5 - 1.5); tvGlow.renderOrder = 4; scene.add(tvGlow);
@@ -425,11 +426,12 @@ function step(dt) {
   const il = Math.hypot(ix, iy); if (il > 1) { ix /= il; iy /= il; }
   G.stun = Math.max(0, G.stun - dt); G.wet = Math.max(0, G.wet - dt); G.barkCd = Math.max(0, G.barkCd - dt);
   G.hidden = false; for (const b of bushes) if ((P.x - b.x) ** 2 + (P.z - b.z) ** 2 < (b.r - 0.15) ** 2) G.hidden = true;
+  if (G.knT > 0) { G.knT -= dt; const kx = G.knX * dt, kz = G.knZ * dt; if (!blocked(P.x + kx, P.z)) P.x += kx; if (!blocked(P.x, P.z + kz)) P.z += kz; }
+  G.flipT = Math.max(0, (G.flipT || 0) - dt);
   let sp = 0;
   if (play && G.stun <= 0 && il > 0.05) {
     sp = (G.hidden ? 3.0 : 4.8) * Math.min(1, il); const dx = ix / Math.max(il, 1e-3) * sp * dt, dz = -iy / Math.max(il, 1e-3) * sp * dt;
     if (!blocked(P.x + dx, P.z)) P.x += dx; if (!blocked(P.x, P.z + dz)) P.z += dz;
-    if (G.knT > 0) { G.knT -= dt; const kx = G.knX * dt, kz = G.knZ * dt; if (!blocked(P.x + kx, P.z)) P.x += kx; if (!blocked(P.x, P.z + kz)) P.z += kz; }
     const want = Math.atan2(ix, -iy); P.yaw += angDiff(want, P.yaw) * Math.min(1, dt * 12);
     const last = trail[0]; if (!last || Math.hypot(last.x - P.x, last.z - P.z) > 0.16) { trail.unshift({ x: P.x, z: P.z }); if (trail.length > 80) trail.pop(); }
   }
@@ -444,7 +446,8 @@ function step(dt) {
     if (G.endT > 0.4 && Math.random() < dt * 5) pAdd.spawn(P.x + (Math.random() - 0.5) * 3, 0.8, P.z + (Math.random() - 0.5) * 3, 0, 0.9, 0, 1.3, 0.16, 0.3, 5, 0.6, 1.6, 1, -0.2, 0.3);
     for (const g of GARD) g.win.material.color.setRGB(2.2 * Math.min(1, G.endT), 1.7 * Math.min(1, G.endT), 0.8 * Math.min(1, G.endT));
   }
-  dog.root.position.set(P.x, G.mode === 'win' ? G.hop : 0, P.z); dog.root.rotation.y = P.yaw; dog.root.rotation.z = G.stun > 0 ? Math.sin(G.t * 40) * 0.12 : 0;
+  dog.root.position.set(P.x, G.mode === 'win' ? G.hop : 0, P.z); dog.root.rotation.order = 'YXZ'; dog.root.rotation.y = P.yaw; dog.root.rotation.z = G.stun > 0 ? Math.sin(G.t * 40) * 0.12 : 0;
+  { const k = G.flipT > 0 ? 1 - G.flipT / 0.5 : 0; dog.root.rotation.x = -k * Math.PI * 2; if (k > 0) dog.root.position.y += Math.sin(k * Math.PI) * 1.05; }        // a back flip off the hedgehog
   dog.animate(dt, { speed: P.speed, grounded: !(G.mode === 'win' && G.hop > 0), vy: G.hopV, sit: G.mode === 'title' || (G.mode === 'win' && G.endT > 6.4) ? 1 : 0, happy: G.mode === 'win' ? 1 : 0.2, pant: G.mode !== 'play' });
   if (G.hidden && P.speed > 1 && Math.random() < dt * 14) pAlpha.spawn(P.x + (Math.random() - 0.5), 0.6 + Math.random() * 0.4, P.z + (Math.random() - 0.5), (Math.random() - 0.5), 0.8, (Math.random() - 0.5), 0.6, 0.12, 0.05, 0.25, 0.55, 0.25, 0.8, 3, 1);
 
@@ -548,8 +551,8 @@ function step(dt) {
   for (const m of MOTHS) if (Math.abs(m.x - P.x) < 26 && Math.random() < dt * 9) pAdd.spawn(m.x + (Math.random() - 0.5) * 1.2, m.y + (Math.random() - 0.5) * 0.9, m.z + (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 2.2, (Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 2.2, 0.6, 0.06, 0.04, 2.6, 2.3, 1.7, 0.9, 0, 1.5);
   for (const c of SMOKE) if (Math.random() < dt * 4) pAlpha.spawn(c.x + (Math.random() - 0.5) * 0.2, 5.7, c.z, 0.25 + Math.random() * 0.15, 0.55, (Math.random() - 0.5) * 0.12, 4.5, 0.3, 1.5, 0.42, 0.45, 0.55, 0.2, -0.02, 0.15);
   for (const h of hogs) { const a = G.t * h.sp + h.ph, k = 0.5 - 0.5 * Math.cos(a), dir = Math.sin(a) >= 0 ? 1 : -1; h.x = lerp(h.ax, h.bx, k); h.z = lerp(h.az, h.bz, k); h.m.position.set(h.x, Math.abs(Math.sin(G.t * 9 + h.ph)) * 0.012, h.z); h.m.rotation.y = Math.atan2((h.bx - h.ax) * dir, (h.bz - h.az) * dir);
-    if (G.mode === 'play' && !(G.knT > 0) && Math.hypot(P.x - h.x, P.z - h.z) < 0.46) {                                 // stepping on one: a prick and a hop to the side, nothing worse
-      const rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw), sd = ((P.x - h.x) * rx + (P.z - h.z) * rz) >= 0 ? 1 : -1; G.knX = rx * sd * 5.2; G.knZ = rz * sd * 5.2; G.knT = 0.24; hint('h_hog'); if (audio.on) audio.yip(1.3); dog.bark(); } }
+    if (G.mode === 'play' && !(G.knT > 0) && !(G.flipT > 0) && Math.hypot(P.x - h.x, P.z - h.z) < 0.46) {                                 // stepping on one: a prick and a hop to the side, nothing worse
+      const rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw), sd = ((P.x - h.x) * rx + (P.z - h.z) * rz) >= 0 ? 1 : -1; G.knX = rx * sd * 3.4; G.knZ = rz * sd * 3.4; G.knT = 0.5; G.flipT = 0.5; hint('h_hog'); if (audio.on) audio.yip(1.3); dog.bark(); } }
   for (const bt of bats) { const a = G.t * 0.55 + bt.ph; bt.g.position.set(bt.cx + Math.sin(a) * 15, 6.2 + Math.sin(a * 2.3) * 0.9, bt.cz + Math.sin(a * 2) * 7); bt.g.rotation.y = Math.atan2(Math.cos(a) * 15, Math.cos(a * 2) * 14); const f = Math.sin(G.t * 22 + bt.ph) * 0.8; bt.wl.rotation.z = -f; bt.wr.rotation.z = f; }
   { const k = 0.55 + 0.45 * Math.sin(G.t * 7.3) * Math.sin(G.t * 2.9 + 1) + (Math.sin(G.t * 31) > 0.9 ? 0.4 : 0); tvGlow.material.uniforms.uStrength.value = 0.1 + 0.12 * k; tvGlow.userData.pane.material.color.setRGB(0.45 + 0.35 * k, 0.4 + 0.3 * k, 0.9); }
   if (audio.on && G.mode === 'play' && Math.random() < dt / 22) { audio.tone(392, 0.32, 'sine', 0.04); audio.tone(330, 0.7, 'sine', 0.045, 0, 0.42); }

@@ -122,6 +122,7 @@ const audio = new AudioSys();
 const U = { uDetail: { value: null }, uCloud: { value: null }, uTime: { value: 0 } };
 const SUN = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - 31), THREE.MathUtils.degToRad(318));
 const FOG = new THREE.Color(0.56, 0.7, 0.92);
+const swans = [], tractor = { m: null, x0: -620, z: 250, len: 260 };
 let dog, tex, sun, sky, water, kite, sail, tails = [], pAdd, clouds, bones, nextRing, nextRing2, rain, landRing, arrow, wake, boat, windEl, streaks, plane;
 const turbines = [], cars = [];
 const gates = [], items = [], thermals = [], balloons = [], storks = [], people = [], HOUSES = [];
@@ -141,7 +142,7 @@ function patch(mat, detail) {
     Object.assign(s.uniforms, U);
     s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;').replace('#include <begin_vertex>', '#include <begin_vertex>\n{ vec4 wp = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nwp = instanceMatrix * wp;\n#endif\nvWp = (modelMatrix * wp).xyz; }');
     s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp; uniform sampler2D uDetail, uCloud; uniform float uTime;').replace('#include <map_fragment>', '#include <map_fragment>\n'
-      + (detail ? '{ vec3 dA = texture2D(uDetail, vWp.xz * 0.21).rgb, dB = texture2D(uDetail, vWp.xz * 0.017).rgb; diffuseColor.rgb *= (0.72 + 0.56 * dA.r) * (0.86 + 0.28 * dB.g); }\n' : '')
+      + (detail ? '{ vec3 dA = texture2D(uDetail, vWp.xz * 0.21).rgb, dB = texture2D(uDetail, vWp.xz * 0.017).rgb; diffuseColor.rgb *= (0.72 + 0.56 * dA.r) * (0.86 + 0.28 * dB.g); }\n' + (HQ ? '{ float crop = smoothstep(0.03, 0.14, diffuseColor.r - diffuseColor.b * 1.9), wv = texture2D(uCloud, vWp.xz * 0.006 + uTime * vec2(0.036, 0.012)).r; diffuseColor.rgb *= 1.0 + (wv - 0.5) * 0.55 * crop; }\n' : '') : '')
       + '{ float cs = texture2D(uCloud, vWp.xz * 0.00042 + uTime * vec2(0.0034, 0.0012)).r; diffuseColor.rgb *= mix(1.0, 0.5, smoothstep(0.5, 0.66, cs)); }');
   };
   mat.customProgramCacheKey = () => 'kite' + (detail ? 1 : 0); return mat;
@@ -302,7 +303,17 @@ function buildLand() {
   { const y = groundAt(TEMPLE.x, TEMPLE.z) - 4; let ty = y; [[44, 7], [35, 6], [26, 6], [17, 6], [9, 7]].forEach(([w, h], i) => { b.box(w, h, w, TEMPLE.x, ty, TEMPLE.z, i % 2 ? 0x8c8674 : 0x9a927c, 0.2, 0.06); ty += h; });
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cyl(1.2, 1.4, 12, TEMPLE.x + sx * 26, y + 2, TEMPLE.z + sz * 26, 0x8f8876, 8); G.templeY = ty; }
   const R2 = rng(5); for (let i = 0; i < 900; i++) { const x = (R2() - 0.5) * 3000, z = (R2() - 0.5) * 3000; if (samp(Fg, x, z) > 0.45 || samp(Hg, x, z) < 4 || far(VIL, x, z) < 330) continue; const F = field(x, z); if (F.id < 0.24 || F.id >= 0.42 || F.e < 9 || far(MEAD, x, z) < 280 || far(FAIR, x, z) < 220) continue; const g2 = new THREE.CylinderGeometry(1.25, 1.25, 1.5, 10); g2.rotateZ(Math.PI / 2); b.add(g2, 0xd9c487, x, groundAt(x, z) + 1.2, z, R2() * 3, 0.08); }   // straw bales on the stubble
+  if (HQ) {                                                // cattle on the pastures
+    const R3 = rng(61); let n = 0; for (let i = 0; i < 4000 && n < 90; i++) { const x = (R3() - 0.5) * 3000, z = (R3() - 0.5) * 3000; if (samp(Fg, x, z) > 0.4 || samp(Hg, x, z) < 4 || far(VIL, x, z) < 340 || far(MEAD, x, z) < 260 || far(FAIR, x, z) < 220) continue; const F = field(x, z); if (F.id < 0.42 || F.id >= 0.6 || F.e < 12) continue;
+      for (let k = 0, m = 2 + ((R3() * 4) | 0); k < m; k++, n++) { const cx2 = x + (R3() - 0.5) * 26, cz2 = z + (R3() - 0.5) * 26, y = groundAt(cx2, cz2), ry = R3() * 6.28, col = [0xf2efe8, 0x2a2622, 0x7a4a2c, 0xf2efe8][(R3() * 4) | 0], c = Math.cos(ry), sn = Math.sin(ry);
+        b.box(0.9, 0.95, 2.1, cx2, y + 0.75, cz2, col, ry, 0.04); b.box(0.5, 0.5, 0.7, cx2 + sn * 1.3, y + (R3() < 0.5 ? 0.5 : 1.25), cz2 + c * 1.3, col, ry, 0.04); if (col === 0xf2efe8) b.box(0.94, 0.5, 0.9, cx2 - sn * 0.3, y + 1.0, cz2 - c * 0.3, 0x2a2622, ry, 0); for (const lx of [-0.3, 0.3]) for (const lz of [-0.75, 0.75]) b.box(0.18, 0.8, 0.18, cx2 + c * lx + sn * lz, y, cz2 - sn * lx + c * lz, col, ry, 0.03); } }
+  }
   const town = b.mesh(patch(worldMat.clone(), false)); scene.add(town);
+  if (HQ) {                                                // swans on the lake, a tractor working a field
+    for (let i = 0; i < 7; i++) { const sb = new Builder(820 + i), w = 0xf6f5f0, body = new THREE.SphereGeometry(0.55, 10, 8); body.scale(1, 0.7, 1.7); sb.add(body, w, 0, 0.25, 0, 0, 0.02); sb.box(0.16, 0.75, 0.16, 0, 0.45, 0.75, w, 0, 0); sb.box(0.16, 0.16, 0.45, 0, 1.12, 0.92, w, 0, 0); sb.box(0.1, 0.08, 0.2, 0, 1.1, 1.22, 0xe8872a, 0, 0); const m = sb.mesh(); m.scale.setScalar(1.5); scene.add(m); swans.push({ m, r: 45 + i * 11, ph: i * 1.3, sp: 0.02 + (i % 3) * 0.006 }); }
+    const tb = new Builder(840); tb.box(1.9, 1.3, 3.4, 0, 0.9, 0, 0xc0392b, 0, 0.02); tb.box(1.7, 1.3, 1.5, 0, 2.2, -0.7, 0x2a3038, 0, 0); for (const sx of [-1.05, 1.05]) { const wg = new THREE.CylinderGeometry(1.0, 1.0, 0.5, 14); wg.rotateZ(Math.PI / 2); tb.add(wg, 0x1a1a1c, sx, 1.0, -0.9, 0, 0); const fg = new THREE.CylinderGeometry(0.55, 0.55, 0.35, 12); fg.rotateZ(Math.PI / 2); tb.add(fg, 0x1a1a1c, sx * 0.9, 0.55, 1.3, 0, 0); } tb.box(3.2, 0.5, 1.2, 0, 0.3, -2.6, 0x55585c, 0, 0);
+    tractor.m = tb.mesh(); scene.add(tractor.m);
+  }
   { const CC = [0xc0392b, 0xf2f2f0, 0x2c3e50, 0x2980b9, 0x7f8c8d, 0xf1c40f, 0x27ae60, 0xe8e2d0];                    // a few cars on the roads
     for (let i = 0; i < 9; i++) { const pts = ROADS[i % 3 === 2 ? 1 : 0][2], cb = new Builder(800 + i); cb.box(1.9, 0.8, 4.3, 0, 0.3, 0, CC[i % 8], 0, 0.02); cb.box(1.7, 0.62, 2.2, 0, 1.1, -0.2, 0x1c232b, 0, 0); const m = cb.mesh(); scene.add(m);
       let len = 0; const seg = pts.slice(1).map((q, j) => { const l = Math.hypot(q[0] - pts[j][0], q[1] - pts[j][1]); len += l; return l; }); cars.push({ m, pts, seg, len, ph: R() * len, sp: (11 + R() * 7) * (i % 2 ? 1 : -1) }); } }
@@ -315,8 +326,15 @@ function buildLand() {
   const pb = new Builder(33); pb.cyl(0.12, 0.16, 9, MEAD.x + 34, my, MEAD.z - 22, 0xe8e8e8, 6); const ws = new THREE.ConeGeometry(0.75, 4.2, 10, 1, true); ws.rotateZ(Math.PI / 2 + 0.25); pb.add(ws, 0xe8552e, MEAD.x + 36.2, my + 8.4, MEAD.z - 22, 0.7, 0.02); scene.add(pb.mesh());
   const WHO = [[0xd9483b, 0x6b4a2a, 0.74, 0x34507a], [0xf2c230, 0x3a2a1c, 0.78, 0x4a4a52], [0x2f9a4a, 0x4a3320, 0.74, 0xf2f2f2], [0x3f6b4a, 0xb9b9b9, 1.04, 0x4a4038], [0xc2476b, 0x8a3b1e, 0.98, 0x2b2f3a]];
   WHO.forEach(([shirt, hair, sc, legs], i) => {
-    const f = new Builder(300 + i), skin = 0xe8b890; for (const x of [-0.09, 0.09]) f.box(0.13, 0.78, 0.15, x, 0, 0, legs); f.box(0.42, 0.56, 0.24, 0, 0.78, 0, shirt); for (const x of [-0.27, 0.27]) f.box(0.1, 0.5, 0.1, x, 1.26, 0, shirt, 0, 0);
+    const f = new Builder(300 + i), skin = 0xe8b890;
+    if (HQ) { const cap = (rr, hh, x, y, z, col, sx = 1, sz = 1) => { const cg = new THREE.CapsuleGeometry(rr, hh, 4, 10); cg.scale(sx, 1, sz); f.add(cg, col, x, y, z, 0, 0.03); }, ball = (rr, x, y, z, col, sy = 1, sz = 1) => { const sg = new THREE.SphereGeometry(rr, 14, 10); sg.scale(1, sy, sz); f.add(sg, col, x, y, z, 0, 0.02); };
+      for (const x of [-0.095, 0.095]) { cap(0.075, 0.6, x, 0.42, 0, legs); ball(0.085, x, 0.06, 0.05, 0x2a2420, 0.7, 1.6); } cap(0.19, 0.3, 0, 1.05, 0, shirt, 1.12, 0.72); for (const x of [-0.27, 0.27]) { cap(0.055, 0.42, x, 1.5, 0, shirt); ball(0.06, x, 1.8, 0, skin); }
+      f.cyl(0.06, 0.065, 0.1, 0, 1.33, 0, skin, 10); ball(0.165, 0, 1.56, 0, skin, 1.08); const hg = new THREE.SphereGeometry(0.178, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.56); hg.rotateX(-0.25); f.add(hg, hair, 0, 1.585, -0.012, 0, 0.05);
+      for (const x of [-0.062, 0.062]) { ball(0.03, x, 1.585, 0.14, 0xf6f4ee, 1, 0.6); ball(0.017, x, 1.585, 0.158, 0x1c1410, 1, 0.6); } f.box(0.075, 0.018, 0.02, 0, 1.468, 0.153, 0x9a3b34, 0, 0); }
+    else {
+      for (const x of [-0.09, 0.09]) f.box(0.13, 0.78, 0.15, x, 0, 0, legs); f.box(0.42, 0.56, 0.24, 0, 0.78, 0, shirt); for (const x of [-0.27, 0.27]) f.box(0.1, 0.5, 0.1, x, 1.26, 0, shirt, 0, 0);
     f.cyl(0.06, 0.06, 0.08, 0, 1.34, 0, skin); f.blob(0.16, 0, 1.56, 0, skin, 1.05); f.blob(0.172, 0, 1.61, -0.035, hair, 0.9);
+    }
     const m = f.mesh(), a = -0.5 + i * 0.62; m.scale.setScalar(sc * 1.15); m.position.set(MEAD.x + Math.sin(a) * 31, my, MEAD.z + Math.cos(a) * 31); m.rotation.y = a + Math.PI; scene.add(m); people.push({ m, x: m.position.x, y: my, z: m.position.z, ry: m.rotation.y, ph: i * 1.3 });
   });
   { const t = canvasTex(256, 80, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(12,9,6,.62)'; c.beginPath(); if (c.roundRect) c.roundRect(4, 4, w - 8, h - 8, 30); else c.rect(4, 4, w - 8, h - 8); c.fill(); c.fillStyle = '#ffd27a'; c.font = 'italic 46px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(T('stas'), w / 2, h / 2 + 2); });
@@ -334,7 +352,13 @@ function buildClouds() {
   const R = rng(404), sd = SUN;
   const cloud = (cx, cy, cz, rx, ry, rz, n, size, dark, alpha) => { for (let i = 0; i < n; i++) { const a = R() * 6.28, q = Math.sqrt(R()), ox = Math.cos(a) * q, oz = Math.sin(a) * q, oy = R() * (1 - q * q * 0.8); PUFFS.push({ x: cx + ox * rx, y: cy + oy * ry, z: cz + oz * rz, s: size * (0.7 + R() * 0.6) * (1 - q * 0.3), sh: clamp((0.28 + oy * 0.62 + (ox * sd.x + oz * sd.z) * 0.22) * (1 - dark), 0, 1), rot: R() * 6.28, a: alpha, gate: -1 }); } };
   for (let i = 0; i < 46; i++) { const a = R() * 6.28, r = 300 + R() * 2700, big = 0.7 + R() * 0.9; cloud(Math.cos(a) * r, 360 + R() * 190, Math.sin(a) * r, 170 * big, 62 * big, 130 * big, Math.round(15 * big) + 4, 190 * big, 0, 0.9); }
-  cloud(STORM.x, 330, STORM.z, 300, 150, 260, 46, 330, 0.8, 0.97);                                 // the thunder cloud
+  cloud(STORM.x, 330, STORM.z, 300, 150, 260, 46, 330, 0.8, 0.97);
+  if (HQ) {
+    for (let x = -1800; x <= 1800; x += 85) PUFFS.push({ x: x + (R() - 0.5) * 40, y: 5 + R() * 5, z: riverZ(x) + (R() - 0.5) * 50, s: 70 + R() * 60, sh: 0.72, rot: R() * 6.28, a: 0.13 + R() * 0.07, gate: -1 });      // mist lying over the river
+    for (let i = 0; i < 9; i++) { const a = R() * 6.28, r = R() * 120; PUFFS.push({ x: LAKE.x + Math.cos(a) * r, y: 5 + R() * 4, z: LAKE.z + Math.sin(a) * r, s: 80 + R() * 60, sh: 0.74, rot: R() * 6.28, a: 0.12, gate: -1 }); }
+    HOUSES.forEach((hs, hi) => { if (hi % 5) return; const gy = groundAt(hs.x, hs.z) + 9; for (let k = 0; k < 6; k++) PUFFS.push({ x: hs.x, y: gy, z: hs.z, s: 4, sh: 0.55, rot: R() * 6.28, a: 0.3, gate: -1, sm: { x: hs.x + 2, y: gy, z: hs.z + 2 }, k: k / 6 }); });                          // chimney smoke
+    for (let k = 0; k < 7; k++) PUFFS.push({ x: 0, y: 0, z: 0, s: 6, sh: 0.6, rot: R() * 6.28, a: 0.3, gate: -1, dust: true, k: k / 7 });                                                                               // dust behind the tractor
+  }                                 // the thunder cloud
   const n = PUFFS.length + 40 * 12, g = new THREE.InstancedBufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0]), 3)); g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]), 2)); g.setIndex([0, 1, 2, 0, 2, 3]);
   const aP = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3), aD = new THREE.InstancedBufferAttribute(new Float32Array(n * 4), 4); aP.setUsage(THREE.DynamicDrawUsage); aD.setUsage(THREE.DynamicDrawUsage); g.setAttribute('iPos', aP); g.setAttribute('iData', aD);
@@ -355,6 +379,8 @@ function buildClouds() {
 }
 function sortClouds() {
   const { aP, aD } = clouds.userData, cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+  for (const p of PUFFS) { if (p.sm) { const u = (p.k + G.t * 0.06) % 1; p.x = p.sm.x + u * 26; p.z = p.sm.z + u * 9; p.y = p.sm.y + u * 34; p.s = 3 + u * 16; p.a = 0.34 * (1 - u) * Math.min(1, u * 6); }
+    else if (p.dust && tractor.m) { const u = (p.k + G.t * 0.25) % 1; p.x = tractor.m.position.x - tractor.dir * (3 + u * 30); p.z = tractor.m.position.z + Math.sin(p.k * 40) * 2; p.y = tractor.m.position.y + 1.5 + u * 7; p.s = 5 + u * 16; p.a = 0.3 * (1 - u); } }
   for (const p of PUFFS) if (p.th) { const u = (p.k + G.t * 0.035) % 1, a = p.ph + G.t * 0.5 + u * 9, r = p.th.r * (0.25 + 0.4 * u); p.x = p.th.x + Math.cos(a) * r; p.z = p.th.z + Math.sin(a) * r; p.y = p.th.gy + 8 + u * (p.th.top + 20 - p.th.gy); p.a = 0.42 * Math.sin(u * Math.PI); }
   for (const p of PUFFS) p.d = (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2;
   PUFFS.sort((a, b) => b.d - a.d); let n = 0;
@@ -619,6 +645,8 @@ function step(dt) {
   // ---- things in the sky and on the water
   for (const b of balloons) { b.g.position.y = b.y + Math.sin(G.t * 0.22 + b.ph) * 15; b.g.position.x = b.x + Math.sin(G.t * 0.13 + b.ph) * 6; b.g.rotation.y = G.t * 0.05 + b.ph; }
   for (const s of storks) { const q = Math.sin(G.t * 0.11 + s.ph * 0.3) * 150, fw = Math.cos(G.t * 0.11 + s.ph * 0.3) > 0 ? 1 : -1; s.x = s.mid.x + s.dir.x * (q - s.back * fw) - s.dir.z * s.off; s.z = s.mid.z + s.dir.z * (q - s.back * fw) + s.dir.x * s.off; s.g.position.set(s.x, s.y + Math.sin(G.t * 0.9 + s.ph) * 1.2, s.z); s.g.rotation.y = Math.atan2(-s.dir.x * fw, -s.dir.z * fw); const f = Math.sin(G.t * 5.2 + s.ph * 2) * 0.55; s.wl.rotation.z = -f; s.wr.rotation.z = f; }
+  for (const sw of swans) { const a = G.t * sw.sp + sw.ph, x = LAKE.x + Math.cos(a) * sw.r * 0.8, z = LAKE.z + Math.sin(a) * sw.r * 0.6; sw.m.position.set(x, 0.05, z); sw.m.rotation.y = Math.atan2(-Math.sin(a) * 0.8, Math.cos(a) * 0.6); }
+  if (tractor.m) { const u = (G.t * 0.02) % 2, k = u < 1 ? u : 2 - u; tractor.dir = u < 1 ? 1 : -1; const x = tractor.x0 + k * tractor.len, z = tractor.z + (u < 1 ? 0 : 6); tractor.m.position.set(x, groundAt(x, z), z); tractor.m.rotation.y = tractor.dir > 0 ? Math.PI / 2 : -Math.PI / 2; }
   { const bx = 560 + Math.sin(G.t * 0.045) * 420, dir = Math.cos(G.t * 0.045) > 0 ? 1 : -1, bz = riverZ(bx), a = Math.atan2(dir, dir * (riverZ(bx + 2) - riverZ(bx - 2)) / 4); boat.position.set(bx, 0.35 + Math.sin(G.t * 3.1) * 0.12, bz); water.material.normalMap.offset.set(G.t * 0.006, G.t * 0.009); boat.rotation.y = a + Math.PI; wake.position.set(bx, 0.5, bz); wake.rotation.y = a + Math.PI; }
   let n = 0; for (const it of items) { if (it.got) continue; dummy.position.copy(it.p); dummy.position.y += Math.sin(G.t * 2.4 + it.p.x) * 0.4; dummy.rotation.set(0.3, G.t * 2.6 + it.p.z, 0.5); dummy.scale.setScalar(1.7); dummy.updateMatrix(); bones.setMatrixAt(n++, dummy.matrix); } bones.count = n; bones.instanceMatrix.needsUpdate = true;
   const g0 = gates[G.gi], g1 = gates[G.gi + 1], showR = play || G.mode === 'crash';
@@ -650,7 +678,7 @@ function step(dt) {
   if (play && G.storm > 0.3) { G.bolt -= dt; if (G.bolt <= 0) { G.bolt = 2.5 + Math.random() * 4; G.light = 1; if (audio.on) setTimeout(() => audio.rumble(1.6), 350); } }
   G.light = Math.max(0, (G.light || 0) - dt * 5); renderer.toneMappingExposure = 0.5 * (1 - G.storm * 0.35) * (1 + G.light * (0.6 + 0.6 * Math.sin(G.t * 60)));
   // ---- the pointer to the next ring
-  if (play) {
+  if (G.mode === 'play') {
     const tg = target(); tmpV.copy(tg).project(camera); let x = tmpV.x, y = tmpV.y; const behind = tmpV.z > 1; if (behind) { x = -x; y = -y; }
     if (behind || Math.abs(x) > 0.9 || Math.abs(y) > 0.86) { const q = 1 / Math.max(Math.abs(x) / 0.86, Math.abs(y) / 0.8, 1e-3); x *= q; y *= q; if (behind) { const l = Math.hypot(x, y) || 1; x = x / l * 0.86; y = y / l * 0.8; } arrow.style.opacity = 1; arrow.style.left = (50 + x * 50) + '%'; arrow.style.top = (50 - y * 50) + '%'; arrow.style.transform = `translate(-50%,-50%) rotate(${-Math.atan2(y, x * camera.aspect)}rad)`; }
     else arrow.style.opacity = 0;
