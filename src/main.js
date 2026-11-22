@@ -10,7 +10,7 @@ import { buildWorld, H, L, tunnelR, tunnelS, pathX } from './world.js';
 import { buildDog } from './dog.js';
 import { HQ, addFur, DOG_FUR, CAT_FUR } from './fur.js';
 import { buildSky } from './sky.js';
-import { Particles } from './fx.js';
+import { Particles, beamMaterial } from './fx.js';
 import { AudioSys } from './audio.js';
 
 const DAY = 360; // seconds of daylight
@@ -181,7 +181,7 @@ async function boot() {
   applyLang();
   await new Promise((r) => setTimeout(r, 30));
   const tex = createTextures();
-  world = buildWorld(scene, tex);
+  world = buildWorld(scene, tex); if (HQ) buildHQ();
   sky = buildSky(scene, renderer);
   dog = buildDog(tex, { lantern: true }); scene.add(dog.root); if (HQ) addFur(dog.root, DOG_FUR);
   for (let i = 0; i < 5; i++) {
@@ -334,6 +334,44 @@ function updatePlayer(dt, inp) {
 
 // ------------------------------------------------------------------ particles helpers
 const rnd = (a = 1) => (Math.random() - 0.5) * 2 * a;
+// ---- high-quality extras: blades of grass, shafts of evening light between the trees, butterflies, birds, falling leaves
+const hq = { beams: [], flies: [], birds: null, birdT: 6 };
+const _up = new THREE.Vector3(0, 1, 0);
+function buildHQ() {
+  let seed = 7; const R = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }, pos = [], col = [], tip = [], nor = [];
+  const free = (x, z) => !world.boxes.some((b) => x > b.x0 - 0.3 && x < b.x1 + 0.3 && z > b.z0 - 0.3 && z < b.z1 + 0.3) && !world.circles.some((c) => (x - c.x) ** 2 + (z - c.z) ** 2 < (c.r + 0.2) ** 2);
+  for (let i = 0, n = matchMedia('(pointer: coarse)').matches ? 20000 : 52000; i < n; i++) {
+    const z = 30 - R() * 292, x = (R() - 0.5) * 34; if ((z < L.G0 + 3 && z > L.G1 - 3) || (z < -138 && z > -214)) continue;                 // not over the gorge, not in the tunnel
+    const y = H(x, z); if (y < L.WATER_Y + 0.6 || Math.abs(x - pathX(z)) < 2.1 || Math.abs(H(x + 0.8, z) - H(x - 0.8, z)) > 0.9 || Math.abs(H(x, z + 0.8) - H(x, z - 0.8)) > 0.9 || !free(x, z)) continue;
+    const k = 0.55 + R() * 0.7;
+    for (let j = 0; j < 3; j++) { const a = R() * 6.28, h = 0.14 + R() * 0.22, w = 0.024 + R() * 0.022, bx = x + (R() - 0.5) * 0.22, bz = z + (R() - 0.5) * 0.22, lx = (R() - 0.5) * 0.14, lz = (R() - 0.5) * 0.14, c = Math.cos(a) * w, sn = Math.sin(a) * w, cr = 0.075 * k, cg = 0.2 * k, cb = 0.035 * k;
+      for (const fl of [0, 1]) { if (fl) pos.push(bx + c, y, bz + sn, bx - c, y, bz - sn, bx + lx, y + h, bz + lz); else pos.push(bx - c, y, bz - sn, bx + c, y, bz + sn, bx + lx, y + h, bz + lz); col.push(cr * 0.55, cg * 0.55, cb * 0.55, cr * 0.55, cg * 0.55, cb * 0.55, cr * 1.4, cg * 1.45, cb * 1.2); tip.push(0, 0, 1); nor.push(0, 1, 0, 0, 1, 0, 0, 1, 0); } }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('aTip', new THREE.Float32BufferAttribute(tip, 1));
+  const gm = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
+  gm.onBeforeCompile = (sh) => { sh.uniforms.uTimeB = world.U.uTime; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aTip; uniform float uTimeB;').replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed.xz += aTip * 0.06 * vec2(sin(uTimeB * 1.8 + position.x * 0.9 + position.z * 0.6), cos(uTimeB * 1.3 + position.z * 0.8 - position.x * 0.4));'); };
+  const grass = new THREE.Mesh(g, gm); grass.receiveShadow = true; grass.frustumCulled = false; scene.add(grass);
+  for (const [x, z, r] of [[-7, -6, 1.5], [6, -17, 1.9], [-3, -29, 1.4], [8, -37, 1.7], [-10, 10, 2.0], [-7, -101, 1.5], [5, -107, 1.3], [-11, -228, 1.9], [10, -241, 1.6], [2, -222, 1.4]]) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.75, r, 34, 14, 1, true), beamMaterial(0xffd9a0, 0.2, world.U.uTime)); m.renderOrder = 8; m.frustumCulled = false; scene.add(m); hq.beams.push({ m, x, y: H(x, z), z });
+  }
+  const WING = [0xf39a2a, 0xf4f1e6, 0x5aa0e8, 0xf2d24a, 0xe8607a];
+  for (let i = 0; i < 9; i++) { const grp = new THREE.Group(), mat = new THREE.MeshBasicMaterial({ color: WING[i % 5], side: THREE.DoubleSide }), mk = (sd) => { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.05, sd * 0.11, 0, -0.09, sd * 0.09, 0, 0.05, 0, 0, -0.05, sd * 0.09, 0, 0.05, 0, 0, 0.06], 3)); return new THREE.Mesh(wg, mat); }, wl = mk(-1), wr = mk(1); grp.add(wl, wr); grp.visible = false; scene.add(grp); hq.flies.push({ grp, wl, wr, cx: 0, cz: 99, ph: i * 2.3 }); }
+  hq.birds = new THREE.Group(); const bm = new THREE.MeshBasicMaterial({ color: 0x14100e, side: THREE.DoubleSide });
+  for (let i = 0; i < 7; i++) { const b = new THREE.Group(), mk = (sd) => { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.25, sd * 1.1, 0, 0.1, 0, 0, 0.3], 3)); return new THREE.Mesh(wg, bm); }; b.add(mk(-1), mk(1)); const k = Math.ceil(i / 2), sd = i % 2 ? 1 : -1; b.position.set(sd * k * 1.9, (i % 3) * 0.4, k * 1.6); hq.birds.add(b); }
+  hq.birds.visible = false; scene.add(hq.birds);
+}
+function hqStep(dt) {
+  const sd = sky.sunDir, day = (1 - sm(0.3, 0.8, sky.night)) * sm(0.02, 0.12, sd.y), open = G.tun < 0.25;
+  for (const b of hq.beams) { b.m.visible = day > 0.02; if (!b.m.visible) continue; b.m.material.uniforms.uStrength.value = 0.2 * day; b.m.quaternion.setFromUnitVectors(_up, sd); b.m.position.set(b.x + sd.x * 17, b.y + sd.y * 17 - 0.3, b.z + sd.z * 17); }
+  if (open && Math.random() < dt * 5) { const y = Math.random() < 0.5; pAlpha.spawn(P.pos.x + rnd(14), P.pos.y + 4 + Math.random() * 6, P.pos.z + rnd(14), rnd(0.5), -0.8 - Math.random() * 0.6, rnd(0.5), 6, 0.11, 0.11, y ? 0.7 : 0.3, y ? 0.5 : 0.46, 0.12, 0.9, 0.1, 0.5); }      // leaves coming down
+  for (const f of hq.flies) {
+    if ((f.cx - P.pos.x) ** 2 + (f.cz - P.pos.z) ** 2 > 22 * 22) { f.cx = P.pos.x + rnd(11); f.cz = P.pos.z + rnd(11); }
+    f.grp.visible = open && sky.night < 0.45; if (!f.grp.visible) continue; const t = G.time, x = f.cx + Math.sin(t * 0.7 + f.ph) * 1.7, z = f.cz + Math.cos(t * 0.5 + f.ph * 2) * 1.7;
+    f.grp.position.set(x, Math.max(H(x, z), P.pos.y - 0.5) + 0.9 + Math.sin(t * 1.3 + f.ph) * 0.45, z); f.grp.rotation.y = t * 0.6 + f.ph; const w = Math.sin(t * 19 + f.ph) * 1.0; f.wl.rotation.z = w; f.wr.rotation.z = -w;
+  }
+  hq.birdT -= dt; if (hq.birdT <= 0 && !hq.birds.visible && sky.night < 0.6) { hq.birds.visible = true; hq.birds.userData = { t: 0, z: P.pos.z - 40 - Math.random() * 50, dir: Math.random() < 0.5 ? 1 : -1 }; }
+  if (hq.birds.visible) { const u = hq.birds.userData; u.t += dt; hq.birds.position.set(-150 * u.dir + u.t * 13 * u.dir, P.pos.y + 34 + Math.sin(u.t * 0.4) * 3, u.z - u.t * 2); hq.birds.rotation.y = u.dir > 0 ? -Math.PI / 2 : Math.PI / 2; hq.birds.children.forEach((b, i) => { const w = Math.sin(G.time * 7 + i) * 0.6; b.children[0].rotation.z = -w; b.children[1].rotation.z = w; }); if (u.t > 24) { hq.birds.visible = false; hq.birdT = 14 + Math.random() * 18; } }
+}
 function dust(x, y, z, n, r = 0.5, g = 0.42, b = 0.32) { for (let i = 0; i < n; i++) pAlpha.spawn(x + rnd(0.3), y + 0.1, z + rnd(0.3), rnd(1), 0.4 + Math.random(), rnd(1), 0.9 + Math.random() * 0.6, 0.25, 1.1, r, g, b, 0.28, 0, 1.5); }
 function sparkle(pos, col, n, sp = 2.5) { for (let i = 0; i < n; i++) pAdd.spawn(pos.x + rnd(0.2), pos.y + rnd(0.2), pos.z + rnd(0.2), rnd(sp), rnd(sp) + 1, rnd(sp), 0.6 + Math.random() * 0.9, 0.16, 0.02, col.r * 5, col.g * 5, col.b * 5, 1, 3, 1.2); }
 function splash(pos, s = 1) {
@@ -532,7 +570,7 @@ function frame(now, simDt) {
   if (G.mode === 'play' && G.respawn <= 0.45) { const n = dt > 0.034 ? 3 : 1; for (let i = 0; i < n; i++) updatePlayer(dt / n, inp); }
   else if (G.mode === 'cine' || G.mode === 'win') cinematic(dt);
   else if (G.mode === 'lose') { P.speed = 0; P.sit = 1; }
-  world.update(dt, G.time, P);
+  world.update(dt, G.time, P); if (HQ) hqStep(dt);
   logic(dt);
   updatePuppies(dt);
   // Łatka
