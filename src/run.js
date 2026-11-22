@@ -745,6 +745,7 @@ const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'ri
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return; const a = KEYMAP[e.code];
   if (e.key && e.key.length === 1) { typed = (typed + e.key.toLowerCase()).slice(-8); if (typed.endsWith('skoda') && G.mode === 'play') { typed = ''; setCar(!G.car); }
+    else if (typed.endsWith('stop') && G.mode === 'play') { typed = ''; if (G.car) setCar(false, true); G.rs = 0; pick(lang === 'pl' ? 'KOD: STOP — wszystko wraca do normy' : 'CODE: STOP — everything back to normal'); pickT = 2.6; sparkle(Pl.x, 0.8, -G.dist - 0.5, GOLD, 40); if (audio.on) audio.whoosh(); }
     else if (typed.endsWith('rs') && G.mode === 'play') { typed = ''; G.rs = Math.min(12, (G.rs || 0) + 1); pick(T('rsOn', (G.car ? 3 : 1) + G.rs)); pickT = 2.4; G.shake = 0.5; buzz([40, 30, 80]); if (audio.on) { audio.whoosh(); audio.rumble(0.8); } } }
   if (a) { act(a); e.preventDefault(); }
   if (e.code === 'KeyM' && audio.on) audio.toggleMusic();
@@ -870,7 +871,7 @@ function buildCars() {
       D.lineT(-1.12, 0.875, -2.38, 0.875, seam, 4); D.lineT(1.97, 0.86, 1.97, 1, seam, 4);                                                                                                         // bonnet and tailgate shut lines
       for (const z of [-1.0, 0.355, 1.24]) D.line([[z, 0.31], [z, 0.9]], seam, 4); D.line([[-1.0, 0.31], [1.0, 0.31]], seam, 4);
       for (const z of [0.05, 0.95]) D.poly([[z, 0.835], [z + 0.2, 0.84], [z + 0.2, 0.868], [z, 0.862]], '#989da4');
-      D.poly([[-2.43, 0.585], [-2.02, 0.655], [-2.06, 0.705], [-2.43, 0.675]], '#f2f6fa', '#fff6de');                                                                                                // headlamp wrapping round the corner
+      D.poly([[-2.43, 0.585], [-2.02, 0.655], [-2.06, 0.705], [-2.43, 0.675]], '#f2f6fa', '#b9b29c');                                                                                                // headlamp wrapping round the corner
       D.poly([[2.43, 0.8], [2.02, 0.84], [2.06, 0.925], [2.43, 0.93]], '#b00812', '#8a0000');                                                                                                       // tail lamp wrapping round the corner
       D.poly([[-2.43, 0.28], [-1.95, 0.24], [-1.95, 0.3], [-2.43, 0.36]], DK); D.poly([[2.43, 0.36], [1.85, 0.25], [1.85, 0.31], [2.43, 0.44]], DK);
     },
@@ -879,7 +880,7 @@ function buildCars() {
       F.both((s) => { F.poly([[s * 0.72, 0.3], [s * 0.6, 0.3], [s * 0.57, 0.37], [s * 0.72, 0.39]], DK); F.rect(s * 0.6 - 0.05, s * 0.6 + 0.05, 0.325, 0.345, '#eef3f8', '#fff3d6'); });
       const gx = 0.4, g0 = 0.455, g1 = 0.665; F.poly([[-gx - 0.03, g1 + 0.015], [gx + 0.03, g1 + 0.015], [gx - 0.05, g0 - 0.015], [-gx + 0.05, g0 - 0.015]], CHR); F.poly([[-gx, g1], [gx, g1], [gx - 0.065, g0], [-gx + 0.065, g0]], DK);
       for (let i = -9; i <= 9; i++) { const x = i * 0.04, cut = Math.max(0, Math.abs(x) - (gx - 0.07)) / 0.065 * (g1 - g0); F.rect(x - 0.008, x + 0.008, g0 + cut + 0.008, g1 - 0.008, CHR); }                // the upright slats
-      F.both((s) => { F.poly([[s * 0.44, 0.66], [s * 0.72, 0.69], [s * 0.72, 0.62], [s * 0.47, 0.585]], '#dfe6ec', '#fff6de'); F.poly([[s * 0.46, 0.6], [s * 0.7, 0.632], [s * 0.7, 0.618], [s * 0.47, 0.588]], '#ffffff', '#ffffff'); F.stroke([[s * 0.55, 0.604], [s * 0.55, 0.674]], '#8a9199', 3); F.stroke([[s * 0.63, 0.615], [s * 0.63, 0.682]], '#8a9199', 3); });
+      F.both((s) => { F.poly([[s * 0.44, 0.66], [s * 0.72, 0.69], [s * 0.72, 0.62], [s * 0.47, 0.585]], '#dfe6ec', '#b9b29c'); F.poly([[s * 0.46, 0.6], [s * 0.7, 0.632], [s * 0.7, 0.618], [s * 0.47, 0.588]], '#ffffff', '#ffffff'); F.stroke([[s * 0.55, 0.604], [s * 0.55, 0.674]], '#8a9199', 3); F.stroke([[s * 0.63, 0.615], [s * 0.63, 0.682]], '#8a9199', 3); });
       F.circle(0, 0.696, 0.034, '#101412', CHR, 5); F.poly([[-0.02, 0.682], [0.008, 0.71], [0.016, 0.69]], CHR); F.stroke([[-0.012, 0.7], [0.02, 0.702]], CHR, 3);                                   // winged arrow
       F.plate(0, 0.35, 0.5, 0.105);
     },
@@ -909,45 +910,56 @@ function buildCars() {
       for (const z of [-1.0, 0.355, 1.24]) D.line([[z, 0.31], [z, 0.9]], seam, 4); D.line([[-1.0, 0.31], [1.0, 0.31]], seam, 4);
       for (const z of [0.05, 0.95]) { D.poly([[z, 0.835], [z + 0.2, 0.84], [z + 0.2, 0.868], [z, 0.862]], '#9a9fa6'); D.line([[z, 0.832], [z + 0.2, 0.837]], 'rgba(0,0,0,0.45)', 3); }
       D.poly([[1.72, 0.74], [1.88, 0.75], [1.88, 0.86], [1.72, 0.85]], 'rgba(0,0,0,0.0)'); D.line([[1.72, 0.75], [1.87, 0.76], [1.87, 0.86], [1.72, 0.85], [1.72, 0.75]], 'rgba(0,0,0,0.35)', 3);   // fuel flap
-      D.poly([[-2.43, 0.585], [-2.02, 0.655], [-2.06, 0.705], [-2.43, 0.675]], '#f2f6fa', '#fff6de'); D.poly([[-2.0, 0.655], [-1.93, 0.668], [-1.95, 0.7], [-2.03, 0.7]], '#ff9a1a');
+      D.poly([[-2.43, 0.585], [-2.02, 0.655], [-2.06, 0.705], [-2.43, 0.675]], '#f2f6fa', '#b9b29c'); D.poly([[-2.0, 0.655], [-1.93, 0.668], [-1.95, 0.7], [-2.03, 0.7]], '#ff9a1a');
       D.poly([[2.43, 0.8], [2.02, 0.84], [2.06, 0.925], [2.43, 0.93]], '#b00812', '#8a0000');
       D.poly([[-2.43, 0.28], [-1.95, 0.24], [-1.95, 0.3], [-2.43, 0.36]], DK); D.poly([[2.43, 0.36], [1.85, 0.25], [1.85, 0.31], [2.43, 0.44]], DK);
     },
     extra(g, { paintM }) { const fin = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 8).rotateX(-0.9).scale(0.5, 1, 1.6), paintM); fin.position.set(0, 1.455, 0.98); g.add(fin); } });
   carD = buildCar(SUPERB);                                                                                                     // SUPERB_COMBI stays here, ready to be swapped in
   // ---- Opel Agila B: short tall mini-MPV, big swept-back headlamps, chrome bar with the blitz, tall tail lamps beside the rear window
-  carM = buildCar({ paint: '#15276b', plate: 'BI MILA', w: 0.84, endW: 0.82, tumble: 0.34, z0: -1.87, z1: 1.87, rakeF: 0.2, rakeR: 0.05, zf: -1.2, zr: 1.2, ay: 0.315, ar: 0.36, wr: 0.3, spokes: 7, twin: false, bulge: [0.1, 0.045], mirror: -0.86,
-    top: [[-1.87, 0.8], [-1.74, 0.9], [-1.0, 1.05], [-0.36, 1.5], [0.1, 1.585], [1.3, 1.575], [1.6, 1.52], [1.78, 1.25], [1.87, 1.04]],
-    bot: [[-1.87, 0.28], [-1.72, 0.2], [1.72, 0.2], [1.87, 0.3]], belt: [[-1.0, 0.99], [0.3, 1.02], [1.3, 1.07], [1.87, 1.09]],
+  carM = buildCar({ paint: '#14266a', plate: 'BI MILA', w: 0.84, endW: 0.84, tumble: 0.3, z0: -1.87, z1: 1.87, rakeF: 0.24, rakeR: 0.04, zf: -1.2, zr: 1.2, ay: 0.315, ar: 0.365, wr: 0.3, spokes: 7, twin: false, bulge: [0.12, 0.05], mirror: -0.84,
+    top: [[-1.87, 0.72], [-1.78, 0.84], [-1.4, 0.97], [-1.0, 1.06], [-0.42, 1.47], [-0.05, 1.57], [0.6, 1.605], [1.38, 1.585], [1.7, 1.55], [1.83, 1.34], [1.87, 1.08]],
+    bot: [[-1.87, 0.3], [-1.72, 0.2], [1.72, 0.2], [1.87, 0.3]], belt: [[-1.0, 0.98], [0.2, 1.02], [1.0, 1.07], [1.5, 1.17], [1.87, 1.2]],                      // the window line kicks up behind the rear door
     side(D) {
-      D.line([[-1.6, 0.6], [1.7, 0.72]], 'rgba(255,255,255,0.16)', 5); D.line([[-1.6, 0.585], [1.7, 0.705]], 'rgba(0,0,0,0.3)', 5);                                                                 // rising swage line
-      D.rT(-0.9, 1.52, 0.635, 0.842, DK); D.glass(-0.84, 0.17, 0.645, 0.832); D.glass(0.27, 1.03, 0.645, 0.832); D.glass(1.11, 1.47, 0.645, 0.832);
+      const lens = '#c9d2da', lensLit = '#8f8a78', red = '#b50a14', redLit = '#8a0000';
+      D.line([[-1.55, 0.74], [-0.2, 0.8], [1.75, 0.9]], 'rgba(255,255,255,0.2)', 5); D.line([[-1.55, 0.725], [-0.2, 0.785], [1.75, 0.885]], 'rgba(0,0,0,0.3)', 5);                                   // rising shoulder line
+      D.line([[-0.75, 0.52], [1.0, 0.55]], 'rgba(8,9,12,0.9)', 15); D.line([[-0.75, 0.535], [1.0, 0.565]], 'rgba(255,255,255,0.12)', 3);                                                              // rubbing strip
+      D.rT(-0.92, 1.62, 0.632, 0.846, DK); D.glass(-0.86, 0.15, 0.645, 0.832); D.glass(0.25, 1.02, 0.645, 0.832); D.glass(1.1, 1.56, 0.66, 0.832);
+      D.poly([[-0.98, 1.0], [-0.72, 1.0], [-0.8, 1.14]], DK);                                                                                                                                          // mirror mount at the foot of the A-pillar
       for (const z of [-0.02, 0.72]) { D.rT(z - 0.1, z + 0.1, 0.67, 0.77, 'rgba(64,72,82,0.32)'); D.rT(z - 0.05, z + 0.05, 0.645, 0.67, 'rgba(64,72,82,0.32)'); }
-      D.rT(1.585, 1.61, 0.95, 1, '#b00812', '#8a0000'); D.lineT(1.82, 1, 1.74, 0.925, '#050506', 7); D.line([[-0.7, 0.5], [1.0, 0.54]], 'rgba(5,6,10,0.85)', 13);
-      D.glass(-0.96, -0.36, 0.885, 1); D.glass(1.6, 1.84, 0.9, 1);
-      D.lineT(-0.98, 0.875, -1.82, 0.875, seam, 4);
-      for (const z of [-0.9, 0.22, 1.08]) D.line([[z, 0.3], [z, 0.98]], seam, 4); D.line([[-0.9, 0.3], [1.08, 0.3]], seam, 4);
-      for (const z of [-0.02, 0.86]) D.poly([[z, 0.9], [z + 0.19, 0.905], [z + 0.19, 0.94], [z, 0.935]], '#0c1430');
-      D.poly([[-1.87, 0.62], [-1.5, 0.78], [-1.2, 0.9], [-1.32, 0.94], [-1.87, 0.8]], '#e8eef4', '#fff6de');                                                                                         // the big headlamp sweeping up the wing
-      D.rT(1.6, 1.87, 0.63, 0.9, '#c00a14', '#8a0000'); D.rT(1.6, 1.87, 0.7, 0.735, '#f0f0f0', '#555555');                                                                                          // tall tail lamp on the pillar
-      D.poly([[-1.87, 0.28], [-1.6, 0.24], [-1.6, 0.36], [-1.87, 0.42]], DK); D.poly([[1.87, 0.3], [1.55, 0.24], [1.55, 0.36], [1.87, 0.44]], DK);
-      D.line([[-0.2, 0.33], [0.5, 0.33]], 'rgba(0,0,0,0.5)', 14);
+      D.glass(-0.96, -0.4, 0.885, 1); D.glass(1.71, 1.86, 0.895, 1); D.rT(1.685, 1.71, 0.95, 1, red, redLit); D.lineT(1.845, 1, 1.845, 0.94, '#050506', 6);                                             // windscreen, tailgate glass, third brake light, wiper
+      for (const t of [0.935, 0.975]) D.lineT(-0.3, t, 1.55, t, 'rgba(0,0,0,0.28)', 4);                                                                                                                 // roof ribs
+      D.lineT(-0.98, 0.875, -1.82, 0.875, seam, 4); D.lineT(1.67, 0.86, 1.67, 1, seam, 4);
+      for (const z of [-0.92, 0.2, 1.06]) D.line([[z, 0.3], [z, 0.98]], seam, 4); D.line([[-0.92, 0.3], [1.06, 0.3]], seam, 4); D.line([[1.06, 0.62], [1.2, 0.7], [1.42, 0.72]], seam, 4);
+      for (const z of [-0.04, 0.82]) { D.poly([[z, 0.89], [z + 0.2, 0.895], [z + 0.2, 0.932], [z, 0.927]], '#101e58'); D.line([[z, 0.887], [z + 0.2, 0.892]], 'rgba(0,0,0,0.5)', 3); }
+      D.line([[1.5, 0.78], [1.66, 0.79], [1.66, 0.9], [1.5, 0.89], [1.5, 0.78]], 'rgba(0,0,0,0.35)', 3);                                                                                              // fuel flap
+      D.poly([[-1.28, 0.8], [-1.2, 0.8], [-1.2, 0.83], [-1.28, 0.83]], '#ff9a1a');                                                                                                                    // side repeater
+      D.poly([[-1.87, 0.6], [-1.62, 0.7], [-1.3, 0.86], [-1.18, 0.95], [-1.3, 0.985], [-1.6, 0.9], [-1.87, 0.76]], '#0c0d10');                                                                         // headlamp sweeping up the wing: dark bezel, clear lens, amber corner
+      D.poly([[-1.87, 0.62], [-1.62, 0.72], [-1.32, 0.875], [-1.24, 0.94], [-1.32, 0.962], [-1.6, 0.88], [-1.87, 0.745]], lens, lensLit); D.poly([[-1.36, 0.875], [-1.24, 0.94], [-1.32, 0.962], [-1.44, 0.925]], '#ffa52a', '#5a3000');
+      D.rT(1.64, 1.87, 0.64, 0.905, '#0c0d10'); D.rT(1.66, 1.87, 0.74, 0.9, red, redLit); D.rT(1.66, 1.87, 0.695, 0.74, '#e6e6e6', '#3a3a3a'); D.rT(1.66, 1.87, 0.65, 0.695, '#ffa52a', '#5a3000');   // the tall lamp: red, reversing white, amber
+      for (const t of [0.695, 0.74]) D.lineT(1.66, t, 1.87, t, 'rgba(0,0,0,0.5)', 3);
+      D.poly([[-1.87, 0.3], [-1.55, 0.24], [-1.55, 0.36], [-1.87, 0.44]], DK); D.poly([[1.87, 0.3], [1.55, 0.24], [1.55, 0.36], [1.87, 0.44]], DK); D.line([[-0.85, 0.3], [1.0, 0.3]], 'rgba(8,9,12,0.9)', 12);
     },
     front(F) {
-      F.poly([[-0.5, 0.31], [0.5, 0.31], [0.42, 0.52], [-0.42, 0.52]], DK); for (let i = 0; i < 3; i++) F.rect(-0.4, 0.4, 0.345 + i * 0.05, 0.352 + i * 0.05, '#26282c'); F.plate(0, 0.43, 0.46, 0.1);
-      F.both((s) => { F.circle(s * 0.56, 0.4, 0.045, '#eef3f8', '#55585e', 5); F.poly([[s * 0.36, 0.7], [s * 0.66, 0.8], [s * 0.67, 0.62], [s * 0.42, 0.615]], '#e8eef4', '#fff6de'); F.circle(s * 0.55, 0.69, 0.05, '#ffffff', '#9aa2aa', 4); });
-      F.poly([[-0.34, 0.7], [0.34, 0.7], [0.36, 0.605], [-0.36, 0.605]], DK); F.rect(-0.36, 0.36, 0.642, 0.668, CHR);                                                                                 // grille slot with the chrome bar
-      F.circle(0, 0.655, 0.058, DK, CHR, 7); F.stroke([[-0.058, 0.642], [0.012, 0.666], [-0.012, 0.646], [0.058, 0.668]], CHR, 6);                                                                    // the blitz
+      F.poly([[-0.7, 0.3], [0.7, 0.3], [0.7, 0.36], [-0.7, 0.36]], DK);                                                                                                                               // bumper lip
+      F.poly([[-0.5, 0.345], [0.5, 0.345], [0.42, 0.53], [-0.42, 0.53]], DK); for (let i = 0; i < 4; i++) F.rect(-0.47 + i * 0.012, 0.47 - i * 0.012, 0.372 + i * 0.04, 0.38 + i * 0.04, '#2b2d32'); F.plate(0, 0.44, 0.46, 0.1);
+      F.both((s) => { F.circle(s * 0.58, 0.43, 0.062, DK); F.circle(s * 0.58, 0.43, 0.04, '#dfe6ec', '#70757c', 4, '#8f8a78'); });                                                                    // fog lamps in black pods
+      F.poly([[-0.36, 0.69], [0.36, 0.69], [0.39, 0.585], [-0.39, 0.585]], DK); for (let i = 1; i < 4; i++) F.rect(-0.37, 0.37, 0.585 + i * 0.026, 0.589 + i * 0.026, '#24262a'); F.rect(-0.39, 0.39, 0.628, 0.656, CHR);   // grille slot, chrome wing bar
+      F.circle(0, 0.642, 0.066, DK, CHR, 8); F.stroke([[-0.066, 0.628], [0.014, 0.654], [-0.014, 0.63], [0.066, 0.656]], CHR, 7);                                                                      // the blitz
+      F.stroke([[-0.7, 0.705], [-0.3, 0.72], [0.3, 0.72], [0.7, 0.705]], 'rgba(0,0,0,0.55)', 4);                                                                                                       // bonnet edge
+      F.both((s) => { F.poly([[s * 0.41, 0.69], [s * 0.72, 0.72], [s * 0.72, 0.59], [s * 0.45, 0.585]], '#0c0d10'); F.poly([[s * 0.43, 0.68], [s * 0.7, 0.705], [s * 0.7, 0.6], [s * 0.46, 0.597]], '#c9d2da', '#8f8a78');
+        F.circle(s * 0.53, 0.64, 0.04, '#eef3f7', '#5d646c', 5, '#fff3d0'); F.circle(s * 0.64, 0.65, 0.03, '#dfe6ec', '#5d646c', 4, '#8f8a78'); });                                                    // projector and main beam under clear glass
     },
     rear(F) {
-      F.poly([[-0.7, 0.3], [0.7, 0.3], [0.7, 0.46], [-0.7, 0.48]], DK); F.both((s) => F.rect(s * 0.5 - 0.08, s * 0.5 + 0.08, 0.4, 0.425, '#a00a10', '#600000'));
-      F.stroke([[-0.7, 0.52], [0.7, 0.52]], seam, 4);
-      F.poly([[-0.34, 0.8], [0.34, 0.8], [0.31, 0.64], [-0.31, 0.64]], '#0e1c50'); F.plate(0, 0.715, 0.46, 0.1); F.rect(-0.3, 0.3, 0.815, 0.84, CHR);
-      F.circle(0, 0.93, 0.06, DK, CHR, 7); F.stroke([[-0.06, 0.917], [0.012, 0.941], [-0.012, 0.921], [0.06, 0.943]], CHR, 6);
-      F.text('OPEL', -0.45, 0.9, 0.04, CHR, 0.008); F.text('AGILA', 0.44, 0.9, 0.04, CHR, 0.006);
-      F.both((s) => F.rect(s * 0.69 - 0.04, s * 0.69 + 0.04, 0.9, 1.04, '#c00a14', '#8a0000'));
+      F.poly([[-0.72, 0.3], [0.72, 0.3], [0.72, 0.4], [-0.72, 0.4]], DK); F.stroke([[-0.72, 0.56], [0.72, 0.56]], seam, 4);                                                                            // bumper insert, tailgate edge
+      F.both((s) => { F.rect(s * 0.52 - 0.09, s * 0.52 + 0.09, 0.44, 0.47, '#a00a10', '#500000'); F.stroke([[s * 0.66, 0.56], [s * 0.66, 1.08]], seam, 4); });
+      F.poly([[-0.36, 0.84], [0.36, 0.84], [0.32, 0.66], [-0.32, 0.66]], '#0f1d54'); F.stroke([[-0.36, 0.84], [0.36, 0.84], [0.32, 0.66], [-0.32, 0.66], [-0.36, 0.84]], 'rgba(0,0,0,0.5)', 3); F.plate(0, 0.74, 0.46, 0.1);
+      F.rect(-0.3, 0.3, 0.855, 0.885, CHR); F.both((s) => F.circle(s * 0.2, 0.825, 0.012, '#fffbe8'));                                                                                                 // chrome handle strip, plate lamps
+      F.circle(0, 0.975, 0.062, DK, CHR, 8); F.stroke([[-0.062, 0.962], [0.013, 0.986], [-0.013, 0.964], [0.062, 0.988]], CHR, 7);
+      F.text('AGILA', -0.44, 0.63, 0.042, CHR, 0.008); F.text('1.2', 0.5, 0.63, 0.04, CHR, 0.004);
+      F.both((s) => { F.rect(s * 0.71 - 0.035, s * 0.71 + 0.035, 0.98, 1.08, '#b50a14', '#8a0000'); });
     },
-    extra(g, { black }) { const an = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.008, 0.36, 6).rotateX(-0.7), black); an.position.set(0, 1.72, -0.12); g.add(an); } });
+    extra(g, { black }) { const an = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.008, 0.36, 6).rotateX(-0.7), black); an.position.set(0, 1.74, -0.14); g.add(an); } });
 }
 // obstacles hit by a car fly off to the sides, spinning; cells: the row no longer blocks that lane
 function smash(row, lane, x) {
