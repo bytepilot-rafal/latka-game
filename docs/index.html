@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261122-201857';
+  window.BUILD = '20261122-203129';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) { try { if (window.LEVEL && LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) {} location.replace(location.pathname + '?v=' + v); }
@@ -4730,6 +4730,11 @@ import { buildCat } from './cat.js';
 import { Particles, fogUniforms } from './fx.js';
 import { AudioSys } from './audio.js';
 import { makeUniforms, patchMat, waterMat, daySky, plantTrees, leafBlob } from './real.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const $ = (id) => document.getElementById(id);
 const TXT = {
@@ -4741,7 +4746,8 @@ const TXT = {
     time: (t) => `Czas: ${t}`, bones: (n) => `Kości: ${n}`, left: (m) => `Do plaży: ${m} m`, paddle: 'Wiosło',
     h_start: 'Nurt niesie ponton. Steruj na boki; trzymaj wiosło, żeby płynąć szybciej.', h_lane: 'Bystry nurt — tu płynie się szybciej!', h_whirl: 'Wir! Wiosłuj, żeby się wyrwać!',
     h_sand: 'Mielizna — ponton zwalnia.', h_bridge: 'Przepłyń między filarami mostu.', h_kayak: 'Uwaga, kajakarz!', h_beach: 'Widać plażę!',
-    artur: ['Ahoj, Łatka!', 'Trzymajcie się, załogo!', 'Kto pierwszy na plaży?', 'Mila, nie bój się wody!'], arturName: 'Wujek Artur', rafalName: 'Wujek Rafał', rafal: ['Cześć, Łatka! Patrz, lecę nad wodą!', 'E-foil: zero hałasu, sama frajda!', 'Ścigamy się do plaży?', 'Mila, wskakuj na deskę!'],
+    artur: ['Ahoj, Łatka!', 'Trzymajcie się, załogo!', 'Kto pierwszy na plaży?', 'Mila, nie bój się wody!'], cheatOn: 'KOD: RAFAL — supermotorówka! Prędkość ×3,5', cheatOff: 'Z powrotem na pontonie',
+    arturName: 'Wujek Artur', rafalName: 'Wujek Rafał', rafal: ['Cześć, Łatka! Patrz, lecę nad wodą!', 'E-foil: zero hałasu, sama frajda!', 'Ścigamy się do plaży?', 'Mila, wskakuj na deskę!'],
     hit: 'Auć! Dziura w pontonie!', patch: 'Łatka na ponton! +1', k_place: 'Narew', p1: 'Most w Serocku', p2: 'Wielkie Zakole', p3: 'Stary Most', p4: 'Plaża',
     winT: 'Dopłynęli!', winX: (t, b, s) => `Łatka i Mila są na plaży. Czas: ${t} · kości: ${b}. ${s}`,
     loseT: 'Ponton zatonął…', loseX: (m) => `Łatka i Mila dopłynęły do brzegu wpław, ${m} m przed plażą. Spróbuj jeszcze raz!`,
@@ -4754,7 +4760,8 @@ const TXT = {
     time: (t) => `Time: ${t}`, bones: (n) => `Bones: ${n}`, left: (m) => `To the beach: ${m} m`, paddle: 'Paddle',
     h_start: 'The current carries the raft. Steer sideways; hold the paddle to go faster.', h_lane: 'Fast water — the raft speeds up here!', h_whirl: 'A whirlpool! Paddle to break free!',
     h_sand: 'A sandbank — the raft slows down.', h_bridge: 'Pass between the piers of the bridge.', h_kayak: 'Mind the kayaker!', h_beach: 'The beach is in sight!',
-    artur: ['Ahoy, Łatka!', 'Hold on tight, crew!', 'Race you to the beach!', 'Mila, the water is fine!'], arturName: 'Wujek Artur', rafalName: 'Wujek Rafał', rafal: ['Hi, Łatka! Look, I am flying over the water!', 'An e-foil: no noise, all fun!', 'Race you to the beach?', 'Mila, hop on the board!'],
+    artur: ['Ahoy, Łatka!', 'Hold on tight, crew!', 'Race you to the beach!', 'Mila, the water is fine!'], cheatOn: 'CODE: RAFAL — super speedboat! Speed ×3.5', cheatOff: 'Back on the raft',
+    arturName: 'Wujek Artur', rafalName: 'Wujek Rafał', rafal: ['Hi, Łatka! Look, I am flying over the water!', 'An e-foil: no noise, all fun!', 'Race you to the beach?', 'Mila, hop on the board!'],
     hit: 'Ouch! A hole in the raft!', patch: 'A patch for the raft! +1', k_place: 'Narew', p1: 'Most w Serocku', p2: 'Wielkie Zakole', p3: 'Stary Most', p4: 'Plaża',
     winT: 'They made it!', winX: (t, b, s) => `Łatka and Mila are on the beach. Time: ${t} · bones: ${b}. ${s}`,
     loseT: 'The raft sank…', loseX: (m) => `Łatka and Mila swam ashore ${m} m short of the beach. Try again!`,
@@ -4772,7 +4779,17 @@ renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadow
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, 1, 0.2, 900);
-function resize() { const w = Math.max(2, window.innerWidth), h = Math.max(2, window.innerHeight); camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setPixelRatio(pixelRatio); renderer.setSize(w, h, false); }
+let composer = null;
+if (HQ) {                                                    // a glow around the sun and its glints on the water, slightly darker corners
+  const PV = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+  composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4 })); composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(new ShaderPass({ uniforms: { tDiffuse: { value: null } }, vertexShader: PV, fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); c.rgb = min(max(c.rgb, 0.0), 30.0); if (!(c.r + c.g + c.b < 1e5)) c.rgb = vec3(0.0); gl_FragColor = vec4(c.rgb, 1.0); }' }));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.26, 0.6, 1.3));
+  composer.addPass(new ShaderPass({ uniforms: { tDiffuse: { value: null } }, vertexShader: PV, fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); vec2 q = vUv - 0.5; float v = 1.0 - dot(q, q) * 0.65; c.rgb *= v * v; float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722)); c.rgb = mix(vec3(l), c.rgb, 1.08); gl_FragColor = vec4(max(c.rgb, 0.0), 1.0); }' }));
+  composer.addPass(new OutputPass());
+}
+const draw = () => (composer ? composer.render() : renderer.render(scene, camera));
+function resize() { const w = Math.max(2, window.innerWidth), h = Math.max(2, window.innerHeight); camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setPixelRatio(pixelRatio); renderer.setSize(w, h, false); if (composer) { composer.setPixelRatio(pixelRatio); composer.setSize(w, h); } }
 window.addEventListener('resize', resize); resize();
 
 // ------------------------------------------------------------------ the river
@@ -4858,12 +4875,14 @@ function buildRiver() {
   // banks: a ribbon of sand rising into meadow on each side, with trees, reeds and the odd house
   const SAND = new THREE.Color(0xcdbb8c), GRASS = new THREE.Color(0x58883a), GRASS2 = new THREE.Color(0x487632), DARK = new THREE.Color(0x4a5a3a);
   const GREENS = [0x35602a, 0x436d30, 0x2f5626, 0x4c7436, 0x587a3a];
+  const bladeM = patchMat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }), RU, { cloud: 0.36 }), bbase = bladeM.onBeforeCompile;
+  bladeM.onBeforeCompile = (sh) => { bbase(sh); sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aTip; uniform float uTime;').replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed.xz += aTip * 0.06 * vec2(sin(uTime * 1.8 + position.x * 0.9 + position.z * 0.6), cos(uTime * 1.3 + position.z * 0.8 - position.x * 0.4));'); }; bladeM.customProgramCacheKey = () => 'bankblades';
   const fadeS = (s) => (1 - sm(END - 150, END - 105, s)) * sm(30, 80, s);
   const cove = (s, side) => sm(0.56, 0.72, fbm(s / 46 + side * 9.3, 3.3, 2, 17)) * fadeS(s);                                   // here and there the bank opens into a small sandy bay
   const shore = (s, side) => (0.2 + 3.6 * Math.pow(fbm(s * 0.075 + side * 5.1, side * 2.7, 3, 31), 1.6) + cove(s, side) * 2.8) * fadeS(s);
   const edge = (s, side) => half(s) + shore(s, side);
   for (let s0 = -40; s0 < LEN; s0 += CH) {
-    const pos = [], col = [], idx = [], b = new Builder(500 + s0), r = b.r, N = CH / 2;
+    const BL = { pos: [], col: [], tip: [], nor: [] }, pos = [], col = [], idx = [], b = new Builder(500 + s0), r = b.r, N = CH / 2;
     for (const side of [-1, 1]) {
       const base = pos.length / 3;
       for (let i = 0; i <= N; i++) {
@@ -4892,6 +4911,12 @@ function buildRiver() {
           if (r() < 0.3) { const d = 0.9 + r() * 1.4, rr = 0.6 + r() * 0.5; b.add(leafBlob(rr, 0.8, 7 + k, 1), GREENS[(r() * 5) | 0], cx(s) + side * (e + d), bankY(d) + rr * 0.45, -s + (r() - 0.5) * 2, r() * 3, 0.12); } }
         else if (r() < 0.4) { const d = 1 + r() * 2, lg = new THREE.CylinderGeometry(0.09, 0.12, 1.6 + r(), 7); lg.rotateZ(Math.PI / 2); b.add(lg, 0x8a7458, cx(s) + side * (e + d), bankY(d) + 0.08, -s, r() * 3, 0.06); }
       }
+      if (HQ) for (let i = 0, n = isTouch ? 220 : 620; i < n; i++) {                           // blades of grass down the bank
+        const s = s0 + r() * CH, d = 0.8 + r() * r() * 13; if ((side > 0 && s > END - 100) || cove(s, side) > 0.35 || (side > 0 && s > 78 && s < 99 && d < 17)) continue;
+        const x = cx(s) + side * (edge(s, side) + d), y = bankY(d) - 0.06, z = -s, k = 0.6 + r() * 0.6;
+        for (let j = 0; j < 3; j++) { const a = r() * 6.28, h = 0.14 + r() * 0.24, w = 0.024 + r() * 0.022, bx = x + (r() - 0.5) * 0.22, bz = z + (r() - 0.5) * 0.22, lx = (r() - 0.5) * 0.14, lz = (r() - 0.5) * 0.14, c = Math.cos(a) * w, sn = Math.sin(a) * w, cr = 0.095 * k, cg = 0.24 * k, cb = 0.04 * k;
+          for (const fl of [0, 1]) { if (fl) BL.pos.push(bx + c, y, bz + sn, bx - c, y, bz - sn, bx + lx, y + h, bz + lz); else BL.pos.push(bx - c, y, bz - sn, bx + c, y, bz + sn, bx + lx, y + h, bz + lz); BL.col.push(cr * 0.6, cg * 0.6, cb * 0.6, cr * 0.6, cg * 0.6, cb * 0.6, cr * 1.3, cg * 1.35, cb * 1.2); BL.tip.push(0, 0, 1); BL.nor.push(0, 1, 0, 0, 1, 0, 0, 1, 0); } }
+      }
       if (HQ) for (let k = 0; k < 5; k++) {                                                    // thickets: willow scrub and tall rushes crowding right down to the water, hiding the line of the bank
         const s = s0 + r() * CH; if ((side > 0 && s > END - 105) || cove(s, side) > 0.45 || s < 60 || (side > 0 && s < 114)) continue; const len = 3 + r() * 5, e0 = edge(s, side);
         for (let i = 0, n = 5 + ((r() * 5) | 0); i < n; i++) { const ss = s + (i / n - 0.5) * len + (r() - 0.5) * 0.8, e = edge(ss, side), d = -0.5 + r() * 2.4, rr = 0.55 + r() * 0.75; b.add(leafBlob(rr, 0.8 + r() * 0.5, 11 + i + k, 1), GREENS[(r() * 5) | 0], cx(ss) + side * (e + d), Math.max(0.1, bankY(Math.max(0, d))) + rr * 0.42, -ss, r() * 3, 0.14); }
@@ -4910,6 +4935,7 @@ function buildRiver() {
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
     const bank = new THREE.Mesh(g, landMat); bank.receiveShadow = true; scene.add(bank);
+    if (BL.pos.length) { const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(BL.pos, 3)); bg.setAttribute('color', new THREE.Float32BufferAttribute(BL.col, 3)); bg.setAttribute('normal', new THREE.Float32BufferAttribute(BL.nor, 3)); bg.setAttribute('aTip', new THREE.Float32BufferAttribute(BL.tip, 1)); const bm = new THREE.Mesh(bg, bladeM); bm.receiveShadow = true; scene.add(bm); }
     if (!b.empty) scene.add(b.mesh());
   }
   if (HQ) {                                                  // Tawerna Cicha Zatoka: fried fish on a terrace over the water, just past the first bridge, on the right
@@ -4944,6 +4970,10 @@ function buildRiver() {
     mkSign(6.4, 2.3, X(8.2), 5.6, Z(0), -Math.PI / 2);       // and one on the roof, facing the river
     G.tavern = { x: X(7.9), y: DY + 3.8, z: Z(-6.5), s };
   }
+  if (HQ) {                                                  // ducks keeping to the banks, and one fish that keeps jumping
+    G.ducks = []; [140, 250, 395, 540, 700, 905, 1080, 1260, 1390].forEach((ds, i) => { const sd = i % 2 ? 1 : -1; for (let k = 0; k < 2; k++) { const db = new Builder(990 + i * 2 + k), male = k === 0, body = new THREE.SphereGeometry(0.2, 10, 8); body.scale(1, 0.75, 1.55); db.add(body, male ? 0x9a8f84 : 0x8a6a48, 0, 0.1, 0, 0, 0.04); db.add(new THREE.SphereGeometry(0.1, 10, 8), male ? 0x1f5a3a : 0x7a5a3c, 0, 0.3, 0.24, 0, 0.03); db.box(0.07, 0.03, 0.12, 0, 0.28, 0.36, 0xe0a82a, 0, 0); db.box(0.12, 0.1, 0.12, 0, 0.16, -0.3, male ? 0x2a2a2e : 0x6b4a32, 0, 0); const m = db.mesh(); scene.add(m); G.ducks.push({ m, s: ds + k * 0.9, sd, ph: i * 1.7 + k }); } });
+    const fg = new THREE.SphereGeometry(0.12, 10, 8); fg.scale(0.55, 1, 2.4); G.fish = new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ color: 0xb9c4cc, roughness: 0.25, metalness: 0.7 })); G.fish.visible = false; scene.add(G.fish); G.fishT = 3;
+  }
   plantTrees(scene, TREES, patchMat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94 }), RU, { cloud: 0.36 }), rng(321), 1.15);
   // the bridges: a deck high over the water on piers that have to be passed between
   BR.forEach((s, bi) => {
@@ -4965,7 +4995,7 @@ function buildRiver() {
 function buildCourse() {
   const R = rng(20 + ((Math.random() * 1e6) | 0)), b = new Builder(1200), pick = (a) => a[(R() * a.length) | 0];
   let gap = 0, s = 105; events.push({ s: BR[0], gap: 0, type: 'bridge' });
-  const rock = (s1, u, r) => { const x = cx(s1) + u; b.blob(r * 1.05, x, 0.15, -s1, 0x7d7a74, 0.7); b.blob(r * 0.6, x + r * 0.5, 0.1, -s1 + r * 0.4, 0x6a6862, 0.7); b.blob(r * 0.5, x - r * 0.5, 0.05, -s1 - r * 0.3, 0x8a877f, 0.6); obs.push({ type: 'rock', s: s1, u, r: r * 0.95 }); };
+  const rock = (s1, u, r) => { const x = cx(s1) + u; if (HQ) { const q = (rr, dx, dy, dz, col, sy, sd) => { b.add(leafBlob(rr, sy, sd, 2), col, x + dx, dy, -s1 + dz, b.r() * 3, 0.08); b.add(leafBlob(rr * 1.04, 0.22, sd, 2), 0x3a3c3a, x + dx, dy - rr * sy * 0.55, -s1 + dz, 0, 0.03); }; q(r * 1.05, 0, 0.15, 0, 0x8a877f, 0.7, 31 + s1); q(r * 0.6, r * 0.5, 0.1, r * 0.4, 0x74726c, 0.7, 47 + s1); q(r * 0.5, -r * 0.5, 0.05, -r * 0.3, 0x96938a, 0.6, 59 + s1); } else { b.blob(r * 1.05, x, 0.15, -s1, 0x7d7a74, 0.7); b.blob(r * 0.6, x + r * 0.5, 0.1, -s1 + r * 0.4, 0x6a6862, 0.7); b.blob(r * 0.5, x - r * 0.5, 0.05, -s1 - r * 0.3, 0x8a877f, 0.6); } obs.push({ type: 'rock', s: s1, u, r: r * 0.95 }); };
   while (s < END - 70) {
     const d = clamp(s / END, 0, 1), h = half(s) - 1.1, near = BR.some((q) => Math.abs(q - s) < 26), prev = gap;
     gap = clamp(prev + (R() - 0.5) * 2 * 4.5, -h + 1.6, h - 1.6);
@@ -5100,7 +5130,7 @@ function updateArtur(dt, play) {
   if (A.mode === 'off') {
     A.timer -= play ? dt : 0;
     if (play && A.timer <= 0 && G.s > 70 && G.s < END - 240) {
-      A.mode = A.n++ % 2 ? 'back' : 'pass'; A.side = G.u > 0 ? -1 : 1; A.s = A.mode === 'pass' ? G.s - 40 : G.s + 150; A.u = A.side * (half(A.s) - 1.7); A.said = false; A.drop = 0;
+      A.mode = A.n++ % 2 ? 'back' : 'pass'; A.side = G.u > 0 ? -1 : 1; A.s = A.mode === 'pass' ? G.s - 40 : G.s + 150; A.u = A.side * (half(A.s) - 1.7); A.said = false; A.drop = 0; A.uv = 0; A.av = null; A.rs = 0;
       const w = A.who[(A.k = (A.k || 0) + 1) % 2 ? 0 : 1]; A.cur = w; A.g = w.g; A.arm = w.arm; A.label = w.label; for (const q of A.who) q.g.visible = q === w;      // wujek Artur and wujek Rafał take turns
       if (audio.on) audio.burst(w.foil ? 420 : 170, 3, 1.6, w.foil ? 0.06 : 0.22, 'bandpass', 0, 1.6);
     }
@@ -5109,9 +5139,12 @@ function updateArtur(dt, play) {
   const dir = A.mode === 'pass' ? 1 : -1, sp = A.mode === 'pass' ? G.v + 8.5 : 9, h = half(A.s) - 1.2;
   A.s += dir * sp * dt;
   let want = A.side * (h - 0.5);
-  for (const o of obs) { const os = o.k ? o.k.s : o.s, ou = o.k ? o.k.u : o.u, ds = (os - A.s) * dir; if (ds > -2 && ds < 13 && Math.abs(ou - A.u) < o.r + 1.7) want = ou + (A.u >= ou ? 1 : -1) * (o.r + 2.1); }
-  if (Math.abs(A.s - G.s) < 9 && Math.abs(want - G.u) < 3) want = G.u + (A.u >= G.u ? 1 : -1) * 3.2;            // give the raft room
-  want = clamp(want, -h, h); const du = clamp(want - A.u, -8 * dt, 8 * dt); A.u += du;
+  // He steers round the nearest thing ahead only, picks his side once and keeps to it, and his sideways speed is eased:
+  // no more flicking from left to right several times a second.
+  let near1 = null, nd = 1e9; for (const o of obs) { const os = o.k ? o.k.s : o.s, ou = o.k ? o.k.u : o.u, ds = (os - A.s) * dir; if (ds > -2.5 && ds < 16 && Math.abs(ou - A.u) < o.r + 2.4 && ds < nd) { nd = ds; near1 = o; } }
+  if (near1) { const ou = near1.k ? near1.k.u : near1.u; if (A.av !== near1) { A.av = near1; A.avS = A.u >= ou ? 1 : -1; if (Math.abs(ou + A.avS * (near1.r + 2.1)) > h) A.avS = -A.avS; } want = ou + A.avS * (near1.r + 2.1); } else A.av = null;
+  if (Math.abs(A.s - G.s) < 10 && Math.abs(want - G.u) < 3.2) { if (!A.rs) A.rs = A.u >= G.u ? 1 : -1; want = G.u + A.rs * 3.4; } else if (Math.abs(A.s - G.s) > 14) A.rs = 0;            // give the raft room
+  want = clamp(want, -h, h); A.uv = (A.uv || 0) + (clamp((want - A.u) * 2.2, -5.5, 5.5) - (A.uv || 0)) * Math.min(1, dt * 3.2); const du = A.uv * dt; A.u = clamp(A.u + du, -h, h);
   const x = cx(A.s) + A.u, yaw = Math.atan2(dir * slope(A.s) + du / Math.max(1e-3, dt) / sp, -dir);
   const foil = A.cur && A.cur.foil;
   if (foil) { A.g.position.set(x, -0.3 + Math.sin(G.t * 1.7) * 0.05 + waveH(x, -A.s, G.t) * 0.25, -A.s); A.g.rotation.set(-0.03 + Math.sin(G.t * 1.3) * 0.03, yaw, -clamp(du / Math.max(1e-3, dt), -8, 8) * 0.075 + Math.sin(G.t * 2.1) * 0.03, 'YXZ'); }      // the e-foil flies level and leans into its turns
@@ -5135,7 +5168,23 @@ function buildRaft() {
   raft.add(b.mesh());
   for (const sd of [-1, 1]) { const pb = new Builder(62 + sd); pb.cyl(0.03, 0.03, 1.5, 0, -1.1, 0, 0x8a6a45, 6); pb.box(0.24, 0.42, 0.04, 0, -1.4, 0, 0xe9e6df); const m = pb.mesh(), piv = new THREE.Group(); piv.position.set(sd * 0.92, 0.62, 0.25); piv.rotation.z = sd * 0.7; piv.add(m); raft.add(piv); paddles.push({ piv, sd }); }
   scene.add(raft);
+  // the super speedboat that the code "rafal" turns the raft into: a long white hull with a red stripe, a windscreen, two outboards
+  const sb = new Builder(64), boat = new THREE.Group(), WHITE = 0xf4f5f7, RED = 0xd8342c, DARK = 0x1c1f24;
+  const hull = (k) => { const sh = new THREE.Shape(), P = [[0.78, -2.0], [0.86, -0.9], [0.84, 0.2], [0.66, 1.2], [0.34, 1.95], [0, 2.45]]; sh.moveTo(0, -2.0 * k); sh.lineTo(P[0][0] * k, P[0][1] * k); for (let i = 1; i < P.length; i++) sh.quadraticCurveTo(P[i - 1][0] * k * 1.04, (P[i - 1][1] + P[i][1]) / 2 * k, P[i][0] * k, P[i][1] * k); for (let i = P.length - 2; i >= 0; i--) sh.quadraticCurveTo(-P[i + 1][0] * k * 1.04, (P[i + 1][1] + P[i][1]) / 2 * k, -P[i][0] * k, P[i][1] * k); sh.lineTo(0, -2.0 * k); return sh; };
+  { const hg = new THREE.ExtrudeGeometry(hull(1), { depth: 0.6, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.06, bevelSegments: 3, curveSegments: 10 }); hg.rotateX(Math.PI / 2); const q = hg.attributes.position; for (let i = 0; i < q.count; i++) { const t = Math.max(0, -q.getY(i) / 0.7), z = q.getZ(i); q.setX(i, q.getX(i) * (1 - t * 0.55)); q.setY(i, q.getY(i) + Math.max(0, z - 0.8) * 0.16 * (1 - t)); } hg.computeVertexNormals(); sb.add(hg, WHITE, 0, 0.62, 0, 0, 0.02);     // a V hull with a rising bow
+    const st = new THREE.ExtrudeGeometry(hull(1.015), { depth: 0.1, bevelEnabled: false, curveSegments: 10 }); st.rotateX(Math.PI / 2); sb.add(st, RED, 0, 0.5, 0, 0, 0.02);
+    const fl = new THREE.ExtrudeGeometry(hull(0.82), { depth: 0.02, bevelEnabled: false, curveSegments: 10 }); fl.rotateX(Math.PI / 2); fl.scale(1, 1, 0.8); sb.add(fl, 0x8a6a45, 0, 0.3, -0.25, 0, 0.04); }                                          // teak cockpit floor
+  for (const sx of [-0.7, 0.7]) sb.box(0.16, 0.34, 3.0, sx, 0.3, -0.45, WHITE, 0, 0.02); sb.box(1.5, 0.34, 0.16, 0, 0.3, -1.9, WHITE, 0, 0.02); sb.box(1.3, 0.4, 1.0, 0, 0.3, 1.25, WHITE, 0, 0.02);                                                   // coamings and the foredeck
+  { const ws = new THREE.BoxGeometry(1.3, 0.5, 0.05); ws.rotateX(-0.55); sb.add(ws, 0x22384c, 0, 0.92, 0.95, 0, 0); sb.box(1.36, 0.05, 0.08, 0, 1.12, 0.82, 0xb9bec6, 0, 0); sb.box(0.5, 0.3, 0.3, 0.35, 0.62, 0.86, DARK, 0, 0); const wh = new THREE.TorusGeometry(0.16, 0.025, 6, 16); wh.rotateX(-0.5); sb.add(wh, DARK, 0.35, 0.86, 0.68, 0, 0); }     // windscreen, console, wheel
+  sb.box(1.2, 0.3, 0.45, 0, 0.32, -1.45, RED, 0, 0.03); sb.box(1.2, 0.45, 0.12, 0, 0.5, -1.7, RED, 0, 0.03);                                                                                                                                  // the stern bench
+  for (const sx of [-0.36, 0.36]) { sb.box(0.34, 0.62, 0.5, sx, 0.72, -2.25, DARK, 0, 0.02); sb.box(0.3, 0.1, 0.44, sx, 1.32, -2.25, 0xb9bec6, 0, 0); sb.box(0.12, 0.8, 0.2, sx, -0.05, -2.3, 0x3a3d42, 0, 0); }                                     // two big outboards
+  for (const sx of [-0.62, 0.62]) { sb.cyl(0.02, 0.02, 0.4, sx, 0.72, 1.7, 0xb9bec6, 6); } sb.box(1.26, 0.03, 0.03, 0, 1.1, 1.7, 0xb9bec6, 0, 0); sb.cyl(0.015, 0.015, 0.9, 0, 0.64, -1.95, 0xb9bec6, 5); sb.box(0.03, 0.26, 0.4, 0, 1.3, -2.14, RED, 0, 0);   // bow rail and a little flag
+  boat.add(sb.mesh()); boat.visible = false; raft.add(boat); G.boat = boat; G.raftParts = raft.children.filter((c) => c !== boat);
 }
+// codes, as in the old games: type "rafal" during the trip and the raft becomes a speedboat
+let typed = '';
+window.addEventListener('keydown', (e) => { if (e.key.length !== 1) return; typed = (typed + e.key.toLowerCase()).slice(-8); if (typed.endsWith('rafal') && G.mode === 'play') { typed = ''; setBoat(!G.speedboat); } });
+function setBoat(on) { G.speedboat = on; G.boat.visible = on; for (const c of G.raftParts) c.visible = !on; dog.root.position.y = on ? 0.3 : 0.16; cat.root.position.y = on ? 0.32 : 0.2; if (G.mode === 'play') { pick(T(on ? 'cheatOn' : 'cheatOff')); pickT = 2.6; } if (on) { G.shake = 0.6; buzz([60, 30, 120]); if (audio.on) { audio.rumble(1.4); audio.burst(170, 3, 1.6, 0.25, 'bandpass', 0, 1.6); } } }
 
 // ------------------------------------------------------------------ HUD, input
 let hintT = 0, pickT = 0;
@@ -5188,6 +5237,7 @@ window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; t
 
 // ------------------------------------------------------------------ game flow
 function reset() {
+  if (G.speedboat) setBoat(false);
   Object.assign(G, { t: 0, time: 0, s: 0, u: 0, uv: 0, v: 0, boost: 0, lives: 3, bones: 0, inv: 0, cd: 0, stroke: 0, spin: 0, shake: 0, endT: 0, places: 0, landed: 0, hopD: 0, hopC: 0 }); G.hints.clear();
   for (let i = items.length - 1; i >= 0; i--) if (items[i].dyn) items.splice(i, 1);
   for (const it of items) { it.got = false; if (it.m) it.m.visible = true; }
@@ -5242,10 +5292,11 @@ function step(dt) {
     if (G.s >= END) { G.mode = 'land'; G.endT = 0; if (audio.on) audio.fanfare(); for (const id of ['rTop', 'rLives', 'rMila', 'hint']) $(id).style.opacity = 0; }
   }
   if (G.mode === 'land') { steer = clamp((half(G.s) - 0.4 - G.u) * 0.5, -1, 1); slow = 0.45 * (1 - sm(END + 14, BEACH.s, G.s)) + 0.02; if (G.s >= BEACH.s - 0.5 || G.v < 0.25) { G.mode = 'win'; G.endT = 0; scene.attach(dog.root); scene.attach(cat.root); G.from = dog.root.position.clone(); G.fromC = cat.root.position.clone(); } }
-  const target = moving ? (6.4 + 2.6 * sm(0, END, G.s) + fast) * slow : 0;
+  const target = moving ? (6.4 + 2.6 * sm(0, END, G.s) + fast) * slow * (G.speedboat && G.mode === 'play' ? 3.5 : 1) : 0;
   G.boost += (0 - G.boost) * Math.min(1, dt * (G.boost < 0 ? 1.6 : 0.9));
   G.v += (Math.max(0.6 * (moving ? 1 : 0), target + G.boost * slow) - G.v) * Math.min(1, dt * 2.2);
-  G.uv += (steer * 7.5 - G.uv) * Math.min(1, dt * 3.2); if (!moving) G.uv *= 1 - Math.min(1, dt * 3);
+  G.uv += (steer * (G.speedboat ? 12.5 : 7.5) - G.uv) * Math.min(1, dt * (G.speedboat ? 5 : 3.2));
+  if (G.speedboat && moving) for (let q = 0; q < 3; q++) { raft.localToWorld(tmpV.set((Math.random() - 0.5) * 1.2, 0.2, -2.6)); pAlpha.spawn(tmpV.x, 0.2, tmpV.z, (Math.random() - 0.5) * 3, 2 + Math.random() * 4, 2 + Math.random() * 3, 0.8, 0.3, 1.1, 0.95, 0.98, 1, 0.7, 9, 0.5); }      // the rooster tail behind the outboards if (!moving) G.uv *= 1 - Math.min(1, dt * 3);
   G.s += G.v * dt; G.u += G.uv * dt;
   const lim = G.mode === 'land' ? half(G.s) - 0.3 : hw; if (Math.abs(G.u) > lim) { G.u = Math.sign(G.u) * lim; if (play && Math.abs(G.uv) > 1) { G.boost = Math.min(G.boost, -1.2); if (Math.random() < dt * 30) pAlpha.spawn(cx(G.s) + G.u, 0.15, -G.s, 0, 1, 1, 0.5, 0.2, 0.6, 0.8, 0.75, 0.6, 0.5, 3, 1); } G.uv = 0; }
   G.spin += (0 - G.spin) * Math.min(1, dt * 1.8);
@@ -5273,6 +5324,13 @@ function step(dt) {
   }
   for (const p of puppies) { if (p.y > 0 || p.vy > 0) { p.vy -= 18 * dt; p.y = Math.max(0, p.y + p.vy * dt); } const d = (p.x - cx(BEACH.s) - half(BEACH.s)); p.d.root.position.set(p.x, bankY(Math.max(0, d)) * 0.45 + p.y, p.z); p.d.root.rotation.y = p.yaw === undefined ? -Math.PI / 2 : p.yaw; p.d.root.visible = G.s > END - 160; if (p.d.root.visible) p.d.animate(dt, { speed: G.mode === 'win' ? 5 : 0, grounded: p.y <= 0, vy: p.vy, sit: G.mode === 'win' ? 0 : 1, happy: 0.9, pant: true }); }
   // ---- things in the water
+  if (HQ) {
+    for (const d of G.ducks) { if (Math.abs(d.s - G.s) > 110) { d.m.visible = false; continue; } d.m.visible = true; const a = G.t * 0.25 + d.ph, ss = d.s + Math.sin(a) * 1.6, u = d.sd * (half(ss) - 1.0 + Math.cos(a) * 0.5), x = cx(ss) + u; d.m.position.set(x, 0.02 + waveH(x, -ss, G.t), -ss); d.m.rotation.set(Math.sin(G.t * 2 + d.ph) * 0.06, Math.atan2(-Math.sin(a) * 0.5 * d.sd, -Math.cos(a) * 1.6), 0); }
+    for (const o of obs) { if (o.type !== 'rock' || Math.abs(o.s - G.s) > 55 || Math.random() > dt * 5) continue; const a = Math.random() * 6.28, x = cx(o.s) + o.u + Math.cos(a) * o.r * 1.05, z = -o.s + Math.sin(a) * o.r * 1.05; pAlpha.spawn(x, 0.12 + waveH(x, z, G.t), z, Math.cos(a) * 0.4, 0.35, Math.sin(a) * 0.4 - 1.2, 0.9, 0.25, 0.8, 0.95, 0.98, 1, 0.5, 1.5, 0.8); }      // foam where the current breaks on the rocks
+    G.fishT -= dt; if (G.fishT <= 0 && play && !G.fish.visible) { G.fish.visible = true; G.fishJ = { t: 0, s: G.s + 14 + Math.random() * 16, u: (Math.random() - 0.5) * (half(G.s) * 1.4), dir: Math.random() < 0.5 ? -1 : 1 }; const x = cx(G.fishJ.s) + G.fishJ.u; for (let k = 0; k < 9; k++) pAlpha.spawn(x, 0.15, -G.fishJ.s, (Math.random() - 0.5) * 2, 1.5 + Math.random() * 2, (Math.random() - 0.5) * 2, 0.5, 0.12, 0.3, 0.9, 0.95, 1, 0.8, 9, 0.5); if (audio.on) audio.splash(0.07); }
+    if (G.fish.visible) { const j = G.fishJ; j.t += dt; const k = j.t / 0.75, x = cx(j.s) + j.u + j.dir * k * 1.5, y = Math.sin(k * Math.PI) * 0.95 - 0.05; G.fish.position.set(x, y, -j.s); G.fish.rotation.set(0, j.dir * Math.PI / 2, 0); G.fish.rotation.z = 0; G.fish.rotation.x = (k - 0.5) * 2.2; if (k >= 1) { G.fish.visible = false; G.fishT = 4 + Math.random() * 6; for (let q = 0; q < 7; q++) pAlpha.spawn(x, 0.15, -j.s, (Math.random() - 0.5) * 2, 1.2 + Math.random() * 1.5, (Math.random() - 0.5) * 2, 0.45, 0.12, 0.3, 0.9, 0.95, 1, 0.8, 9, 0.5); } }
+    if (Math.random() < dt * 7) { const sd = Math.random() < 0.5 ? -1 : 1, ss = G.s + 4 + Math.random() * 30; pAdd.spawn(cx(ss) + sd * (half(ss) - 0.8 + Math.random() * 2.2), 0.5 + Math.random() * 0.8, -ss, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 3, 0.5, 0.07, 0.05, 0.8, 2.2, 3.2, 0.9, 0, 0.5); }      // dragonflies glinting over the reeds
+  }
   if (G.tavern && Math.abs(G.tavern.s - G.s) < 130 && Math.random() < dt * 6) pAlpha.spawn(G.tavern.x + (Math.random() - 0.5) * 0.2, G.tavern.y, G.tavern.z, 0.3 + Math.random() * 0.3, 0.7, -0.2 + Math.random() * 0.2, 3.5, 0.3, 1.6, 0.6, 0.6, 0.62, 0.22, -0.02, 0.2);      // smoke from the fryer
   for (const k of kayaks) { if (Math.abs(k.s - G.s) > 130) { k.g.visible = false; continue; } k.g.visible = true; const a = G.t * k.w + k.ph; k.u = Math.sin(a) * k.amp; k.g.position.set(cx(k.s) + k.u, 0.03 + waveH(cx(k.s) + k.u, -k.s, G.t), -k.s); k.g.rotation.y = Math.cos(a) > 0 ? Math.PI / 2 : -Math.PI / 2; k.p.rotation.x = Math.sin(G.t * 4 + k.ph) * 0.6; if (play && k.s - G.s < 45 && k.s > G.s) hint('h_kayak'); }
   if (HQ) { let k = 0; for (const w of whirls) if (w.s > G.s - 60 && w.s < G.s + 320 && k < 12) whU.value[k++].set(w.x, -w.s, w.r * WH_K * 0.92); for (; k < 12; k++) whU.value[k].set(1e6, 1e6, 1);
@@ -5287,7 +5345,7 @@ function step(dt) {
   const title = G.mode === 'title', win = G.mode === 'win', tall = camera.aspect < 1 ? 1 : 0, sh = G.shake * G.shake * 0.3;
   if (title) { camera.position.lerp(tmpV.set(rx + 3.6, 1.6, -G.s - 4.6), Math.min(1, dt * 3)); camera.lookAt(rx, 0.7, -G.s); }
   else if (win) { const a = 0.4 + Math.sin(G.endT * 0.4) * 0.5, bx = cx(BEACH.s) + half(BEACH.s) + 3.2; camera.position.lerp(tmpV.set(bx - 5.5 - tall * 2, 2.2, -BEACH.s + Math.sin(a) * 6), Math.min(1, dt * 2)); camera.lookAt(bx + 0.5, 0.9, -BEACH.s); }
-  else { const hd = Math.atan(slope(G.s)) * 0.8, back = 7.6 + tall * 2.5 + clamp(G.v - 7, 0, 5) * 0.25; camera.position.lerp(tmpV.set(rx * 0.85 + cx(G.s) * 0.15 - Math.sin(hd) * back, 4.3 + tall * 1.6, -G.s + Math.cos(hd) * back), Math.min(1, dt * 5)); camera.position.x += (Math.random() - 0.5) * sh; camera.position.y += (Math.random() - 0.5) * sh; camera.lookAt(lerp(rx, cx(G.s + 11), 0.6), 0.6, -G.s - 11); }
+  else { const hd = Math.atan(slope(G.s)) * 0.8, back = 7.6 + tall * 2.5 + clamp(G.v - 7, 0, 5) * 0.25; camera.position.lerp(tmpV.set(rx * 0.85 + cx(G.s) * 0.15 - Math.sin(hd) * back, 4.3 + tall * 1.6, -G.s + Math.cos(hd) * back), Math.min(1, dt * (G.speedboat ? 16 : 5))); camera.position.x += (Math.random() - 0.5) * sh; camera.position.y += (Math.random() - 0.5) * sh; camera.lookAt(lerp(rx, cx(G.s + 11), 0.6), 0.6, -G.s - 11); }
   const fov = 60 + tall * 8 + clamp(G.v - 7, 0, 6) * 1.6; if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
   water.position.set(0, 0, -G.s - 110); waterU.uTime.value = G.t; skyU.uTime.value = G.t; G.dome.position.copy(camera.position); sky.position.copy(camera.position);
   sun.target.position.set(rx, 0, -G.s - 6); sun.position.copy(sun.target.position).addScaledVector(skyU.uSunDir.value, 70); sun.target.updateMatrixWorld();
@@ -5312,7 +5370,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now;
   if (document.hidden) return;
-  step(dt); renderer.render(scene, camera);
+  step(dt); draw();
   fpsAcc += dt; fpsN++; if (fpsAcc > 2.5) { if (fpsAcc / fpsN > 0.03 && pixelRatio > 0.7) { pixelRatio = Math.max(0.7, pixelRatio * 0.85); resize(); } fpsAcc = 0; fpsN = 0; }
 }
 async function boot() {
@@ -5329,9 +5387,9 @@ async function boot() {
   $('lang').addEventListener('click', () => { lang = lang === 'pl' ? 'en' : 'pl'; applyLang(); });
   $('again').addEventListener('click', () => { const bt = G.bot; toTitle(); G.bot = bt; startGame(); });
   $('menu').addEventListener('click', toTitle);
-  step(0.016); camera.position.set(3.6, 1.6, -4.6); renderer.compile(scene, camera); renderer.render(scene, camera);
-  window.__raft = { G, A, obs, items, events, kayaks, lanes, whirls, input, audio, step, startGame, reset, toTitle, paddle, renderer, scene, camera, cx, half, END,
-    sim: (secs, dt = 1 / 60) => { for (let t = 0; t < secs; t += dt) step(dt); renderer.render(scene, camera); return { mode: G.mode, s: +G.s.toFixed(0), u: +G.u.toFixed(1), v: +G.v.toFixed(1), lives: G.lives, bones: G.bones, time: +G.time.toFixed(0) }; } };
+  step(0.016); camera.position.set(3.6, 1.6, -4.6); renderer.compile(scene, camera); draw();
+  window.__raft = { setBoat, G, A, obs, items, events, kayaks, lanes, whirls, input, audio, step, startGame, reset, toTitle, paddle, renderer, scene, camera, cx, half, END,
+    sim: (secs, dt = 1 / 60) => { for (let t = 0; t < secs; t += dt) step(dt); draw(); return { mode: G.mode, s: +G.s.toFixed(0), u: +G.u.toFixed(1), v: +G.v.toFixed(1), lives: G.lives, bones: G.bones, time: +G.time.toFixed(0) }; } };
   $('title').classList.remove('hidden'); $('loading').style.opacity = 0; setTimeout(() => $('loading').remove(), 1100);
   last = performance.now(); requestAnimationFrame(frame);
 }
