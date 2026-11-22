@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261122-182041';
+  window.BUILD = '20261122-182828';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) { try { if (window.LEVEL && LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) {} location.replace(location.pathname + '?v=' + v); }
@@ -4082,7 +4082,7 @@ const TXT = {
     dawn: 'Do świtu', count: (f, h) => `Szczeniaki w budzie: ${h}/5`, sub: (n) => (n ? `idą za tobą: ${n}` : 'nasłuchuj szczekania'),
     h_start: 'Szczeniaki piszczą w ogrodach. Zaszczekaj (H), a najbliższy odpowie. Mila na płocie patrzy w jego stronę.',
     h_light: 'Unikaj światła lamp! W krzakach nikt cię nie zobaczy.', h_found: 'Jest! Teraz odprowadź go do budy.', h_home: 'Bezpieczny w budzie!',
-    h_water: 'Brrr! Zraszacz!', h_toy: 'Piiiisk! Gumowa kaczka!', h_bush: 'Ukryta w krzakach', h_all: 'Masz wszystkie! Wracaj do budy.',
+    h_water: 'Brrr! Zraszacz!', h_toy: 'Piiiisk! Gumowa kaczka!', h_bush: 'Ukryta w krzakach', h_hog: 'Auć, jeż! Kłuje — lepiej je omijać.', h_all: 'Masz wszystkie! Wracaj do budy.',
     caught: (o) => `„Kto tam?!” — ${o}. Uciekaj do furtki!`, garden: 'Ogród',
     winT: 'Wszystkie szczeniaki w budzie!', winX: (t, s) => `Nikt się nie obudził na dobre. Do świtu zostało ${t}. ${s}`,
     loseT: 'Świta…', loseX: (n) => `Sąsiedzi wstają, a w budzie jest dopiero ${n} z 5 szczeniaków. Spróbuj jeszcze raz!`,
@@ -4095,7 +4095,7 @@ const TXT = {
     dawn: 'Until dawn', count: (f, h) => `Puppies in the kennel: ${h}/5`, sub: (n) => (n ? `following you: ${n}` : 'listen for yapping'),
     h_start: 'Puppies are whining in the gardens. Bark (H) and the nearest one answers. Mila on the fence looks its way.',
     h_light: 'Stay out of the lamp light! Nobody sees you in the bushes.', h_found: 'There! Now lead it back to the kennel.', h_home: 'Safe in the kennel!',
-    h_water: 'Brrr! A sprinkler!', h_toy: 'Squeeeak! A rubber duck!', h_bush: 'Hidden in the bushes', h_all: 'You have them all! Back to the kennel.',
+    h_water: 'Brrr! A sprinkler!', h_toy: 'Squeeeak! A rubber duck!', h_bush: 'Hidden in the bushes', h_hog: 'Ouch, a hedgehog! Prickly — best walk around them.', h_all: 'You have them all! Back to the kennel.',
     caught: (o) => `"Who is there?!" — ${o}. Run for the gate!`, garden: 'Garden of',
     winT: 'All the puppies are in the kennel!', winX: (t, s) => `Nobody woke up for good. ${t} left until dawn. ${s}`,
     loseT: 'Dawn is breaking…', loseX: (n) => `The neighbours are getting up and only ${n} of 5 puppies are in the kennel. Try again!`,
@@ -4133,7 +4133,7 @@ const P = { x: START.x, z: START.z, yaw: Math.PI, speed: 0 };
 const input = { x: 0, y: 0 }, keys = {};
 const audio = new AudioSys();
 let dog, cat, tex, pAdd, pAlpha, moon, RU;
-const TREES = [], SMOKE = [], MOTHS = [], bats = []; let hog, tvGlow;
+const TREES = [], SMOKE = [], MOTHS = [], bats = [], hogs = []; let tvGlow;
 const boxes = [], circles = [], bushes = [], sectors = [], toys = [], windows = [], mowers = [], puppies = [], rings = [], trail = [], arrows = []; let glow;
 
 // ------------------------------------------------------------------ geometry helpers (vertex-coloured, merged)
@@ -4357,7 +4357,10 @@ function buildWorld() {
     b.blob(0.14, HOME.x + 2.6, 0.14, HOME.z - 0.9, 0xd9483b); }
   scene.add(b.mesh());
   // the hedgehog that patrols the lane, the bats, the flicker of a television behind Tomek's window
-  { const hb = new Builder(404), body = new THREE.SphereGeometry(0.17, 10, 8); body.scale(1, 0.8, 1.45); hb.add(body, 0x5a4634, 0, 0.13, 0, 0, 0.05); for (let i = 0; i < 26; i++) hb.cone(0.03, 0.12, (hb.r() - 0.5) * 0.26, 0.2 + hb.r() * 0.06, -0.15 + hb.r() * 0.3, 0x3a2c20, 4); hb.cone(0.06, 0.14, 0, 0.06, 0.26, 0xcbb089, 6); hb.blob(0.02, 0, 0.1, 0.34, 0x111111); hog = hb.mesh(); scene.add(hog); }
+  // hedgehogs on their rounds: one on each side of the lane, one in every garden, one in Łatka's own yard
+  const G1 = (g, u, v) => { const q = at(g, u, v); return [q.x, q.z]; };
+  [[[-30, -2.25], [30, -2.25], 0.016], [[26, 2.3], [-28, 2.3], 0.019], [G1(g1, 0.28, 0.24), G1(g1, 0.72, 0.44), 0.06], [G1(g2, 0.18, 0.14), G1(g2, 0.82, 0.2), 0.07], [G1(g3, 0.3, 0.74), G1(g3, 0.72, 0.7), 0.08], [G1(g4, 0.2, 0.24), G1(g4, 0.8, 0.66), 0.05], [G1(g5, 0.3, 0.76), G1(g5, 0.72, 0.16), 0.055], [[-5, 7.2], [5.5, 9.4], 0.09]]
+    .forEach(([a, b2, sp], i) => { const hb = new Builder(404 + i), body = new THREE.SphereGeometry(0.17, 10, 8); body.scale(1, 0.8, 1.45); hb.add(body, 0x5a4634, 0, 0.13, 0, 0, 0.05); for (let i = 0; i < 26; i++) hb.cone(0.03, 0.12, (hb.r() - 0.5) * 0.26, 0.2 + hb.r() * 0.06, -0.15 + hb.r() * 0.3, 0x3a2c20, 4); hb.cone(0.06, 0.14, 0, 0.06, 0.26, 0xcbb089, 6); hb.blob(0.02, 0, 0.1, 0.34, 0x111111); const m = hb.mesh(); scene.add(m); hogs.push({ m, ax: a[0], az: a[1], bx: b2[0], bz: b2[1], sp: sp, ph: i * 1.9, x: 0, z: 0 }); });
   for (let i = 0; i < 3; i++) { const g = new THREE.Group(), wm = new THREE.MeshBasicMaterial({ color: 0x07080c, side: THREE.DoubleSide }), mk = (sd) => { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.12, sd * 0.5, 0, -0.02, 0, 0, 0.14, sd * 0.5, 0, -0.02, sd * 0.42, 0, 0.2, 0, 0, 0.14], 3)); return new THREE.Mesh(wg, wm); }, wl = mk(-1), wr = mk(1); g.add(wl, wr); scene.add(g); bats.push({ g, wl, wr, ph: i * 2.1, cx: -18 + i * 18, cz: i % 2 ? 12 : -12 }); }
   { const h5 = at(g5, 0.5, 0.84), f5 = h5.z - 5.6 / 2; tvGlow = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 3.6).rotateX(-Math.PI / 2), glowMaterial(0xa890ff, 0.2)); tvGlow.position.set(h5.x + 3.2, 0.21, f5 - 1.5); tvGlow.renderOrder = 4; scene.add(tvGlow);
     const pane = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 1.05), new THREE.MeshBasicMaterial({ color: 0x9a86ff })); pane.position.set(h5.x + 3.2, 1.95, f5 - 0.1); pane.rotation.y = Math.PI; scene.add(pane); tvGlow.userData.pane = pane; }
@@ -4481,6 +4484,7 @@ function step(dt) {
   if (play && G.stun <= 0 && il > 0.05) {
     sp = (G.hidden ? 3.0 : 4.8) * Math.min(1, il); const dx = ix / Math.max(il, 1e-3) * sp * dt, dz = -iy / Math.max(il, 1e-3) * sp * dt;
     if (!blocked(P.x + dx, P.z)) P.x += dx; if (!blocked(P.x, P.z + dz)) P.z += dz;
+    if (G.knT > 0) { G.knT -= dt; const kx = G.knX * dt, kz = G.knZ * dt; if (!blocked(P.x + kx, P.z)) P.x += kx; if (!blocked(P.x, P.z + kz)) P.z += kz; }
     const want = Math.atan2(ix, -iy); P.yaw += angDiff(want, P.yaw) * Math.min(1, dt * 12);
     const last = trail[0]; if (!last || Math.hypot(last.x - P.x, last.z - P.z) > 0.16) { trail.unshift({ x: P.x, z: P.z }); if (trail.length > 80) trail.pop(); }
   }
@@ -4598,7 +4602,9 @@ function step(dt) {
   // night life: moths at the lamps, smoke from the chimneys, the hedgehog, bats, the television, an owl now and then
   for (const m of MOTHS) if (Math.abs(m.x - P.x) < 26 && Math.random() < dt * 9) pAdd.spawn(m.x + (Math.random() - 0.5) * 1.2, m.y + (Math.random() - 0.5) * 0.9, m.z + (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 2.2, (Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 2.2, 0.6, 0.06, 0.04, 2.6, 2.3, 1.7, 0.9, 0, 1.5);
   for (const c of SMOKE) if (Math.random() < dt * 4) pAlpha.spawn(c.x + (Math.random() - 0.5) * 0.2, 5.7, c.z, 0.25 + Math.random() * 0.15, 0.55, (Math.random() - 0.5) * 0.12, 4.5, 0.3, 1.5, 0.42, 0.45, 0.55, 0.2, -0.02, 0.15);
-  { const hx = Math.sin(G.t * 0.016) * 30, dir = Math.cos(G.t * 0.016) > 0 ? 1 : -1; hog.position.set(hx, Math.abs(Math.sin(G.t * 9)) * 0.012, -2.25); hog.rotation.y = dir * Math.PI / 2; }
+  for (const h of hogs) { const a = G.t * h.sp + h.ph, k = 0.5 - 0.5 * Math.cos(a), dir = Math.sin(a) >= 0 ? 1 : -1; h.x = lerp(h.ax, h.bx, k); h.z = lerp(h.az, h.bz, k); h.m.position.set(h.x, Math.abs(Math.sin(G.t * 9 + h.ph)) * 0.012, h.z); h.m.rotation.y = Math.atan2((h.bx - h.ax) * dir, (h.bz - h.az) * dir);
+    if (G.mode === 'play' && !(G.knT > 0) && Math.hypot(P.x - h.x, P.z - h.z) < 0.46) {                                 // stepping on one: a prick and a hop to the side, nothing worse
+      const rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw), sd = ((P.x - h.x) * rx + (P.z - h.z) * rz) >= 0 ? 1 : -1; G.knX = rx * sd * 5.2; G.knZ = rz * sd * 5.2; G.knT = 0.24; hint('h_hog'); if (audio.on) audio.yip(1.3); dog.bark(); } }
   for (const bt of bats) { const a = G.t * 0.55 + bt.ph; bt.g.position.set(bt.cx + Math.sin(a) * 15, 6.2 + Math.sin(a * 2.3) * 0.9, bt.cz + Math.sin(a * 2) * 7); bt.g.rotation.y = Math.atan2(Math.cos(a) * 15, Math.cos(a * 2) * 14); const f = Math.sin(G.t * 22 + bt.ph) * 0.8; bt.wl.rotation.z = -f; bt.wr.rotation.z = f; }
   { const k = 0.55 + 0.45 * Math.sin(G.t * 7.3) * Math.sin(G.t * 2.9 + 1) + (Math.sin(G.t * 31) > 0.9 ? 0.4 : 0); tvGlow.material.uniforms.uStrength.value = 0.1 + 0.12 * k; tvGlow.userData.pane.material.color.setRGB(0.45 + 0.35 * k, 0.4 + 0.3 * k, 0.9); }
   if (audio.on && G.mode === 'play' && Math.random() < dt / 22) { audio.tone(392, 0.32, 'sine', 0.04); audio.tone(330, 0.7, 'sine', 0.045, 0, 0.42); }
@@ -4645,7 +4651,7 @@ async function boot() {
   $('menu').addEventListener('click', toTitle);
   $('bJump').style.display = 'none'; $('flash').style.background = 'radial-gradient(ellipse at center, rgba(255,214,110,0) 40%, rgba(255,190,80,.55))';
   step(0.016); camera.position.set(cam.x + 2.6, 3.2, cam.z - 6.2); renderer.compile(scene, camera); draw();
-  window.__night = { G, P, GARD, puppies, sectors, toys, windows, mowers, input, audio, step, startGame, reset, toTitle, caught, bark, renderer, scene, camera, blocked,
+  window.__night = { G, P, GARD, hogs, puppies, sectors, toys, windows, mowers, input, audio, step, startGame, reset, toTitle, caught, bark, renderer, scene, camera, blocked,
     tp: (x, z) => { P.x = x; P.z = z; trail.length = 0; cam.x = x; cam.z = z; },
     sim: (secs, dt = 1 / 60) => { for (let t = 0; t < secs; t += dt) step(dt); draw(); return { mode: G.mode, x: +P.x.toFixed(1), z: +P.z.toFixed(1), alert: +G.alert.toFixed(2), home: G.home, states: puppies.map((p) => p.state[0]).join(''), time: +G.time.toFixed(0) }; },
     // walks in a straight line towards a point (collisions on); returns true when it gets there
@@ -5105,7 +5111,7 @@ function step(dt) {
     for (const o of obs) {
       const os = o.k ? o.k.s : o.s; if (Math.abs(os - G.s) > 7) continue;
       const ou = o.k ? o.k.u : o.u, ox = cx(os) + ou, dx = ox - X, dz = os - G.s, d = Math.hypot(dx, dz);
-      if (o.type === 'whirl') { if (d < o.r + 0.4) { const k = 1 - d / (o.r + 0.4); slow = Math.min(slow, 0.5); G.uv += Math.sign(dx) * 9 * k * dt; G.spin += dt * 5 * k; hint('h_whirl'); } }
+      if (o.type === 'whirl') { if (d < o.r + 1.7) { const k = 1 - d / (o.r + 1.7); slow = Math.min(slow, lerp(0.8, 0.22, Math.min(1, k * 1.5))); G.uv += Math.sign(dx) * 19 * k * dt; G.spin += dt * 8 * k; if (k > 0.25) hint('h_whirl'); } }      // the pull reaches well beyond the funnel and is hard to fight near the middle
       else if (o.type === 'sand') { if (d < o.r) { slow = Math.min(slow, 0.5); hint('h_sand'); if (Math.random() < dt * 20) pAlpha.spawn(X + (Math.random() - 0.5), 0.1, -G.s + 1, 0, 0.6, 2, 0.5, 0.2, 0.6, 0.85, 0.78, 0.55, 0.5, 2, 1); } }
       else if (d < o.r + 1.0) damage(ox, -os, o.type);
     }

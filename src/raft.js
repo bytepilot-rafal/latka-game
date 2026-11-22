@@ -446,7 +446,7 @@ function step(dt) {
     for (const o of obs) {
       const os = o.k ? o.k.s : o.s; if (Math.abs(os - G.s) > 7) continue;
       const ou = o.k ? o.k.u : o.u, ox = cx(os) + ou, dx = ox - X, dz = os - G.s, d = Math.hypot(dx, dz);
-      if (o.type === 'whirl') { if (d < o.r + 0.4) { const k = 1 - d / (o.r + 0.4); slow = Math.min(slow, 0.5); G.uv += Math.sign(dx) * 9 * k * dt; G.spin += dt * 5 * k; hint('h_whirl'); } }
+      if (o.type === 'whirl') { if (d < o.r + 1.7) { const k = 1 - d / (o.r + 1.7); slow = Math.min(slow, lerp(0.8, 0.22, Math.min(1, k * 1.5))); G.uv += Math.sign(dx) * 19 * k * dt; G.spin += dt * 8 * k; if (k > 0.25) hint('h_whirl'); } }      // the pull reaches well beyond the funnel and is hard to fight near the middle
       else if (o.type === 'sand') { if (d < o.r) { slow = Math.min(slow, 0.5); hint('h_sand'); if (Math.random() < dt * 20) pAlpha.spawn(X + (Math.random() - 0.5), 0.1, -G.s + 1, 0, 0.6, 2, 0.5, 0.2, 0.6, 0.85, 0.78, 0.55, 0.5, 2, 1); } }
       else if (d < o.r + 1.0) damage(ox, -os, o.type);
     }
