@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261128-021602';
+  window.BUILD = '20261128-022553';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) { try { if (window.LEVEL && LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) {} location.replace(location.pathname + '?v=' + v); }
@@ -6453,10 +6453,10 @@ const TXT = {
     keys: 'A / D lub ← → — skręt · Spacja — podskok · S lub ↓ — hamulec · na lodzie: strzałki / WASD — bieg we wszystkie strony',
     keys_t: 'Lewy kciuk — skręt (na lodzie: kierunek biegu) · łapa — podskok · „Stop" — hamulec',
     time: (t) => `Czas: ${t}`, bones: (n) => `Kości: ${n}`, left: (m) => `Do ogniska: ${m} m`, brake: 'Stop',
-    h_start: 'Sanki same nabierają prędkości. Skręcaj, a przed zakrętem przyhamuj.', h_log: 'Kłoda w poprzek — podskocz!', h_ramp: 'Skocznia! W locie kręć sankami (← →) i wyląduj prosto.', h_fork: 'Rozwidlenie! Szeroka droga jest łatwa, wąski skrót przez las — szybszy i pełen kości.', h_chute: 'Lodowa rynna! Sanki pędzą i prawie nie skręcają.', h_deer: 'Sarny przebiegają przez trasę — przyhamuj!', h_crack: 'Lód pęka za Łatką! Biegnij i nie zatrzymuj się!',
+    h_start: 'Sanki same nabierają prędkości. Skręcaj, a przed zakrętem przyhamuj.', h_log: 'Kłoda w poprzek — podskocz!', h_ramp: 'Skocznia! W locie: ← → obrót, ↑ ↓ salto. Wyląduj prosto — seria udanych skoków mnoży punkty stylu.', h_aval: 'LAWINA! Nie hamuj — uciekaj!', h_bridge: 'Kładka nad strumieniem — trzymaj się środka.', h_fight: 'Bitwa na śnieżki! Omijaj kule — trafienie zasypuje ekran.', h_fork: 'Rozwidlenie! Szeroka droga jest łatwa, wąski skrót przez las — szybszy i pełen kości.', h_chute: 'Lodowa rynna! Sanki pędzą i prawie nie skręcają.', h_deer: 'Sarny przebiegają przez trasę — przyhamuj!', h_crack: 'Lód pęka za Łatką! Biegnij i nie zatrzymuj się!',
     h_ball: 'Uwaga, toczy się śnieżna kula!', h_ice: 'Lód! Łatka ślizga się dalej, nawet gdy puścisz ster.', h_hole: 'Omijaj przeręble.', h_thin: 'Ciemny lód jest cienki — przebiegnij szybko albo omiń.',
     h_snow: 'Na śniegu łapy trzymają — tam najłatwiej wyhamować.', h_skater: 'Uwaga na łyżwiarzy!',
-    hit: 'Bęc! Sanki w zaspie!', splash: 'Chlup! Lodowata kąpiel!', bump: 'Ups!', air: (m, b) => `Lot ${m} m! +${b}`, spin: (n, b) => `Obrót ×${n}! +${b}`, clean: (n, b) => `Obrót ×${n} i czyste lądowanie! +${b}`, tumble: 'Krzywe lądowanie — fikołek!', sign: 'SKRÓT', crackle: 'Lód trzeszczy!', off: 'Dalej na łapach!',
+    hit: 'Bęc! Sanki w zaspie!', splash: 'Chlup! Lodowata kąpiel!', bump: 'Ups!', air: (m, b) => `Lot ${m} m! +${b}`, spin: (n, b) => `Obrót ×${n}! +${b}`, clean: (n, b) => `Obrót ×${n} i czyste lądowanie! +${b}`, tumble: 'Krzywe lądowanie — fikołek!', t_spin: (n) => `obrót ×${n}`, t_flip: (n) => `salto ×${n}`, t_clean: 'czysto', t_air: (m) => `lot ${m} m`, style: (p, c) => `Styl: ${p}${c > 1 ? ' ×' + c : ''}`, styleEnd: (p) => ` Styl: ${p}.`, buried: 'Lawina was dogoniła!', aval: (m) => `Lawina: ${m} m`, splat: 'Pac! Śnieżka!', sign: 'SKRÓT', crackle: 'Lód trzeszczy!', off: 'Dalej na łapach!',
     k_place: 'Zima', p1: 'Górka Piszczykowska', p2: 'Wierzbica', p3: 'Zamarznięta Narew', p4: 'Ognisko',
     winT: 'Przy ognisku!', winX: (t, b, s) => `Łatka i Mila grzeją łapy przy ognisku ze Stasiem. Czas: ${t} · kości: ${b}. ${s}`,
     loseT: 'Koniec zabawy…', loseX: (m) => `Przemoczone i zmarznięte wracają do domu, ${m} m przed ogniskiem. Spróbuj jeszcze raz!`,
@@ -6467,10 +6467,10 @@ const TXT = {
     keys: 'A / D or ← → — steer · Space — hop · S or ↓ — brake · on the ice: arrows / WASD — run any way',
     keys_t: 'Left thumb — steer (on the ice: where to run) · paw — hop · "Stop" — brake',
     time: (t) => `Time: ${t}`, bones: (n) => `Bones: ${n}`, left: (m) => `To the bonfire: ${m} m`, brake: 'Stop',
-    h_start: 'The sledge picks up speed by itself. Steer, and brake before the bends.', h_log: 'A log across the run — hop!', h_ramp: 'A kicker! Spin the sledge in the air (← →) and land straight.', h_fork: 'A fork! The wide way is easy, the narrow shortcut through the trees is faster and full of bones.', h_chute: 'The ice chute! The sledge flies and hardly steers.', h_deer: 'Deer are crossing the run — brake!', h_crack: 'The ice is breaking behind Łatka! Run and do not stop!',
+    h_start: 'The sledge picks up speed by itself. Steer, and brake before the bends.', h_log: 'A log across the run — hop!', h_ramp: 'A kicker! In the air: ← → spin, ↑ ↓ flip. Land straight — a run of clean jumps multiplies the style points.', h_aval: 'AVALANCHE! Do not brake — run!', h_bridge: 'A footbridge over the stream — keep to the middle.', h_fight: 'Snowball fight! Dodge them — a hit snows up the screen.', h_fork: 'A fork! The wide way is easy, the narrow shortcut through the trees is faster and full of bones.', h_chute: 'The ice chute! The sledge flies and hardly steers.', h_deer: 'Deer are crossing the run — brake!', h_crack: 'The ice is breaking behind Łatka! Run and do not stop!',
     h_ball: 'Look out, a snowball is rolling!', h_ice: 'Ice! Łatka keeps sliding even when you let go.', h_hole: 'Keep away from the ice holes.', h_thin: 'Dark ice is thin — cross it fast or go round.',
     h_snow: 'Paws grip on snow — the easiest place to stop.', h_skater: 'Mind the skaters!',
-    hit: 'Bump! Into the snowdrift!', splash: 'Splash! An icy bath!', bump: 'Oops!', air: (m, b) => `${m} m of air! +${b}`, spin: (n, b) => `Spin ×${n}! +${b}`, clean: (n, b) => `Spin ×${n} and a clean landing! +${b}`, tumble: 'Crooked landing — tumble!', sign: 'SKRÓT', crackle: 'The ice is cracking!', off: 'On paws from here!',
+    hit: 'Bump! Into the snowdrift!', splash: 'Splash! An icy bath!', bump: 'Oops!', air: (m, b) => `${m} m of air! +${b}`, spin: (n, b) => `Spin ×${n}! +${b}`, clean: (n, b) => `Spin ×${n} and a clean landing! +${b}`, tumble: 'Crooked landing — tumble!', t_spin: (n) => `spin ×${n}`, t_flip: (n) => `flip ×${n}`, t_clean: 'clean', t_air: (m) => `${m} m air`, style: (p, c) => `Style: ${p}${c > 1 ? ' ×' + c : ''}`, styleEnd: (p) => ` Style: ${p}.`, buried: 'The avalanche caught you!', aval: (m) => `Avalanche: ${m} m`, splat: 'Splat! A snowball!', sign: 'SKRÓT', crackle: 'The ice is cracking!', off: 'On paws from here!',
     k_place: 'Winter', p1: 'Górka Piszczykowska', p2: 'Wierzbica', p3: 'Zamarznięta Narew', p4: 'Ognisko',
     winT: 'By the bonfire!', winX: (t, b, s) => `Łatka and Mila warm their paws by the fire with Staś. Time: ${t} · bones: ${b}. ${s}`,
     loseT: 'That is it for today…', loseX: (m) => `Soaked and cold, they head home ${m} m short of the bonfire. Try again!`,
@@ -6510,7 +6510,9 @@ const FORKS = [{ a: 520, b: 700, off: -16.5 }, { a: 1010, b: 1190, off: 16.5 }],
 const forkAt = (s) => (s > FORKS[0].a && s < FORKS[0].b ? FORKS[0] : s > FORKS[1].a && s < FORKS[1].b ? FORKS[1] : null);
 const uc = (f, s) => f.off * sm(f.a, f.a + 45, s) * (1 - sm(f.b - 45, f.b, s));                    // middle of the shortcut: it leaves the run, keeps apart, comes back
 const chuteK = (s) => sm(CHUTE[0], CHUTE[0] + 25, s) * (1 - sm(CHUTE[1] - 25, CHUTE[1], s));
-const half = (s) => lerp(lerp(7.6 + 1.4 * Math.sin(s * 0.011 + 2), 2.8, chuteK(s)), IW, sm(S1 - 10, S1 + 70, s));
+const AV0 = 720, AV1 = 985, TUN = [452, 498], BR = 875;                                           // the avalanche stretch; the snow tunnel; the footbridge
+const bridgeK = (s) => sm(BR - 27, BR - 13, s) * (1 - sm(BR + 13, BR + 27, s)), gul = (s) => 3.6 * sm(BR - 17, BR - 9, s) * (1 - sm(BR + 9, BR + 17, s));   // the run narrows on to the bridge; the stream gully under it
+const half = (s) => lerp(lerp(lerp(7.6 + 1.4 * Math.sin(s * 0.011 + 2), 2.8, chuteK(s)), 2.5, bridgeK(s)), IW, sm(S1 - 10, S1 + 70, s));
 const trackY = (s) => { const f = clamp((S1 - s) / S1, 0, 1.06), a = 0.1, g = f < a ? f * f / (2 * a) : f - a / 2, k = sm(0, 0.15, f); return DROP * g + (4 * Math.sin(s * 0.019) + 1.6 * Math.sin(s * 0.043 + 1)) * k; };
 const RAMPS = [];                                                          // kickers: { s, u, w }
 function ground(s, u) {
@@ -6518,8 +6520,9 @@ function ground(s, u) {
   if (f) { const c = uc(f, s), ds = Math.abs(u - c) - HS; if (ds < d) { d = ds; m = Math.min(Math.abs(u - c), HS); } dip = 2.4 * Math.sin(Math.PI * clamp((s - f.a - 40) / (f.b - f.a - 80), 0, 1)) * sm(3, -0.5, ds) * sm(HS + 4, HS + 9, Math.abs(c)); }   // the shortcut dives into a gully
   let y = trackY(s) + (0.014 + 0.2 * chuteK(s)) * m * m * (1 - k) + sm(0, 5, d) * (1.9 - 0.4 * k) - dip;
   if (d > 2) y += sm(2, 70, d) * (fbm((cx(s) + u) * 0.018, s * 0.018, 3, 7) * 24 - 5);
+  if (d > 0.4 && Math.abs(s - BR) < 18) y -= gul(s) * sm(0.4, 1.2, d);
   y += sm(S2 + 1, S2 + 18, s) * 1.8;
-  for (const r of RAMPS) { const d = s - r.s; if (d > -11 && d < 1.3) { const side = sm(r.w, r.w - 1.3, Math.abs(u - r.u)); if (side > 0) y += 1.55 * side * (d <= 0 ? sm(-11, 0, d) : 1 - d / 1.3); } }
+  for (const r of RAMPS) { const d = s - r.s; if (d > -11 && d < 1.3) { const side = sm(r.w, r.w - 1.3, Math.abs(u - r.u)); if (side > 0) y += 1.95 * side * (d <= 0 ? sm(-11, 0, d) : 1 - d / 1.3); } }
   return y;
 }
 const slopeAt = (s) => -(trackY(s + 1) - trackY(s - 1)) / 2, headAt = (s) => (cx(s + 1) - cx(s - 1)) / 2, curveAt = (s) => (cx(s + 3) - 2 * cx(s) + cx(s - 3)) / 9;
@@ -6529,7 +6532,7 @@ const P = { x: 0, z: 0, vx: 0, vz: 0, face: Math.PI, fall: 0 }, Mi = { x: 0, z: 
 const keys = {}, touch = { x: 0, y: 0, brake: false }, input = { x: 0, y: 0, brake: false };
 const audio = new AudioSys();
 let dog, cat, tex, pAdd, pAlpha, sun, hemi, RU, sled, boneMesh, flakes, flakeU, trail, fire, fireLight;
-const obs = [], rows = [], items = [], balls = [], haz = [], skaters = [], people = [], puppies = [], nearTrees = [], deer = [], floes = [];
+const obs = [], rows = [], items = [], balls = [], haz = [], skaters = [], people = [], puppies = [], nearTrees = [], deer = [], floes = [], kids = [], shots = [];
 let hare, iceTrail, crackWater;
 const dummy = new THREE.Object3D(), tmpV = new THREE.Vector3(), tmpC = new THREE.Color();
 const SUN = new THREE.Vector3(0.5, 0.36, -0.62).normalize();
@@ -6545,15 +6548,15 @@ function buildWorld() {
   scene.fog = new THREE.FogExp2(0xcfdcec, 0.0042); fogUniforms.uFogColor.value.copy(scene.fog.color); fogUniforms.uFogDensity.value = 0.0042;
   const R = rng(61);
   // kickers first: the ground depends on them
-  for (let s = 190; s < S1 - 150; s += 165 + R() * 40) if (s < CHUTE[0] - 40 || s > CHUTE[1] + 20) RAMPS.push({ s, u: (R() - 0.5) * 5, w: 3.3 });
+  for (let s = 190; s < S1 - 150; s += 165 + R() * 40) if ((s < CHUTE[0] - 40 || s > CHUTE[1] + 20) && (s < TUN[0] - 14 || s > TUN[1] + 6) && Math.abs(s - BR) > 42) RAMPS.push({ s, u: (R() - 0.5) * 5, w: 3.3 });
   // ---- the snow: one sheet that follows the run, fine in the middle and coarse far out
   const US = []; for (const a of [150, 112, 84, 62, 46, 35, 28, 24.5, 22, 20, 18.2, 16.5, 14.8, 13.2, 11.6, 10.2, 8.9, 7.6, 6.4, 5.2, 3.9, 2.6, 1.3]) US.push(-a); US.push(0); for (let i = US.length - 2; i >= 0; i--) US.push(-US[i]);
   const DS = 1.5, s0 = -60, NR = Math.ceil((S2 + 120 - s0) / DS), NC = US.length, pos = new Float32Array((NR + 1) * NC * 3), col = new Float32Array((NR + 1) * NC * 3), ix = [];
   for (let i = 0; i <= NR; i++) { const s = s0 + i * DS, c = cx(s), h = half(s), ice = s > S1 - 2 && s < S2 + 3;
-    for (let j = 0; j < NC; j++) { const u = US[j] * (s > S1 ? lerp(1, 1.5, sm(S1, S1 + 60, s)) : 1), a = Math.abs(u), q = (i * NC + j) * 3; let y = ground(s, u); if (ice && a < h - 0.2) y -= 0.7;
+    for (let j = 0; j < NC; j++) { const u = US[j] * (s > S1 ? lerp(1, 1.5, sm(S1, S1 + 60, s)) : 1), a = Math.abs(u), q = (i * NC + j) * 3; let y = ground(s, u); if (ice && a < h - 0.2) y -= 0.7; if (a <= h + 0.45) y -= gul(s);
       pos[q] = c + u; pos[q + 1] = y; pos[q + 2] = -s;
       const fk = forkAt(s), inS = fk ? 1 - sm(HS - 1, HS + 1, Math.abs(u - uc(fk, s))) : 0, n = fbm((c + u) * 0.09, s * 0.09, 3, 3), packed = Math.max(1 - sm(h - 1.5, h + 1, a), inS) * (1 - sm(S1 - 20, S1 + 10, s)), b = 0.9 + n * 0.1 - packed * 0.07;
-      col[q] = b * (0.955 - packed * 0.03); col[q + 1] = b * 0.975; col[q + 2] = b * 1.02; } }
+      const strm = Math.abs(s - BR) < 3.2 ? 1 : 0; col[q] = b * (0.955 - packed * 0.03 - strm * 0.3); col[q + 1] = b * (0.975 - strm * 0.14); col[q + 2] = b * 1.02; } }
   for (let i = 0; i < NR; i++) for (let j = 0; j < NC - 1; j++) { const a = i * NC + j, b = a + 1, c = a + NC, d = c + 1; ix.push(a, b, c, b, d, c); }
   const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); tg.setAttribute('color', new THREE.BufferAttribute(col, 3)); tg.setIndex(ix); tg.computeVertexNormals();
   const terrain = new THREE.Mesh(tg, snowMat); terrain.receiveShadow = true; terrain.frustumCulled = false; scene.add(terrain);
@@ -6581,7 +6584,7 @@ function buildWorld() {
     m.receiveShadow = true; m.castShadow = true; m.frustumCulled = false; scene.add(m); }
   // ---- fences of poles and orange netting on the outside of the bends, flags at the kickers, the start gate, a hut, the cottage by the fire
   const B = new Builder(12);
-  for (let s = 30; s < S1 - 40; s += 4) { const c = curveAt(s); if (Math.abs(c) < 0.012 || forkAt(s) || chuteK(s) > 0) continue; const side = c > 0 ? -1 : 1, u = side * (half(s) + 0.9), x = cx(s) + u, y = ground(s, u); B.cyl(0.05, 0.06, 1.3, x, y - 0.1, -s, 0x6b4a2e, 5); B.box(0.04, 0.5, 4.05, x, y + 0.55, -s - 2, 0xff7a1a, -headAt(s)); }
+  for (let s = 30; s < S1 - 40; s += 4) { const c = curveAt(s); if (Math.abs(c) < 0.012 || forkAt(s) || chuteK(s) > 0 || bridgeK(s) > 0 || (s > TUN[0] - 4 && s < TUN[1] + 4)) continue; const side = c > 0 ? -1 : 1, u = side * (half(s) + 0.9), x = cx(s) + u, y = ground(s, u); B.cyl(0.05, 0.06, 1.3, x, y - 0.1, -s, 0x6b4a2e, 5); B.box(0.04, 0.5, 4.05, x, y + 0.55, -s - 2, 0xff7a1a, -headAt(s)); }
   for (const r of RAMPS) for (const sd of [-1, 1]) { const u = r.u + sd * (r.w + 0.3), x = cx(r.s - 6) + u, y = ground(r.s - 6, u); B.cyl(0.035, 0.035, 2.2, x, y, -(r.s - 6), 0xd8d8d8, 5); B.box(0.55, 0.36, 0.03, x + 0.28, y + 1.8, -(r.s - 6), sd < 0 ? 0xd9302c : 0x2c62d9); }
   { const y = ground(8, 0), x = cx(8); for (const sd of [-1, 1]) B.cyl(0.13, 0.15, 4.6, x + sd * 6.2, y + 1.2, -8, 0x7a5636, 7); B.box(12.6, 0.9, 0.12, x, y + 5.0, -8, 0xc8372f);
     const hy = ground(-10, -14); B.box(5, 2.6, 4, x - 14, hy, 10, 0x8a6240); B.add(roofGeo(5.8, 1.7, 4.8), 0xf3f6fb, x - 14, hy + 2.6, 10); B.box(0.6, 1.4, 0.6, x - 12.6, hy + 3.4, 10.6, 0x6e4a32); }
@@ -6591,7 +6594,22 @@ function buildWorld() {
   for (const fk of FORKS) { const s = fk.a + 16, sg = Math.sign(fk.off), u = sg * (half(s) - 1.2), x = cx(s) + u, y = ground(s, u); for (const o of [-0.9, 0.9]) B.cyl(0.05, 0.06, 2.2, x + o, y - 0.1, -s, 0x6b4a2e, 5); B.box(2.3, 0.75, 0.07, x, y + 1.45, -s, 0x8a6240);
     const tx = canvasTex(256, 96, (c, w, h) => { c.fillStyle = '#8a6240'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff6da'; c.font = 'bold 46px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(sg < 0 ? '← ' + T('sign') : T('sign') + ' →', w / 2, h / 2 + 3); }, 1, 1);
     const pm = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.7), new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9 })); pm.position.set(x, y + 1.82, -s + 0.045); scene.add(pm); }
+  // the footbridge: planks, rails, trestles down into the gully
+  for (let s = BR - 19.5, i = 0; s <= BR + 19.5; s += 0.56, i++) B.box(5.5, 0.1, 0.5, cx(s), ground(s, 0) - 0.07, -s, i % 2 ? 0x8f6844 : 0x7b5837, -headAt(s));
+  for (let s = BR - 19; s <= BR + 19.1; s += 2.2) for (const sd of [-1, 1]) { const x = cx(s) + sd * 2.68, y = ground(s, 0); B.cyl(0.06, 0.06, 1.05, x, y - 0.05, -s, 0x5e4228, 6); if (s < BR + 18) for (const hh of [0.5, 0.95]) B.box(0.07, 0.08, 2.24, cx(s + 1.1) + sd * 2.68, ground(s + 1.1, 0) + hh, -s - 1.1, 0x8f6844, -headAt(s)); }
+  for (const o of [-9, 0, 9]) { const s = BR + o, y = ground(s, 0), dp = gul(s) + 0.8; for (const sd of [-1, 1]) B.box(0.24, dp, 0.24, cx(s) + sd * 2.3, y - dp - 0.1, -s, 0x5e4228); B.box(5.2, 0.2, 0.24, cx(s), y - 0.32, -s, 0x5e4228); }
+  // icicles in the mouths of the snow tunnel
+  for (const s of [TUN[0] + 0.3, TUN[1] - 0.3]) for (let i = 0; i < 11; i++) { const an = 0.5 + i * 0.214, hw = half(s) + 1.1, g = new THREE.ConeGeometry(0.07 + R() * 0.06, 0.6 + R() * 0.9, 5); g.rotateX(Math.PI); B.add(g, 0xd8ecfb, cx(s) + Math.cos(an) * hw, ground(s, 0) + 0.2 + Math.sin(an) * 4.5 - 0.5, -s); }
   const st = B.mesh(); st.frustumCulled = false; scene.add(st);
+  // ---- the snow tunnel: a vault of packed snow over the run, blue inside
+  { const J = 16, rowsN = Math.round((TUN[1] - TUN[0]) / 2), mk = (grow, mat) => { const pp = [], ii = []; for (let i = 0; i <= rowsN; i++) { const s = TUN[0] + i * 2, hw = half(s) + 1.2 + grow, gy = ground(s, 0); for (let j = 0; j <= J; j++) { const an = Math.PI * j / J, n = (fbm(i * 0.5, j * 0.5, 2, 5) - 0.5) * (grow ? 1.1 : 0.35); pp.push(cx(s) + Math.cos(an) * (hw + n), gy - 0.9 + Math.sin(an) * (5.4 + grow * 1.25 + n), -s); } }
+      for (let i = 0; i < rowsN; i++) for (let j = 0; j < J; j++) { const q = i * (J + 1) + j; ii.push(q, q + J + 1, q + 1, q + 1, q + J + 1, q + J + 2); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); g.setIndex(ii); g.computeVertexNormals(); const m = new THREE.Mesh(g, mat); m.frustumCulled = false; scene.add(m); return { m, pp }; };
+    const inM = new THREE.MeshStandardMaterial({ color: 0x6f95bd, roughness: 0.5, side: THREE.DoubleSide, emissive: 0x24456a, emissiveIntensity: 0.6, fog: false }), outM = new THREE.MeshStandardMaterial({ color: 0xf3f7fc, roughness: 0.9, side: THREE.DoubleSide });
+    const a = mk(0, inM), b = mk(1.2, outM); b.m.castShadow = true; b.m.receiveShadow = true;
+    for (const i of [0, rowsN]) { const pp = [], ii = [], o = i * (J + 1) * 3; for (let j = 0; j <= J; j++) { pp.push(a.pp[o + j * 3], a.pp[o + j * 3 + 1], a.pp[o + j * 3 + 2], b.pp[o + j * 3], b.pp[o + j * 3 + 1], b.pp[o + j * 3 + 2]); if (j < J) ii.push(j * 2, j * 2 + 1, j * 2 + 2, j * 2 + 1, j * 2 + 3, j * 2 + 2); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); g.setIndex(ii); g.computeVertexNormals(); const m = new THREE.Mesh(g, outM); m.frustumCulled = false; scene.add(m); } }      // the faces of the two mouths
+  // ---- the avalanche: a rolling wall of snow that fills the run from side to side
+  { const g = new THREE.CylinderGeometry(4.6, 4.6, 46, 26, 14).rotateZ(Math.PI / 2), P3 = g.attributes.position; for (let i = 0; i < P3.count; i++) { const x = P3.getX(i), y = P3.getY(i), z = P3.getZ(i), n = 0.72 + fbm(x * 0.3 + 3, Math.atan2(y, z) * 1.6, 3, 11) * 0.62; P3.setY(i, y * n); P3.setZ(i, z * n); } g.computeVertexNormals();
+    G.avMesh = new THREE.Group(); const m1 = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xf6f9fd, roughness: 1 })), m2 = new THREE.Mesh(g, m1.material); m2.scale.set(0.9, 0.62, 0.62); m2.position.set(0, -1.2, -4.2); m1.castShadow = true; G.avMesh.add(m1, m2); G.avMesh.userData = { m1, m2 }; G.avMesh.visible = false; scene.add(G.avMesh); }
   { const x = CXI + 15, z = -(S2 + 30), y = ground(S2 + 30, 15); G.winMat = new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }); for (const wx of [-3, 1.6]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.9), G.winMat); w.position.set(x + wx, y + 1.8, z + 3.09); scene.add(w); } G.houseLight = new THREE.PointLight(0xffc070, 0, 26, 1.5); G.houseLight.position.set(x - 0.6, y + 2, z + 6); scene.add(G.houseLight); }
   // ---- the ice chute: a glossy skin over the half-pipe
   { const us = [-2.6, -1.3, 0, 1.3, 2.6], a = CHUTE[0] + 9, n = Math.floor((CHUTE[1] - 9 - a) / 1.5), pp = [], ii = []; for (let i = 0; i <= n; i++) { const s = a + i * 1.5; for (const u of us) pp.push(cx(s) + u, ground(s, u) + 0.035, -s); } for (let i = 0; i < n; i++) for (let j = 0; j < 4; j++) { const q = i * 5 + j; ii.push(q, q + 1, q + 5, q + 1, q + 6, q + 5); }
@@ -6635,14 +6653,14 @@ function buildCourse() {
   let safe = 0;
   for (let s = 75; s < S1 - 70; s += 23 + R() * 12) {
     const h = half(s) - 1.3; safe = clamp(safe + (R() - 0.5) * 8, -h + 1.4, h - 1.4);
-    if (chuteK(s) > 0 || (s > CHUTE[0] - 30 && s < CHUTE[1] + 12)) { rows.push({ s, safe: 0, clear: true }); safe = 0; continue; }
+    if (chuteK(s) > 0 || (s > CHUTE[0] - 30 && s < CHUTE[1] + 12) || Math.abs(s - BR) < 34) { rows.push({ s, safe: 0, clear: true }); safe = 0; continue; }
     const ramp = RAMPS.find((r) => s > r.s - 16 && s < r.s + 42); if (ramp) { rows.push({ s, safe: ramp.u, clear: true }); safe = ramp.u; continue; }
     if (R() < 0.16 && s > 200) { obs.push({ type: 'log', s, u: 0, w: h * 2 + 2, r: 0.3, hgt: 0.62 }); rows.push({ s, safe, log: true }); continue; }
     const row = { s, safe }; rows.push(row);
     for (let u = -h + 0.6; u <= h - 0.6; u += 2.3) { if (Math.abs(u - safe) < 2.5 || R() > (0.3 + Math.min(0.32, s / 3200)) * (forkAt(s) ? 0.55 : 1)) continue; const type = ['spruce', 'spruce', 'snowman', 'rock'][(R() * 4) | 0]; obs.push({ type, s: s + (R() - 0.5) * 3, u: u + (R() - 0.5) * 0.8, r: type === 'rock' ? 0.85 : type === 'spruce' ? 0.55 : 0.6, sc: 0.85 + R() * 0.4 }); }
   }
   for (const fk of FORKS) { let sd = 1; for (let s = fk.a + 52; s < fk.b - 50; s += 8.5, sd = -sd) { obs.push({ type: 'spruce', s, u: uc(fk, s) + sd * 1.45, r: 0.5, sc: 0.72 }); for (let q = 0; q < 3; q++) { const s2 = s + 1.6 + q * 2.4; items.push({ s: s2, u: uc(fk, s2) - sd * 0.95 * (q === 1 ? 1 : 0.6), h: 0.55 }); } } }      // a tight slalom, thick with bones
-  for (const s of [430, 770, 930]) { const b = { s, u: 0, r: 1.05, ph: R() * 6, m: new THREE.Mesh(new THREE.IcosahedronGeometry(1.05, 2), new THREE.MeshStandardMaterial({ color: 0xf1f5fb, roughness: 0.9, flatShading: true })) }; b.m.castShadow = true; scene.add(b.m); balls.push(b); }      // snowballs rolling from side to side
+  for (const s of [250, 430]) { const b = { s, u: 0, r: 1.05, ph: R() * 6, m: new THREE.Mesh(new THREE.IcosahedronGeometry(1.05, 2), new THREE.MeshStandardMaterial({ color: 0xf1f5fb, roughness: 0.9, flatShading: true })) }; b.m.castShadow = true; scene.add(b.m); balls.push(b); }      // snowballs rolling from side to side
   for (const type of Object.keys(GEO)) { const a = obs.filter((o) => o.type === type); if (!a.length) continue; const m = new THREE.InstancedMesh(GEO[type], worldMat, a.length);
     a.forEach((o, i) => { const u = o.u, x = cx(o.s) + u; dummy.position.set(x, ground(o.s, u) - 0.05, -o.s); dummy.rotation.set(0, type === 'log' ? -headAt(o.s) : R() * 6.28, 0); if (type === 'log') dummy.scale.set(o.w, 1, 1); else dummy.scale.setScalar(o.sc); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); });
     m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; scene.add(m); }
@@ -6694,7 +6712,7 @@ function buildCourse() {
         const lo = new THREE.Group(); lo.position.y = -0.37; up.add(lo); lo.add(part(flat(new THREE.CylinderGeometry(0.026, 0.02, 0.33, 8).translate(0, -0.165, 0), dark))); lo.add(part(flat(new THREE.BoxGeometry(0.045, 0.05, 0.065).translate(0, -0.34, 0.012), 0x14100d)));
         legs.push({ up, lo, front, sx }); }
       g.userData = { legs, neck, head }; g.scale.setScalar(1.18); g.visible = false; g.rotation.order = 'YXZ'; scene.add(g); return g; };
-    [[345, 1], [975, -1]].forEach(([s0, dir]) => { for (let q = 0; q < 2; q++) deer.push({ m: mkDeer(), s: s0 + q * 2.2, dir, lag: q * 0.8, u: 0, on: false, t: 0, r: 0.75 }); });
+    [[345, 1], [1208, -1]].forEach(([s0, dir]) => { for (let q = 0; q < 2; q++) deer.push({ m: mkDeer(), s: s0 + q * 2.2, dir, lag: q * 0.8, u: 0, on: false, t: 0, r: 0.75 }); });
     { const g = new THREE.Group(), coat = 0x8f7a5e, pale = 0xd9cdb8, ears = [];
       const body = part(shade(lathe([[0.001, -0.22], [0.075, -0.19], [0.105, -0.08], [0.095, 0.06], [0.07, 0.17], [0.001, 0.22]], 0.9, 1).translate(0, 0.19, 0), coat, pale, 0.12, 0.2)); g.add(body);
       for (const sx of [-1, 1]) g.add(part(shade(ell(0.055, 0.085, 0.1).translate(sx * 0.07, 0.17, -0.1), coat, pale, 0.1, 0.19)));                                                 // haunches
@@ -6711,6 +6729,9 @@ function buildCourse() {
   const mk = (j, h, sc, x, z, y, arm) => { const m = person(j, h, 0x2c3350, sc, arm); m.position.set(x, y, z); scene.add(m); return m; };
   G.stasTop = mk(0x2c62d9, 0xd9302c, 0.9, cx(2) + 1.5, 1.6, ground(-1.6, 1.5), 1); G.stasTop.rotation.y = Math.PI - 0.5;
   [[0x2c62d9, 0xd9302c, 0.9], [0x2f9a4a, 0xffd23f, 0.84], [0xc24a8a, 0xffffff, 0.78], [0xe07a20, 0x3a3a3a, 1.05]].forEach(([j, h, sc], i) => { const a = 0.3 + i * 0.85, x = CXI + Math.cos(a) * 3.1, z = -(S2 + 12) - Math.sin(a) * 3.1, m = mk(j, h, sc, x, z, ground(S2 + 12, 0), i % 2 ? 1 : -1); m.lookAt(CXI, m.position.y, -(S2 + 12)); people.push({ m, y: m.position.y, ph: i * 1.7 }); });
+  // ---- the snowball fight: pairs of children beside the run, and the balls they throw
+  [[160, -1], [612, 1], [1130, -1]].forEach(([s0, side], e) => { for (let q = 0; q < 2; q++) { const s = s0 + q * 5.5, u = side * (half(s) + 1.5 + q * 0.6), m = mk([0xd9302c, 0x2f9a4a, 0x8a3fc0, 0xe0a020, 0x2c62d9, 0xe05a90][e * 2 + q], [0xffffff, 0xd9302c, 0xffd23f, 0x2c62d9, 0xffffff, 0x3a3a3a][e * 2 + q], 0.86 + q * 0.08, cx(s) + u, -s, ground(s, u), -side); m.rotation.y = -side * 1.2; kids.push({ m, s, u, y: m.position.y, cd: q * 0.6, hop: 0 }); } });
+  for (let i = 0; i < 12; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 })); m.visible = false; m.castShadow = true; scene.add(m); shots.push({ m, on: false, vx: 0, vy: 0, vz: 0 }); }
   // ---- the sledge (its front points to +z, like the animals) and the tracks it leaves
   { const B = new Builder(15), wood = 0x9a6a3c, dark = 0x6e4a2a;
     for (const sx of [-1, 1]) { B.box(0.05, 0.05, 1.55, sx * 0.27, 0, -0.05, dark); const c = new THREE.BoxGeometry(0.05, 0.05, 0.46); c.rotateX(-0.75); B.add(c, dark, sx * 0.27, 0.19, 0.86); for (const z of [-0.5, 0.35]) B.box(0.05, 0.24, 0.06, sx * 0.27, 0.04, z, dark); B.box(0.06, 0.04, 1.3, sx * 0.27, 0.27, -0.08, wood); }
@@ -6736,9 +6757,9 @@ const shown = {};
 const prog = () => (G.phase === 'sled' ? G.s : -P.z);
 function hud(force) {
   const set = (id, v, html) => { if (!force && shown[id] === v) return; shown[id] = v; if (html) $(id).innerHTML = v; else $(id).textContent = v; };
-  set('rScore', T('bones', G.bones)); set('rSub', T('time', clock(G.time)));
+  set('rScore', T('bones', G.bones)); set('rSub', T('time', clock(G.time)) + (G.style ? ' · ' + T('style', G.style, G.combo) : ''));
   set('rLives', [0, 1, 2].map((i) => `<span class="${i < G.lives ? '' : 'lost'}" style="color:#8fd0ff">${flakeIcon}</span>`).join(''), true);
-  set('rLabel', T('left', Math.max(0, Math.round((S2 - prog()) / 10) * 10)));
+  set('rLabel', G.av === 1 && G.phase === 'sled' ? T('aval', Math.max(0, Math.round(G.s - G.avS))) : T('left', Math.max(0, Math.round((S2 - prog()) / 10) * 10))); if (shown.avc !== (G.av === 1)) { shown.avc = G.av === 1; $('rLabel').style.color = shown.avc ? '#ff8a6a' : ''; }
   const k = Math.round(clamp(prog() / S2, 0, 1) * 100); if (shown.prog !== k) { shown.prog = k; $('rDog').style.left = k + '%'; }
 }
 function applyLang() {
@@ -6782,6 +6803,7 @@ function reset() {
   Object.assign(P, { x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: Math.PI, fall: 0 }); Object.assign(Mi, { x: 0, z: 0, vx: 0, vz: 0, spin: 0 });
   for (const it of items) it.got = false;
   for (const q of haz) if (q.type === 'thin') { q.load = 0; q.warned = false; q.broken = false; q.m.visible = true; q.hm.visible = false; }
+  Object.assign(G, { av: 0, avS: 0, avV: 16, avFade: 0, flip: 0, combo: 1, style: 0, snowed: 0 }); G.avMesh.visible = false; for (const q of shots) { q.on = false; q.m.visible = false; } for (const kd of kids) kd.cd = Math.random();
   Object.assign(G, { crash: null, trick: 0, inShort: false, treeI: 0, crackOn: false, crackS: CR0, crackHold: 0, floeI: 0, floeS: CR0, dusk: -1, breath: 0 }); for (const t of nearTrees) t.done = false; for (const d of deer) { d.on = false; d.done = false; d.m.visible = false; } for (const f of floes) f.m.visible = false; crackWater.visible = G.crackEdge.visible = G.crackLines.visible = false; hare.visible = false; hare.userData.i = 0; hare.userData.off = 0;
   iceTrail.userData.last = null; iceTrail.userData.k = 0; iceTrail.geometry.attributes.position.array.fill(0); iceTrail.geometry.attributes.position.needsUpdate = true;
   sled.add(dog.root); dog.root.position.set(...SEAT[0]); dog.root.rotation.set(0, 0, 0); sled.add(cat.root); cat.root.position.set(...SEAT[1]); cat.root.rotation.set(0, 0, 0); sled.visible = true;
@@ -6796,11 +6818,11 @@ function startGame() {
 function toTitle() { reset(); G.mode = 'title'; $('end').classList.add('hidden'); $('title').classList.remove('hidden'); for (const id of ['rTop', 'rLives', 'rMila']) $(id).style.opacity = 0; }
 function finish(win) {
   const stars = win ? (G.lives === 3 && G.time < 150 ? '★★★' : G.lives >= 2 || G.time < 150 ? '★★☆' : '★☆☆') : '';
-  $('endTitle').textContent = T(win ? 'winT' : 'loseT'); $('endText').textContent = win ? T('winX', clock(G.time), G.bones, stars) : T('loseX', Math.max(0, Math.round(S2 - prog())));
+  $('endTitle').textContent = T(win ? 'winT' : 'loseT'); $('endText').textContent = win ? T('winX', clock(G.time), G.bones, stars) + (G.style ? T('styleEnd', G.style) : '') : T('loseX', Math.max(0, Math.round(S2 - prog())));
   $('end').classList.remove('hidden'); $('menu').style.display = ''; for (const id of ['rTop', 'rLives', 'rMila', 'hint', 'pick']) $(id).style.opacity = 0;
 }
 function hurt(text, x, y, z, wet) {
-  G.lives--; G.inv = 1.8; G.shake = 0.7; buzz(150); pick(T(text));
+  G.lives--; G.inv = 1.8; G.shake = 0.7; G.combo = 1; buzz(150); pick(T(text));
   if (audio.on) { if (wet) audio.splash(0.5); else audio.crack(); audio.yelp(); setTimeout(() => audio.meow(1.3), 250); }
   $('flash').style.opacity = 1; setTimeout(() => { $('flash').style.opacity = 0; }, 200);
   for (let k = 0; k < 34; k++) pAlpha.spawn(x, y + 0.2, z, (Math.random() - 0.5) * 7, 2 + Math.random() * 4.5, (Math.random() - 0.5) * 7, 0.9, 0.16, 0.5, wet ? 0.75 : 0.96, wet ? 0.88 : 0.98, 1, 0.9, 9, 0.6);
@@ -6813,7 +6835,7 @@ function hurt(text, x, y, z, wet) {
 // Both animals are thrown off the sledge, somersault through the air, land in the snow, shake it off and hop back on.
 const SEAT = [[0, 0.31, 0.28], [0, 0.32, -0.42]];
 function wipeout() {
-  if (G.crash) return; G.inv = Math.max(G.inv, 3.4); const v0 = Math.max(G.v, 6), hd = Math.atan(headAt(G.s)); G.crash = { t: 0, a: [] };
+  if (G.crash) return; G.combo = 1; G.inv = Math.max(G.inv, 3.4); const v0 = Math.max(G.v, 6), hd = Math.atan(headAt(G.s)); G.crash = { t: 0, a: [] };
   [[dog, 1], [cat, -1]].forEach(([an, sd], i) => { const o = an.root; scene.attach(o); G.crash.a.push({ an, o, i, vx: Math.sin(hd) * v0 * 0.5 + sd * (1.6 + Math.random() * 1.8), vy: 5 + Math.random() * 1.6, vz: -Math.cos(hd) * (v0 * 0.5 + 2 + i), land: -1, yaw: Math.PI - hd, isDog: i === 0 }); });
 }
 function crashStep(dt) {
@@ -6841,17 +6863,19 @@ function stepSled(dt) {
   if (ck > 0.2) hint('h_chute'); if (fk && G.s < fk.a + 40) hint('h_fork');
   if (G.inShort) G.u += (uc(fk, G.s) - lane);                                                          // the lane carries the sledge along as it swings away and back
   // ---- sideways: steering, and the bends throw the sledge outwards
-  const tricking = G.air && !G.hopped && !G.crash, grip = (G.air ? 0.25 : 1) * (1 - 0.7 * ck); G.uv += (input.x * 26 * grip * (tricking ? 0.3 : 1) - G.uv * 3.4 * grip - curveAt(G.s) * G.v * G.v * 0.5 * grip * (1 - 0.5 * ck)) * dt; G.u += G.uv * dt;
-  if (tricking) G.trick += input.x * 9 * dt; else if (!G.air) G.trick *= Math.exp(-dt * 12);
+  const tricking = G.air && !G.hopped && !G.crash && G.y - ground(G.s, G.u) > 0.65, grip = (G.air ? 0.25 : 1) * (1 - 0.7 * ck); G.uv += (input.x * 26 * grip * (tricking ? 0.3 : 1) - G.uv * 3.4 * grip - curveAt(G.s) * G.v * G.v * 0.5 * grip * (1 - 0.5 * ck)) * dt; G.u += G.uv * dt;
+  if (tricking) { const ease = (v, inp, rate) => { if (inp) return v + inp * rate * dt; const t = Math.round(v / 6.2832) * 6.2832, dd = t - v; return Math.abs(dd) < 4.5 * dt ? t : v + Math.sign(dd) * 4.5 * dt; }; G.trick = ease(G.trick, input.x, 11); G.flip = ease(G.flip, input.y, 10.5); } else if (!G.air) { G.trick *= Math.exp(-dt * 12); G.flip *= Math.exp(-dt * 12); }
   { const c2 = fk ? uc(fk, G.s) : 0, dM = Math.abs(G.u) - (h - 0.7), dS = fk ? Math.abs(G.u - c2) - (HS - 0.6) : 1e9;
     if (dM > 0 && dS > 0) { const main = dM <= dS, sd = Math.sign(main ? G.u : G.u - c2); G.u = main ? sd * (h - 0.7) : c2 + sd * (HS - 0.6); if (G.uv * sd > 0) { if (G.uv * sd > 3 && ck < 0.3) { G.v *= 0.86; G.shake = Math.max(G.shake, 0.25); if (audio.on) audio.scrape(); } G.uv *= ck > 0.3 ? -0.7 : -0.35; } snowPuff(cx(G.s) + G.u + sd * 0.5, G.y, -G.s, 3, 4); } }
   // ---- up and down: the ground is followed while it holds the sledge; a kicker lets go of it
-  const gy = ground(G.s, G.u), wasAir = G.air; G.vy -= 22 * dt; G.y += G.vy * dt;
+  const gy = ground(G.s, G.u), wasAir = G.air; G.vy -= 17.5 * dt; G.y += G.vy * dt;
   if (G.y <= gy) { if (wasAir) { const d = Math.round(G.s - G.airS);
-      if (!G.hopped && !G.crash) { const tw = Math.abs(G.trick), n = Math.round(tw / 6.2832), res = Math.abs(tw - n * 6.2832);                 // full turns made, and how far from straight she comes down
-        if (tw > 0.7 && res > 1.15) { pick(T('tumble')); G.v *= 0.45; G.shake = 0.6; wipeout(); if (audio.on) audio.yelp(); }
-        else if (n > 0) { const b = n * 5 + (res < 0.55 ? 3 : 0); G.bones += b; pick(T(res < 0.55 ? 'clean' : 'spin', n, b)); if (res >= 0.55) G.v *= 0.85; if (audio.on) audio.pickup('mirror'); buzz(40); }
-        else if (d >= 8) { const b = Math.floor(d / 4); G.bones += b; pick(T('air', d, b)); }
+      if (!G.hopped && !G.crash) { const tw = Math.abs(G.trick), n = Math.round(tw / 6.2832), res = Math.abs(tw - n * 6.2832), fw = Math.abs(G.flip), m = Math.round(fw / 6.2832), res2 = Math.abs(fw - m * 6.2832), off = Math.max(tw > 0.7 ? res : 0, fw > 0.7 ? res2 : 0);      // full turns and somersaults made, and how far from straight she comes down
+        if (off > 1.3) { pick(T('tumble')); G.v *= 0.45; G.shake = 0.6; G.combo = 1; wipeout(); if (audio.on) audio.yelp(); }
+        else if (n + m > 0 || d >= 8) { const clean = n + m > 0 && Math.max(res, res2) < 0.55, pts = (n * 100 + m * 150 + (clean ? 50 : 0) + (d >= 8 ? d * 5 : 0)) * G.combo, bn = n * 5 + m * 7 + (clean ? 3 : 0) + (d >= 8 ? Math.floor(d / 4) : 0), parts = [];
+          if (n) parts.push(T('t_spin', n)); if (m) parts.push(T('t_flip', m)); if (d >= 8) parts.push(T('t_air', d)); if (clean) parts.push(T('t_clean'));
+          G.style += pts; G.bones += bn; pick(parts.join(' + ') + (G.combo > 1 ? ` ×${G.combo}` : '') + ` = ${pts}`); pickT = 2.4; G.combo = Math.min(9, G.combo + 1); if (n + m > 0) { if (!clean) G.v *= 0.85; if (audio.on) audio.pickup('mirror'); buzz(40); } }
+        G.flip = (G.flip > 0 ? 1 : -1) * (fw - m * 6.2832);
         G.trick = (G.trick > 0 ? 1 : -1) * (tw - n * 6.2832); } if (G.vy < -5) { G.shake = Math.max(G.shake, 0.35); snowPuff(cx(G.s) + G.u, gy, -G.s, 22, 6); if (audio.on) audio.land(); } G.hopped = false; }
     G.y = gy; G.vy = clamp((gy - (G.gyPrev === undefined ? gy : G.gyPrev)) / Math.max(dt, 1e-4), -30, 14); G.air = false; }
   else if (G.y > gy + 0.07) { if (!G.air) G.airS = G.s; G.air = true; }
@@ -6874,6 +6898,18 @@ function stepSled(dt) {
   for (const o of obs) if (o.type === 'log' && o.s > G.s && o.s < G.s + 45) { hint('h_log'); break; }
   for (const r of RAMPS) if (r.s > G.s && r.s < G.s + 55) { hint('h_ramp'); break; }
   for (const b of balls) if (b.s > G.s && b.s < G.s + 50) { hint('h_ball'); break; }
+  if (bridgeK(G.s + 30) > 0) hint('h_bridge');
+  // ---- the avalanche: it starts far behind, keeps coming at a steady pace and gains on anyone who brakes or falls
+  if (!G.av && G.s > AV0) { G.av = 1; G.avS = G.s - 48; hint('h_aval', false); G.shake = 0.9; buzz([80, 60, 80, 60, 200]); if (audio.on) audio.rumble(2.2); }
+  if (G.av === 1) { const gap = G.s - G.avS; const pace = 0.84 * Math.sqrt(Math.max(0.6, 26 * slopeAt(G.avS + 20) - 0.35) / 0.0085); G.avV = (G.avV || 16) + (clamp(pace, 9, 19) - (G.avV || 16)) * Math.min(1, dt * 0.9);      // it runs a little slower than a sledge that never brakes would here
+    G.avS += Math.max(0, G.avV + Math.max(0, gap - 36) * 0.7 - Math.max(0, G.s - AV1) * 0.45) * dt; if (G.crash || G.inv > 0) G.avS = Math.min(G.avS, G.s - 30);
+    G.shake = Math.max(G.shake, clamp((30 - gap) / 30, 0, 1) * 0.42); if (audio.on && Math.random() < dt * 0.9) audio.rumble(1.1);
+    for (let k = 0; k < 2; k++) if (Math.random() < dt * 34) { const fs = G.avS - 3 + Math.random() * 4, fu = (Math.random() - 0.5) * 2 * (half(fs) + 3); pAlpha.spawn(cx(fs) + fu, ground(fs, fu) + 0.6 + Math.random() * 4.5, -fs, (Math.random() - 0.5) * 3, 1 + Math.random() * 3, -(G.v * 0.78 + Math.random() * 5), 1.0, 1.3, 3.6 + Math.random() * 2, 0.97, 0.98, 1, 0.5, 1.5, 0.5); }
+    { const near = clamp((34 - gap) / 26, 0, 1);                                                           // the closer it is, the more snow and clods come racing past on both sides
+      for (let k = 0; k < 3; k++) if (Math.random() < dt * 60 * near) { const sd = Math.random() < 0.5 ? -1 : 1, bs = G.s - 5.5 - Math.random() * 2, bu = G.u + sd * (2.6 + Math.random() * 5); pAlpha.spawn(cx(bs) + bu, ground(bs, bu) + 0.3 + Math.random() * 2.2, -bs, sd * Math.random() * 1.5, 0.6 + Math.random() * 1.8, -(G.v + 5 + Math.random() * 7), 1.1, 0.5, 2.2 + Math.random() * 1.4, 0.97, 0.98, 1, 0.6, 1, 0.3); }
+      if (Math.random() < dt * 26 * near) { const sd = Math.random() < 0.5 ? -1 : 1, bs = G.s - 6, bu = G.u + sd * (1.6 + Math.random() * 4); pAlpha.spawn(cx(bs) + bu, ground(bs, bu) + 0.4, -bs, sd * Math.random() * 2, 2.5 + Math.random() * 3, -(G.v + 9 + Math.random() * 6), 1.2, 0.34, 0.26, 1, 1, 1, 1, 13, 0.2); } }
+    if (gap < 6.6 && !G.crash && !G.noHit) { hurt('buried', X, G.y, Z); G.v *= 0.3; wipeout(); G.av = 2; G.avFade = 1; for (let k = 0; k < 40; k++) pAlpha.spawn(X + (Math.random() - 0.5) * 12, G.y + Math.random() * 3, Z + (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 1 + Math.random() * 3, -4 - Math.random() * 8, 1.6, 1.5, 4.5, 0.97, 0.98, 1, 0.6, 1, 0.6); }      // it rolls over them and is spent
+    if (G.s > AV1 + 50 || (G.s > AV1 && gap > 70)) { G.av = 2; G.avFade = 1; } }
   if (G.places < 1 && G.s > 620) { G.places = 1; place(T('p2')); }
   if (G.places < 2 && G.s > S1 - 30) { G.places = 2; place(T('p3')); }
   // ---- snow thrown up, the tracks, the wind
@@ -6883,7 +6919,7 @@ function stepSled(dt) {
   // ---- the sledge itself
   const head = Math.atan(headAt(G.s) + (G.inShort ? (uc(fk, G.s + 1) - uc(fk, G.s - 1)) / 2 : 0) + G.uv / Math.max(G.v, 6)) - G.trick; G.spin = Math.max(0, G.spin - dt * 1.1);
   if (G.crash) crashStep(dt);
-  sled.position.set(X, G.y + 0.03, Z); sled.rotation.set(G.air ? clamp(-G.vy / Math.max(G.v, 8), -0.5, 0.6) : Math.atan(sl) + (brake ? -0.05 : 0), Math.PI - head + G.spin * G.spin * 12.56, -G.uv * 0.035 + (G.inv > 0 ? Math.sin(G.t * 30) * 0.05 : 0));
+  sled.position.set(X, G.y + 0.03, Z); sled.rotation.set((G.air ? clamp(-G.vy / Math.max(G.v, 8), -0.5, 0.6) : Math.atan(sl) + (brake ? -0.05 : 0)) + G.flip, Math.PI - head + G.spin * G.spin * 12.56, -G.uv * 0.035 + (G.inv > 0 ? Math.sin(G.t * 30) * 0.05 : 0));
   // ---- off the sledge once it has slid to a stop on the ice
   if (!G.crash && (G.s > ICE0 || (G.s > S1 + 6 && G.v < 0.6))) {
     G.phase = 'ice'; pick(T('off')); hint('h_ice'); P.x = X + 0.9; P.z = Z - 0.8; P.vx = 0; P.vz = -Math.max(3, G.v); P.y = 0.01; P.vy = 3.5; Mi.x = X - 0.9; Mi.z = Z - 0.4; Mi.vx = 0; Mi.vz = -2;
@@ -6969,6 +7005,16 @@ function step(dt) {
   // ---- things that move by themselves
   for (const b of balls) { const h = half(b.s) - 1.2, a = G.t * 0.75 + b.ph; b.u = h * Math.sin(a); const x = cx(b.s) + b.u; b.m.position.set(x, ground(b.s, b.u) + b.r * 0.92, -b.s); b.m.rotation.z -= h * Math.cos(a) * 0.75 * dt / b.r; }
   for (const k of skaters) { const a = G.t * k.w + k.ph, nx = CXI + k.amp * Math.sin(a); k.vx = (nx - k.x) / Math.max(dt, 1e-3); k.x = nx; const dir = Math.cos(a) >= 0 ? 1 : -1; k.m.position.set(k.x, 0.02, k.z + Math.sin(a * 2) * 1.5); k.m.rotation.set(0, dir * Math.PI / 2, -dir * 0.0); k.m.rotation.x = 0.16; k.m.position.y = 0.02 + Math.abs(Math.sin(a * 6)) * 0.03; }
+  if (G.av) { const M = G.avMesh, f = G.av === 1 ? 1 : (G.avFade = Math.max(0, G.avFade - dt * 0.5)); M.visible = f > 0; if (f > 0) { M.position.set(cx(G.avS - 5), ground(G.avS - 5, 0) + 1.1 - (1 - f) * 6, -(G.avS - 5)); M.rotation.y = -Math.atan(headAt(G.avS)); M.userData.m1.rotation.x -= dt * 2.6; M.userData.m2.rotation.x -= dt * 3.4; } }
+  // the snowball fight
+  if (play && G.phase === 'sled') for (const kd of kids) { const ds = kd.s - G.s; kd.hop = Math.max(0, kd.hop - dt * 3); kd.m.position.y = kd.y + Math.sin(kd.hop * Math.PI) * 0.25; if (ds < 40 && ds > 0) hint('h_fight');
+    kd.cd -= dt; if (ds < 34 && ds > 5 && kd.cd <= 0 && !G.crash) { const q = shots.find((z) => !z.on); if (!q) continue; kd.cd = 1.15 + Math.random() * 0.6; kd.hop = 1; const Tf = 0.8 + ds * 0.012, sT = G.s + G.v * Tf, uT = G.u + G.uv * Tf * 0.5 + (Math.random() - 0.5) * 1.5, tx = cx(sT) + uT, ty = ground(sT, uT) + 0.55, tz = -sT;
+      q.on = true; q.m.visible = true; q.m.position.set(kd.m.position.x, kd.y + 1.4, kd.m.position.z); q.vx = (tx - q.m.position.x) / Tf; q.vz = (tz - q.m.position.z) / Tf; q.vy = (ty - q.m.position.y) / Tf + 7 * Tf; if (audio.on) audio.whoosh(); } }
+  for (const q of shots) if (q.on) { q.vy -= 14 * dt; q.m.position.x += q.vx * dt; q.m.position.y += q.vy * dt; q.m.position.z += q.vz * dt; q.m.rotation.x += dt * 9; const sp = -q.m.position.z, gy2 = ground(sp, q.m.position.x - cx(sp));
+    if (G.phase === 'sled' && play && !G.crash && Math.hypot(q.m.position.x - sled.position.x, q.m.position.z - sled.position.z) < 0.85 && Math.abs(q.m.position.y - sled.position.y - 0.55) < 0.9 && !G.noHit) { q.on = false; q.m.visible = false; G.snowed = 1.8; G.v *= 0.9; G.shake = Math.max(G.shake, 0.3); pick(T('splat')); buzz(60); snowPuff(sled.position.x, sled.position.y + 0.6, sled.position.z, 16, 4); if (audio.on) { audio.land(); audio.burst(1800, 1, 0.12, 0.2, 'highpass'); } }
+    else if (q.m.position.y < gy2) { q.on = false; q.m.visible = false; snowPuff(q.m.position.x, gy2, q.m.position.z, 6, 2.5); } }
+  { const hz = G.av === 1 && G.phase === 'sled' && play ? clamp((30 - (G.s - G.avS)) / 22, 0, 1) : 0; if (hz !== G.hazeK) { G.hazeK = hz; G.haze.style.opacity = hz.toFixed(2); } }
+  if (G.snowed > 0 || G.splatOn) { G.snowed = Math.max(0, G.snowed - dt); const o = Math.min(1, G.snowed / 0.7); G.splatOn = o > 0; G.splat.style.opacity = o.toFixed(2); }
   // deer bound across the run when the sledge comes near; a hare lopes along the edge ahead of it
   for (const d of deer) { const h = half(d.s);
     if (!d.on && !d.done && play && G.phase === 'sled' && d.s - G.s < 60 + d.lag * 12 && d.s > G.s) { d.on = true; d.u = -d.dir * (h + 11); d.t = 0; d.m.visible = true; hint('h_deer'); }
@@ -6999,12 +7045,12 @@ function step(dt) {
   const sh = G.shake * G.shake * 0.5, tall = camera.aspect < 1 ? 1 : 0; let px, py, pz;
   if (title) { const a = G.t * 0.12 + 0.7; px = cx(0); py = G.y; pz = 0; camera.position.set(px + Math.sin(a) * 6.5, py + 2.3, pz + Math.cos(a) * 6.5 + 1); camera.lookAt(px, py + 0.5, pz - 2); }
   else if (win) { px = FX; pz = FZ; py = fire.position.y; const a = 0.4 + G.endT * 0.17; camera.position.lerp(tmpV.set(px + Math.sin(a) * (9 + tall * 3), py + 3.2, pz + Math.cos(a) * (9 + tall * 3) + 2), Math.min(1, dt * 1.5)); camera.lookAt(px, py + 0.9, pz + 0.6); }
-  else if (G.phase === 'sled') { px = cx(G.s) + G.u; py = G.y; pz = -G.s; const hd = Math.atan(headAt(G.s)), back = 5.4 + tall * 3 + G.v * 0.07, cs = G.s - back * Math.cos(hd), cu = G.u * (G.inShort ? 1 : 0.75), cxw = cx(cs) + cu;
+  else if (G.phase === 'sled') { px = cx(G.s) + G.u; py = G.y; pz = -G.s; const hd = Math.atan(headAt(G.s)), back = (G.av === 1 ? 4.2 : 5.4) + tall * 3 + G.v * (G.av === 1 ? 0.04 : 0.07), cs = G.s - back * Math.cos(hd), cu = G.u * (G.inShort ? 1 : 0.75), cxw = cx(cs) + cu;
     tmpV.set(cxw, Math.max(py + 2.1 + tall, ground(cs, cu) + 1.5), -cs); camera.position.lerp(tmpV, Math.min(1, dt * 7)); camera.position.x += (Math.random() - 0.5) * sh; camera.position.y += (Math.random() - 0.5) * sh;
     const ls = G.s + 9, lu = G.inShort ? uc(forkAt(G.s) || FORKS[0], ls) + (G.u - uc(forkAt(G.s) || FORKS[0], G.s)) : G.u * 0.6; camera.lookAt(cx(ls) + lu, trackY(ls) + (G.inShort ? ground(G.s, G.u) - trackY(G.s) : 0) + 1.1, -ls); camera.rotateZ(-G.uv * 0.012); }
   else { px = P.x; py = 0; pz = P.z; const ck2 = G.crackOn && -P.z < CR1 + 6 ? 1 : 0; G.camK = (G.camK || 0) + (ck2 - (G.camK || 0)) * Math.min(1, dt * 2); const q = G.camK;      // over the breaking ice the camera rises and drops back, so the water closing in behind stays in sight
     camera.position.lerp(tmpV.set(lerp(P.x, CXI, 0.25), 5.2 + tall * 2 + q * 3.2, P.z + 8.2 + tall * 2.5 + q * 5.5), Math.min(1, dt * 5)); camera.position.x += (Math.random() - 0.5) * (sh + q * 0.05); camera.lookAt(lerp(P.x, CXI, 0.15), 0.4, P.z - 6 + q * 3.5); }
-  const fov = 62 + (tall ? 8 : 0) + (G.phase === 'sled' && play ? clamp((G.v - 12) * 0.75, 0, 14) : 0); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
+  const fov = 62 + (tall ? 8 : 0) + (G.phase === 'sled' && play ? clamp((G.v - 12) * 0.75, 0, 14) + (G.av === 1 ? clamp((40 - (G.s - G.avS)) * 0.25, 0, 7) : 0) : 0); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
   G.sky.position.copy(camera.position); flakeU.uCam.value.copy(camera.position); flakeU.uSize.value = renderer.domElement.height / 700;
   sun.target.position.set(px, py, pz - 6); sun.position.copy(sun.target.position).addScaledVector(SUN, 90);
   hud(); if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.opacity = 0; } if (pickT > 0) { pickT -= dt; if (pickT <= 0) $('pick').style.opacity = 0; }
@@ -7013,7 +7059,7 @@ function step(dt) {
 // plays the level by itself (testing): follows the clear line and brakes on the hill; on the ice keeps its speed down and steers round what is dangerous
 function bot() {
   if (G.phase === 'sled') { let next = rows.find((r) => r.s > G.s + 2), prev = null; for (const r of rows) { if (r.s <= G.s + 2) prev = r; } const tgt = next ? (prev ? lerp(prev.safe, next.safe, clamp((G.s - prev.s) / (next.s - prev.s), 0, 1) ** 0.6) : next.safe) : 0;
-    input.x = clamp((tgt - G.u) * 0.9 - G.uv * 0.25, -1, 1); input.brake = G.v > 19 && G.s < S1 - 40; if (next && next.log && next.s - G.s < G.v * 0.3 && !G.air) hop(); return; }
+    input.x = clamp((tgt - G.u) * 0.9 - G.uv * 0.25, -1, 1); input.brake = G.v > 19 && G.s < S1 - 40 && G.av !== 1; if (next && next.log && next.s - G.s < G.v * 0.3 && !G.air) hop(); return; }
   let dx = (CXI - P.x) * 0.04, dz = -1; for (const q of haz) { if (q.type === 'snow') continue; const ox = P.x - q.x, oz = P.z - q.z, d = Math.hypot(ox, oz), reach = q.r + 6; if (d < reach && oz > -q.r - 1) { const k = (reach - d) / reach * 3.2; dx += (ox >= 0 ? 1 : -1) * k * (1.2 - Math.abs(ox) / reach); } }
   for (const k of skaters) { const oz = P.z - k.z; if (oz > 0 && oz < 7 && Math.abs(k.x - P.x) < 4) dz = 0.6; }
   const want = -P.z > CR0 - 6 ? 10 : 6.5, wx = clamp(dx, -1.4, 1.4) * 4, wz = dz * want; input.x = clamp((wx - P.vx) * 0.5, -1, 1); input.y = clamp(-(wz - P.vz) * 0.5, -1, 1); input.brake = false;
@@ -7036,13 +7082,15 @@ async function boot() {
   for (let i = 0; i < 4; i++) { const d = buildDog(tex, { scale: 0.43, head: 1.3, leg: 0.8, ear: 1.15, snout: 0.72 }); scene.add(d.root); puppies.push({ d, x: 0, z: 0 }); }
   pAdd = new Particles(500, true); pAlpha = new Particles(900, false); scene.add(pAdd.mesh, pAlpha.mesh);
   $('rCat').textContent = '🔥'; $('rCat').style.left = '100%';
+  G.splat = document.createElement('div'); G.splat.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:4;background:radial-gradient(ellipse 34% 30% at 30% 38%, #fff 0, rgba(255,255,255,.96) 55%, rgba(255,255,255,0) 100%),radial-gradient(ellipse 30% 34% at 68% 30%, #fff 0, rgba(255,255,255,.95) 50%, rgba(255,255,255,0) 100%),radial-gradient(ellipse 40% 30% at 56% 70%, #fff 0, rgba(255,255,255,.95) 50%, rgba(255,255,255,0) 100%),radial-gradient(ellipse 22% 26% at 14% 76%, #fff 0, rgba(255,255,255,.9) 50%, rgba(255,255,255,0) 100%),radial-gradient(ellipse 20% 22% at 88% 66%, #fff 0, rgba(255,255,255,.9) 50%, rgba(255,255,255,0) 100%)'; document.body.appendChild(G.splat);
+  G.haze = document.createElement('div'); G.haze.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:4;box-shadow:inset 0 -60px 190px 70px rgba(255,255,255,.95)'; document.body.appendChild(G.haze);      // the avalanche's snow cloud creeping in from the edges of the screen
   reset(); G.mode = 'title'; applyLang();
   $('start').addEventListener('click', startGame);
   $('lang').addEventListener('click', () => { lang = lang === 'pl' ? 'en' : 'pl'; applyLang(); });
   $('again').addEventListener('click', () => { const bt = G.bot; toTitle(); G.bot = bt; startGame(); });
   $('menu').addEventListener('click', toTitle);
   step(0.016); renderer.compile(scene, camera); draw();
-  window.__sled = { G, P, Mi, obs, rows, items, balls, haz, skaters, deer, nearTrees, FORKS, CHUTE, CR0, uc, wipeout, input, audio, step, startGame, reset, toTitle, hop, renderer, scene, camera, cx, half, ground, S1, S2, ICE0, CXI,
+  window.__sled = { G, P, Mi, obs, rows, items, balls, haz, skaters, deer, kids, shots, AV0, AV1, TUN, BR, nearTrees, FORKS, CHUTE, CR0, uc, wipeout, input, audio, step, startGame, reset, toTitle, hop, renderer, scene, camera, cx, half, ground, S1, S2, ICE0, CXI,
     sim: (secs, dt = 1 / 60) => { for (let t = 0; t < secs; t += dt) step(dt); draw(); return { mode: G.mode, phase: G.phase, s: +prog().toFixed(0), u: +G.u.toFixed(1), v: +G.v.toFixed(1), lives: G.lives, bones: G.bones, time: +G.time.toFixed(0) }; } };
   $('title').classList.remove('hidden'); $('loading').style.opacity = 0; setTimeout(() => $('loading').remove(), 1100);
   last = performance.now(); requestAnimationFrame(frame);
