@@ -88,7 +88,7 @@ const uc = (f, s) => f.off * sm(f.a, f.a + 62, s) * (1 - sm(f.b - 50, f.b, s));
 const JW = 5.6;                                                                                      // half-width of the lane to the big jump
 const laneW = (f, s) => (f === FORKS[1] ? JW : HS) + (f === FORKS[1] ? 2.4 : 4.2) * Math.max(1 - sm(f.a + 26, f.a + 66, s), sm(f.b - 54, f.b - 22, s));      // half-width of a side lane: a broad funnel where it leaves the run and where it comes back                    // middle of the shortcut: it leaves the run, keeps apart, comes back
 const chuteK = (s) => sm(CHUTE[0], CHUTE[0] + 25, s) * (1 - sm(CHUTE[1] - 25, CHUTE[1], s));
-const AV0 = 704, AV1 = 792, TUN = [452, 498], BR = 875;                                           // the avalanche stretch; the snow tunnel; the footbridge
+const AV0 = 688, AV1 = 764, TUN = [452, 498], BR = 875;                                           // the avalanche stretch; the snow tunnel; the footbridge
 const bridgeK = (s) => sm(BR - 27, BR - 13, s) * (1 - sm(BR + 13, BR + 27, s)), gul = (s) => 3.6 * sm(BR - 17, BR - 9, s) * (1 - sm(BR + 9, BR + 17, s));   // the run narrows on to the bridge; the stream gully under it
 const half = (s) => lerp(lerp(lerp(7.6 + 1.4 * Math.sin(s * 0.011 + 2), 2.8, chuteK(s)), 2.5, bridgeK(s)), IW, sm(S1 - 10, S1 + 70, s));
 const trackY = (s) => { const f = clamp((S1 - s) / S1, 0, 1.06), a = 0.1, g = f < a ? f * f / (2 * a) : f - a / 2, k = sm(0, 0.15, f); return DROP * g + (4 * Math.sin(s * 0.019) + 1.6 * Math.sin(s * 0.043 + 1)) * k; };
