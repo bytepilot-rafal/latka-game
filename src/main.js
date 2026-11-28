@@ -354,8 +354,30 @@ function buildHQ() {
   for (const [x, z, r] of [[-7, -6, 1.5], [6, -17, 1.9], [-3, -29, 1.4], [8, -37, 1.7], [-10, 10, 2.0], [-7, -101, 1.5], [5, -107, 1.3], [-11, -228, 1.9], [10, -241, 1.6], [2, -222, 1.4]]) {
     const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.75, r, 34, 14, 1, true), beamMaterial(0xffd9a0, 0.2, world.U.uTime)); m.renderOrder = 8; m.frustumCulled = false; scene.add(m); hq.beams.push({ m, x, y: H(x, z), z });
   }
-  const WING = [0xf39a2a, 0xf4f1e6, 0x5aa0e8, 0xf2d24a, 0xe8607a];
-  for (let i = 0; i < 9; i++) { const grp = new THREE.Group(), mat = new THREE.MeshBasicMaterial({ color: WING[i % 5], side: THREE.DoubleSide }), mk = (sd) => { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.05, sd * 0.11, 0, -0.09, sd * 0.09, 0, 0.05, 0, 0, -0.05, sd * 0.09, 0, 0.05, 0, 0, 0.06], 3)); return new THREE.Mesh(wg, mat); }, wl = mk(-1), wr = mk(1); grp.add(wl, wr); grp.visible = false; scene.add(grp); hq.flies.push({ grp, wl, wr, cx: 0, cz: 99, ph: i * 2.3 }); }
+  // Tropical butterflies: each wing is a painted pair (forewing and hindwing) with veins, a dark margin and the markings of its kind.
+  const wingTex = (K) => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'), fore = () => { g.beginPath(); g.moveTo(8, 132); g.bezierCurveTo(60, 60, 150, 14, 240, 22); g.bezierCurveTo(250, 60, 210, 112, 150, 132); g.bezierCurveTo(100, 140, 40, 138, 8, 132); g.closePath(); },
+      hind = () => { g.beginPath(); g.moveTo(8, 134); g.bezierCurveTo(60, 132, 120, 134, 158, 140); g.bezierCurveTo(196, 160, 196, 206, 160, 226); if (K.tail) { g.lineTo(166, 252); g.lineTo(150, 232); } g.bezierCurveTo(110, 244, 50, 214, 8, 134); g.closePath(); };
+    for (const [shape, col, col2, cx, cy] of [[hind, K.hind || K.base, K.hind2 || K.base2, 60, 160], [fore, K.base, K.base2, 70, 100]]) {
+      g.save(); shape(); g.clip(); const gr = g.createRadialGradient(cx, cy, 6, cx, cy, 190); gr.addColorStop(0, col2); gr.addColorStop(0.55, col); gr.addColorStop(1, col); g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+      if (K.bands) for (const [x0, y0, x1, y1, w, bc] of K.bands) { g.strokeStyle = bc; g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); }
+      g.strokeStyle = K.vein; g.lineWidth = K.veinW || 2; for (let i = 0; i < 9; i++) { const an = -1.05 + i * 0.3; g.beginPath(); g.moveTo(8, 133); g.quadraticCurveTo(8 + Math.cos(an) * 90, 133 + Math.sin(an) * 70, 8 + Math.cos(an * 0.92) * 250, 133 + Math.sin(an * 0.92) * 210); g.stroke(); }
+      shape(); g.strokeStyle = K.edge; g.lineWidth = K.edgeW || 26; g.stroke();                                                    // the dark margin (half of the stroke falls outside the clip)
+      if (K.dots) { g.fillStyle = K.dots; for (let i = 0; i < 26; i++) { const t = i / 25, x = shape === fore ? lerp(238, 150, t) + Math.sin(t * 3.1) * 14 : lerp(160, 60, t), y = shape === fore ? lerp(26, 128, t) - Math.sin(t * 3.1) * 4 : 226 - Math.sin(t * 3.1) * 6 + t * 4; g.beginPath(); g.arc(x - (shape === fore ? 7 : 0), y - (shape === fore ? 0 : 7), i % 2 ? 2.6 : 3.6, 0, 6.3); g.fill(); } }
+      if (shape === hind && K.eye) { g.fillStyle = K.eye[0]; g.beginPath(); g.arc(128, 204, 11, 0, 6.3); g.fill(); g.fillStyle = K.eye[1]; g.beginPath(); g.arc(150, 188, 8, 0, 6.3); g.fill(); }
+      g.restore(); }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
+  const KINDS = [
+    { base: '#1b63e0', base2: '#58d6ff', vein: 'rgba(8,20,60,0.5)', edge: '#07090f', edgeW: 30, dots: '#f4f8ff' },                                                                         // blue morpho
+    { base: '#ef7f16', base2: '#ffb347', vein: '#140c06', veinW: 4, edge: '#120a05', edgeW: 30, dots: '#fff7e6' },                                                                      // monarch
+    { base: '#f6dc3c', base2: '#fff2a0', vein: 'rgba(20,16,6,0.75)', veinW: 3, edge: '#0e0c08', edgeW: 28, tail: true, eye: ['#2f6be0', '#e23a2a'], bands: [[92, 20, 70, 130, 13, '#0e0c08'], [140, 14, 112, 128, 12, '#0e0c08'], [186, 14, 158, 120, 11, '#0e0c08']], dots: '#f6dc3c' },   // swallowtail
+    { base: '#0d0d10', base2: '#22222a', vein: 'rgba(0,0,0,0)', edge: '#050506', edgeW: 16, bands: [[112, 28, 170, 118, 40, '#e8261c'], [30, 150, 150, 168, 15, '#f3e79a']] },             // postman
+    { base: '#0b100d', base2: '#18241c', vein: 'rgba(0,0,0,0)', edge: '#050806', edgeW: 16, bands: [[60, 118, 214, 44, 34, '#19d27a'], [34, 160, 150, 196, 30, '#19d27a']], tail: true, dots: '#8ff0c0' },   // emerald swallowtail
+  ].map((K) => new THREE.MeshBasicMaterial({ map: wingTex(K), alphaTest: 0.5, side: THREE.DoubleSide }));
+  { const wingG = new THREE.BufferGeometry(); wingG.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0.115, 0.22, 0, 0.115, 0.22, 0, -0.105, 0, 0, 0.115, 0.22, 0, -0.105, 0, 0, -0.105], 3)); wingG.setAttribute('uv', new THREE.Float32BufferAttribute([0.03, 1, 1, 1, 1, 0, 0.03, 1, 1, 0, 0.03, 0], 2));
+    const bodyM = new THREE.MeshStandardMaterial({ color: 0x15120f, roughness: 0.7 }), bodyG = new THREE.CapsuleGeometry(0.011, 0.11, 3, 6).rotateX(Math.PI / 2), headG = new THREE.SphereGeometry(0.014, 6, 5).translate(0, 0.002, 0.075), antG = new THREE.CylinderGeometry(0.0015, 0.0015, 0.07, 3).translate(0, 0.035, 0);
+    for (let i = 0; i < 11; i++) { const grp = new THREE.Group(), mat = KINDS[i % KINDS.length], wl = new THREE.Mesh(wingG, mat), wr = new THREE.Mesh(wingG, mat); wl.scale.x = -1; grp.add(wl, wr, new THREE.Mesh(bodyG, bodyM), new THREE.Mesh(headG, bodyM));
+      for (const sx of [-1, 1]) { const an = new THREE.Mesh(antG, bodyM); an.position.set(sx * 0.006, 0.006, 0.082); an.rotation.set(1.05, 0, -sx * 0.35); grp.add(an); }
+      grp.scale.setScalar(0.95 + (i % 3) * 0.22); grp.rotation.order = 'YXZ'; grp.visible = false; scene.add(grp); hq.flies.push({ grp, wl, wr, cx: 0, cz: 99, ph: i * 2.3 }); } }
   hq.birds = new THREE.Group(); const bm = new THREE.MeshBasicMaterial({ color: 0x14100e, side: THREE.DoubleSide });
   for (let i = 0; i < 7; i++) { const b = new THREE.Group(), mk = (sd) => { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.25, sd * 1.1, 0, 0.1, 0, 0, 0.3], 3)); return new THREE.Mesh(wg, bm); }; b.add(mk(-1), mk(1)); const k = Math.ceil(i / 2), sd = i % 2 ? 1 : -1; b.position.set(sd * k * 1.9, (i % 3) * 0.4, k * 1.6); hq.birds.add(b); }
   hq.birds.visible = false; scene.add(hq.birds);
@@ -367,7 +389,8 @@ function hqStep(dt) {
   for (const f of hq.flies) {
     if ((f.cx - P.pos.x) ** 2 + (f.cz - P.pos.z) ** 2 > 22 * 22) { f.cx = P.pos.x + rnd(11); f.cz = P.pos.z + rnd(11); }
     f.grp.visible = open && sky.night < 0.45; if (!f.grp.visible) continue; const t = G.time, x = f.cx + Math.sin(t * 0.7 + f.ph) * 1.7, z = f.cz + Math.cos(t * 0.5 + f.ph * 2) * 1.7;
-    f.grp.position.set(x, Math.max(H(x, z), P.pos.y - 0.5) + 0.9 + Math.sin(t * 1.3 + f.ph) * 0.45, z); f.grp.rotation.y = t * 0.6 + f.ph; const w = Math.sin(t * 19 + f.ph) * 1.0; f.wl.rotation.z = w; f.wr.rotation.z = -w;
+    f.grp.position.set(x, Math.max(H(x, z), P.pos.y - 0.5) + 0.9 + Math.sin(t * 1.3 + f.ph) * 0.45, z); f.grp.rotation.set(-0.25 + Math.sin(t * 2.6 + f.ph) * 0.2, Math.atan2(Math.cos(t * 0.7 + f.ph) * 0.7, -Math.sin(t * 0.5 + f.ph * 2) * 0.5), Math.sin(t * 1.1 + f.ph) * 0.2);      // heading the way it flies, dipping and tilting
+    const glide = Math.sin(t * 0.9 + f.ph * 3) > 0.72, w = glide ? 0.5 : 0.25 + Math.abs(Math.sin(t * 9.5 + f.ph)) * 1.05; f.wl.rotation.z = -w; f.wr.rotation.z = w;      // deep, slow beats with short glides on raised wings
   }
   hq.birdT -= dt; if (hq.birdT <= 0 && !hq.birds.visible && sky.night < 0.6) { hq.birds.visible = true; hq.birds.userData = { t: 0, z: P.pos.z - 40 - Math.random() * 50, dir: Math.random() < 0.5 ? 1 : -1 }; }
   if (hq.birds.visible) { const u = hq.birds.userData; u.t += dt; hq.birds.position.set(-150 * u.dir + u.t * 13 * u.dir, P.pos.y + 34 + Math.sin(u.t * 0.4) * 3, u.z - u.t * 2); hq.birds.rotation.y = u.dir > 0 ? -Math.PI / 2 : Math.PI / 2; hq.birds.children.forEach((b, i) => { const w = Math.sin(G.time * 7 + i) * 0.6; b.children[0].rotation.z = -w; b.children[1].rotation.z = w; }); if (u.t > 24) { hq.birds.visible = false; hq.birdT = 14 + Math.random() * 18; } }
