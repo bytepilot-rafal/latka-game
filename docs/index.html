@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>
-  window.BUILD = '20261128-022553';
+  window.BUILD = '20261128-023347';
   if (location.protocol.indexOf('http') === 0) fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = v.trim();
     if (/^[0-9-]+$/.test(v) && v !== window.BUILD && location.search.indexOf('v=' + v) < 0) { try { if (window.LEVEL && LEVEL !== '1') sessionStorage.setItem('latka-level', LEVEL); } catch (e) {} location.replace(location.pathname + '?v=' + v); }
@@ -6431,6 +6431,7 @@ boot().catch((e) => { console.error(e); $('loading').textContent = 'Błąd: ' + 
 //              pulls the sledge, the player steers, brakes and hops; kickers throw it into the air.
 //   the ice  – free movement with almost no grip: Łatka keeps sliding, so turns and stops have to be planned.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createTextures, sm, lerp, clamp, rng, fbm } from './textures.js';
 import { Builder, roofGeo, canvasTex, worldMat } from './kit.js';
 import { buildDog } from './dog.js';
@@ -6539,9 +6540,50 @@ const SUN = new THREE.Vector3(0.5, 0.36, -0.62).normalize();
 const snowMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86 });
 
 // ------------------------------------------------------------------ scenery
+const paintGeo = (g, fn) => { const P2 = g.attributes.position, c = new Float32Array(P2.count * 3); for (let i = 0; i < P2.count; i++) { const q = fn(P2.getX(i), P2.getY(i), P2.getZ(i)); c[i * 3] = q[0]; c[i * 3 + 1] = q[1]; c[i * 3 + 2] = q[2]; } g.setAttribute('color', new THREE.BufferAttribute(c, 3)); g.deleteAttribute('uv'); return g; };
+// A spruce: whorls of drooping branches with ragged tips, each one carrying snow on its upper part while the tips stay dark green.
+function spruceGeo(seed, tiers, r0, H, seg = 10) {
+  const R = rng(seed), parts = [paintGeo(new THREE.CylinderGeometry(0.1 * r0 / 3, 0.3 * r0 / 3, H * 0.34, 6, 1, true).translate(0, H * 0.17, 0), () => [0.2, 0.14, 0.1])];
+  for (let k = 0; k < tiers; k++) { const t = k / (tiers - 1), r = r0 * (1 - 0.82 * t) * (0.88 + R() * 0.24), th = H * 0.27 * (1 - 0.4 * t), y0 = H * 0.13 + (H * 0.87 - th) * Math.pow(t, 0.92), g = new THREE.ConeGeometry(r, th, seg, 2, true), P2 = g.attributes.position, sd = seed * 7 + k * 3.7, tw = R() * 6.28;
+    for (let i = 0; i < P2.count; i++) { const x = P2.getX(i), y = P2.getY(i), z = P2.getZ(i), f = (y + th / 2) / th, an = Math.atan2(z, x) + tw, n = fbm(Math.cos(an) * 2.1 + sd, Math.sin(an) * 2.1 + k, 2, 5), jag = 1 + (1 - f) * ((n - 0.5) * 1.1 + 0.18 * Math.sin(an * 7 + sd));
+      P2.setXYZ(i, x * jag, y - (1 - f) * (1 - f) * r * (0.16 + n * 0.3), z * jag); }
+    g.computeVertexNormals(); g.translate(0, y0 + th / 2, 0);
+    parts.push(paintGeo(g, (x, y, z) => { const f = (y - y0) / th, an = Math.atan2(z, x) + tw, n = fbm(Math.cos(an) * 3.3 + sd, Math.sin(an) * 3.3 + f * 4, 2, 9), snow = sm(0.16, 0.5, f + (n - 0.5) * 0.75), gr = 0.55 + f * 0.5 + (n - 0.5) * 0.3; return [lerp(0.07 * gr, 0.95, snow), lerp(0.235 * gr, 0.97, snow), lerp(0.115 * gr, 1.0, snow)]; })); }
+  return mergeGeometries(parts);
+}
+// A bare birch: a pale trunk with dark scars, a few rising boughs, thin twigs.
+function birchGeo(seed) {
+  const R = rng(seed), H = 7.5 + R() * 2, parts = [], bend = (R() - 0.5) * 0.5, tr = new THREE.CylinderGeometry(0.05, 0.16, H, 7, 10, true).translate(0, H / 2, 0), P2 = tr.attributes.position;
+  for (let i = 0; i < P2.count; i++) { const y = P2.getY(i); P2.setX(i, P2.getX(i) + bend * (y / H) ** 2 * 1.4); } tr.computeVertexNormals();
+  parts.push(paintGeo(tr, (x, y, z) => { const n = fbm(y * 2.6 + seed, Math.atan2(z, x) * 1.5, 2, 3), dk = n > 0.63 || y < 0.5 ? 1 : 0, b = dk ? 0.16 : 0.84 + (n - 0.5) * 0.2; return [b, b * 0.985, b * 0.95]; }));
+  const limb = (x, y, z, az, tilt, len, r) => { const g = new THREE.CylinderGeometry(r * 0.35, r, len, 5, 1, true).translate(0, len / 2, 0); g.rotateZ(-tilt); g.rotateY(az); g.translate(x, y, z); parts.push(paintGeo(g, (px, py) => { const b = 0.17 + (py - y) * 0.012; return [b * 1.15, b, b * 0.92]; })); return [x + Math.sin(tilt) * Math.cos(az) * len * 0.62, y + Math.cos(tilt) * len * 0.62, z - Math.sin(tilt) * Math.sin(az) * len * 0.62]; };
+  for (let i = 0; i < 9; i++) { const y = H * (0.36 + i * 0.065), az = i * 2.4 + R() * 0.8, len = 1.5 + R() * 1.6 - i * 0.07, q = limb(bend * (y / H) ** 2 * 1.4, y, 0, az, 0.6 + R() * 0.35, len, 0.045); for (let j = 0; j < 2; j++) limb(q[0], q[1], q[2], az + (j ? 0.9 : -0.8) + R() * 0.4, 0.55 + R() * 0.5, 0.8 + R() * 0.7, 0.016); }
+  limb(bend * 1.1, H * 0.93, 0, R() * 6, 0.12, 1.3, 0.035);
+  return mergeGeometries(parts);
+}
 function buildWorld() {
   RU = makeUniforms(); patchMat(worldMat, RU, { cloud: 0.25 }); patchMat(snowMat, RU, { grain: HQ ? 0.2 : 0.1, cloud: 0.3, gs: 0.5 });
   G.sky = daySky(renderer, scene, SUN, { gain: 0.42, size: 900, turbidity: 4.5, rayleigh: 1.6 }); scene.environmentIntensity = 0.55;
+  // thin winter cloud drifting overhead, lit from the sun's side and warmed by it at dusk
+  G.cloudU = { uSunDir: { value: SUN }, uLit: { value: new THREE.Color(1.0, 0.99, 0.97) }, uShade: { value: new THREE.Color(0.6, 0.68, 0.8) }, uTime: { value: 0 } };
+  G.clouds = new THREE.Mesh(new THREE.SphereGeometry(820, 32, 16), new THREE.ShaderMaterial({ uniforms: G.cloudU, side: THREE.BackSide, depthWrite: false, fog: false, transparent: true,
+    vertexShader: 'varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform vec3 uSunDir, uLit, uShade; uniform float uTime; varying vec3 vDir;
+      float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+      float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }
+      float fb(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a * vn(p); p = p * 2.03 + 7.1; a *= 0.5; } return s / 0.97; }
+      void main(){ vec3 d = normalize(vDir); if (d.y < 0.005) discard; vec2 q = d.xz / (d.y + 0.14) * 0.62 + vec2(uTime * 0.006, uTime * 0.002);
+        float n = fb(q) * 0.62 + fb(q * 2.7 + 3.0) * 0.38, cov = smoothstep(0.5, 0.78, n), lit = clamp((n - fb(q + normalize(uSunDir.xz) * 0.2)) * 3.0 + 0.55, 0.0, 1.0), sd = pow(max(dot(d, uSunDir), 0.0), 5.0);
+        vec3 c = mix(uShade, uLit, lit) + uLit * sd * 0.35; gl_FragColor = vec4(c, cov * 0.88 * smoothstep(0.005, 0.16, d.y));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` }));
+  G.clouds.frustumCulled = false; G.clouds.renderOrder = -10; scene.add(G.clouds);
+  // sunlit snow glitters: tiny crystals flash as the view moves over them
+  { const prev = snowMat.onBeforeCompile; snowMat.onBeforeCompile = (sh) => { prev(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      { vec2 gp = vWp.xz * ${HQ ? '34.0' : '22.0'}; vec2 gc = floor(gp); float gh = fract(sin(dot(gc, vec2(127.1, 311.7))) * 43758.5453), gd = length(vViewPosition);
+        float tw = fract(gh * 37.0 + dot(normalize(vViewPosition).xy, vec2(3.1, 2.3)) * 2.5 + vWp.y * 0.6); float gl = step(0.986, gh) * smoothstep(0.75, 1.0, tw) * smoothstep(0.42, 0.1, length(fract(gp) - 0.5)) * (1.0 - smoothstep(14.0, 46.0, gd));
+        totalEmissiveRadiance += vec3(1.0, 0.98, 0.94) * gl * ${HQ ? '3.2' : '1.6'} * uGlint; }`).replace('#include <common>', '#include <common>\nuniform float uGlint;'); sh.uniforms.uGlint = G.glintU; }; G.glintU = { value: 1 }; snowMat.customProgramCacheKey = () => 'snowglint'; }
   sun = new THREE.DirectionalLight(0xffe6c4, 2.6); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   const sc = sun.shadow.camera; sc.left = -30; sc.right = 30; sc.top = 34; sc.bottom = -26; sc.near = 1; sc.far = 190; sun.shadow.bias = -0.0007; sun.shadow.normalBias = 0.07; scene.add(sun, sun.target);
   hemi = new THREE.HemisphereLight(0xc4dcff, 0xb8c6dc, 0.55); scene.add(hemi);
@@ -6568,15 +6610,19 @@ function buildWorld() {
   const ice = new THREE.Mesh(new THREE.PlaneGeometry(IW * 3.2, S2 - S1 + 30).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: iceTex, roughness: 0.1, metalness: 0, envMapIntensity: 1.5 }));
   ice.position.set(CXI, 0, -(S1 + S2) / 2 - 3); ice.receiveShadow = true; scene.add(ice);
   // ---- forest: snow-laden spruces on both sides
-  { const B = new Builder(4); B.cyl(0.22, 0.32, 3, 0, 0, 0, 0x4a3626, 6);
-    for (let k = 0; k < 4; k++) { const r = 3.1 - k * 0.66, y = 1.8 + k * 2.5, h = 4.6 - k * 0.3; B.cone(r, h, 0, y, 0, 0x1d4a2c, 9); B.cone(r * 0.86, h * 0.72, 0, y + h * 0.3 + 0.05, 0, 0xf2f6fb, 9); }
-    const geo = B.mesh().geometry, list = [], n0 = HQ ? 1 : 0.6;
+  { const GEOS = [spruceGeo(11, HQ ? 7 : 5, 3.2, 12.5, HQ ? 10 : 8), spruceGeo(23, HQ ? 6 : 5, 2.5, 13.5, HQ ? 10 : 8), birchGeo(5), birchGeo(8)];      // lighter trees in regular quality
+    const list = [], n0 = HQ ? 1 : 0.6;
     for (let s = -55; s < S2 + 115; s += 2.6) for (const side of [-1, 1]) { const h = half(s); for (let q = 0; q < 2; q++) { if (R() > n0 * (q ? 0.55 : 0.8)) continue; const a = h + 4.5 + Math.pow(R(), 1.7) * 125, u = side * a, fk = forkAt(s); if (fk && Math.abs(u - uc(fk, s)) < HS + 2.2) continue; const t = [cx(s) + u, ground(s, u) - 0.25, -s - R() * 2.6, 0.5 + R() * 0.75]; list.push(t); if (a < h + 12 && s > 20 && s < S1) nearTrees.push({ s: -t[2], u, x: t[0], y: t[1], z: t[2], sc: t[3], done: false }); } }
     for (const fk of FORKS) for (let s = fk.a + 30; s < fk.b - 30; s += 3.2) { const c = uc(fk, s), sg = Math.sign(fk.off), room = Math.abs(c) - HS - half(s) - 3.4; if (room < 0.5) continue; const u = sg * (half(s) + 1.7 + R() * room), t = [cx(s) + u, ground(s, u) - 0.25, -s, 0.36 + R() * 0.3]; list.push(t); nearTrees.push({ s, u, x: t[0], y: t[1], z: t[2], sc: t[3], done: false }); }
     nearTrees.sort((p, q) => p.s - q.s);
     for (let i = 0; i < 70; i++) { const x = CXI + (R() - 0.5) * 150, s = S2 + 26 + R() * 90; if (Math.abs(x - CXI) < 13 && s < S2 + 50) continue; list.push([x, ground(s, x - CXI) - 0.25, -s, 0.6 + R() * 0.7]); }
-    const m = new THREE.InstancedMesh(geo, worldMat, list.length); list.forEach(([x, y, z, sc2], i) => { dummy.position.set(x, y, z); dummy.rotation.set(0, R() * 6.28, 0); dummy.scale.set(sc2, sc2 * (0.9 + R() * 0.35), sc2); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); m.setColorAt(i, tmpC.setScalar(0.8 + R() * 0.3)); });
-    m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; scene.add(m); }
+    const kinds = [[], [], [], []]; list.forEach((t, i) => { const h = fbm(t[0] * 0.02, t[2] * 0.02, 2, 17), q = (i * 7919) % 100; kinds[q < (h > 0.55 ? 34 : 9) ? 2 + (i & 1) : q % 3 ? 0 : 1].push(t); });      // birches gather in groves; the rest is spruce of two builds
+    kinds.forEach((a, kd) => { if (!a.length) return; const m = new THREE.InstancedMesh(GEOS[kd], worldMat, a.length); a.forEach(([x, y, z, sc2], i) => { const k2 = kd < 2 ? sc2 * 1.12 : 0.75 + sc2 * 0.5; dummy.position.set(x, y, z); dummy.rotation.set((R() - 0.5) * 0.06, R() * 6.28, (R() - 0.5) * 0.06); dummy.scale.set(k2 * (0.85 + R() * 0.3), k2 * (0.85 + R() * 0.45), k2 * (0.85 + R() * 0.3)); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); m.setColorAt(i, tmpC.setScalar(0.78 + R() * 0.34)); });
+      m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; scene.add(m); }); }
+  // ---- dry reeds standing out of the snow along the river banks
+  { const parts = []; const r = rng(88); for (let i = 0; i < 9; i++) { const hh = 1.1 + r() * 1.0, g = new THREE.CylinderGeometry(0.004, 0.016, hh, 4, 1, true).translate(0, hh / 2, 0); g.rotateZ((r() - 0.5) * 0.5); g.rotateY(r() * 6.28); g.translate((r() - 0.5) * 0.5, 0, (r() - 0.5) * 0.5); parts.push(paintGeo(g, (x, y) => { const b = 0.5 + y * 0.12; return [b * 1.0, b * 0.84, b * 0.5]; })); if (i % 2 === 0) { const hd = new THREE.CylinderGeometry(0.03, 0.022, 0.22, 5).translate(0, hh, 0); hd.rotateZ((r() - 0.5) * 0.4); hd.translate(parts.length * 0.01 - 0.05, 0, 0); parts.push(paintGeo(hd, () => [0.36, 0.25, 0.15])); } }
+    const geo = mergeGeometries(parts), list = []; for (let s2 = S1 + 20; s2 < S2 + 6; s2 += 1.6) for (const side of [-1, 1]) { if (R() > 0.62) continue; const u = side * (half(s2) + 0.3 + R() * 3.2); list.push([cx(s2) + u, ground(s2, u) - 0.05, -s2 - R() * 1.6, 0.8 + R() * 0.7]); }
+    const m = new THREE.InstancedMesh(geo, worldMat, list.length); list.forEach(([x, y, z, sc2], i) => { dummy.position.set(x, y, z); dummy.rotation.set(0, R() * 6.28, 0); dummy.scale.setScalar(sc2); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); }); m.castShadow = true; m.frustumCulled = false; scene.add(m); }
   // ---- soft drifts and boulders along the edges
   { const B = new Builder(8); B.blob(1, 0, 0.1, 0, 0xf4f7fc, 0.5, 1.3, 1); const geo = B.mesh().geometry, list = [];
     for (let s = -20; s < S2 + 40; s += 5) for (const side of [-1, 1]) if (R() < 0.7) { const u = side * (half(s) + 1.5 + R() * 5), fk = forkAt(s); if (fk && Math.abs(u - uc(fk, s)) < HS + 1.8) continue; list.push([cx(s) + u, ground(s, u) - 0.1, -s, 0.8 + R() * 1.6]); }
@@ -6594,6 +6640,21 @@ function buildWorld() {
   for (const fk of FORKS) { const s = fk.a + 16, sg = Math.sign(fk.off), u = sg * (half(s) - 1.2), x = cx(s) + u, y = ground(s, u); for (const o of [-0.9, 0.9]) B.cyl(0.05, 0.06, 2.2, x + o, y - 0.1, -s, 0x6b4a2e, 5); B.box(2.3, 0.75, 0.07, x, y + 1.45, -s, 0x8a6240);
     const tx = canvasTex(256, 96, (c, w, h) => { c.fillStyle = '#8a6240'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff6da'; c.font = 'bold 46px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(sg < 0 ? '← ' + T('sign') : T('sign') + ' →', w / 2, h / 2 + 3); }, 1, 1);
     const pm = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.7), new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9 })); pm.position.set(x, y + 1.82, -s + 0.045); scene.add(pm); }
+  // ---- Wierzbica: cottages under snow beside the run, fenced yards, haystacks
+  G.smoke = [];
+  [[606, 15, 0xd8c9ae, 1], [636, 26, 0xb9a48a, 0], [668, 16, 0xe2d6c0, 1], [712, -17, 0xc9b79c, 1], [738, 19, 0xd4c3a6, 0], [752, -26, 0xbfae95, 1]].forEach(([s, off, wall, lit], i) => { const u = off + Math.sign(off) * half(s), x = cx(s) + u, w = 6.5 + (i % 3), dpt = 5 + (i % 2), y = Math.min(ground(s - 3, u - 3), ground(s + 3, u + 3), ground(s, u)) - 0.3, ry = -headAt(s) + (i % 2 ? 0.25 : -0.2), c = Math.cos(ry), sn = Math.sin(ry), at = (lx, lz) => [x + lx * c + lz * sn, -s - lx * sn + lz * c];
+    B.box(w, 3.4, dpt, x, y, -s, wall, ry); B.box(w + 0.2, 0.5, dpt + 0.2, x, y - 0.2, -s, 0x6b6660, ry); B.add(roofGeo(dpt + 1.3, 2.5, w + 1.2).rotateY(Math.PI / 2), 0xf3f6fb, x, y + 3.4, -s, ry); { const q = at(w * 0.22, 0.4); B.box(0.75, 1.9, 0.75, q[0], y + 4.4, q[1], 0x8a5a44, ry); G.smoke.push(new THREE.Vector3(q[0], y + 6.4, q[1])); }
+    const sd = off > 0 ? -1 : 1; { const q = at(sd * 0 - w * 0.2, 0); const f = at(-w * 0.2, -sd * (dpt / 2 + 0.03)); B.box(1.0, 2.0, 0.08, f[0], y + 0.3, f[1], 0x5b3a26, ry); void q; }
+    for (const lx of [w * 0.18, w * 0.36]) { const f = at(lx, -sd * (dpt / 2 + 0.03)); B.box(1.0, 1.0, 0.08, f[0], y + 1.5, f[1], lit ? 0xffd98a : 0x33414e, ry); }
+    for (let k = -3; k <= 3; k++) { const f = at(k * 1.6, -sd * (dpt / 2 + 4.5)), gy = ground(-f[1], f[0] - cx(-f[1])); B.cyl(0.05, 0.06, 1.0, f[0], gy - 0.1, f[1], 0x6b4a2e, 5); if (k < 3) { const f2 = at(k * 1.6 + 0.8, -sd * (dpt / 2 + 4.5)); B.box(1.6, 0.07, 0.05, f2[0], ground(-f2[1], f2[0] - cx(-f2[1])) + 0.55, f2[1], 0x7a5636, ry); } }
+    { const f = at(-w * 0.9, sd * 1.5), gy = ground(-f[1], f[0] - cx(-f[1])); B.cone(1.5, 2.4, f[0], gy - 0.2, f[1], 0xc9a85a, 9); B.cone(1.3, 1.5, f[0], gy + 1.0, f[1], 0xf3f6fb, 9); } });
+  // ---- far hills: forested ridges that fade into the haze on both sides and beyond the river
+  { const pp = [], cc = [], ii = [], US2 = [150, 205, 270, 350, 440], rise = [0, 16, 38, 60, 46]; let rowsN = 0;
+    for (const side of [-1, 1]) { const base = pp.length / 3; let n = 0; for (let s = -200; s <= S2 + 500; s += 26, n++) { const k = s > S1 ? lerp(1, 1.5, sm(S1, S1 + 60, s)) : 1, sc = clamp(s, -60, S2 + 120); US2.forEach((u0, j) => { const u = side * u0 * k, x = cx(sc) + u, hgt = j ? ground(sc, side * 150 * k) * 0.8 + trackY(sc) * 0.2 + rise[j] * (0.55 + fbm(x * 0.006 + 3, s * 0.006, 3, 21) * 1.1) : ground(sc, u), f = fbm(x * 0.05, s * 0.05, 2, 4), wood = j ? sm(0.3, 0.55, f) : 0; pp.push(x, hgt, -s); cc.push(lerp(0.9, 0.14, wood), lerp(0.94, 0.21, wood), lerp(1.0, 0.2, wood)); }); }
+      rowsN = n; for (let i = 0; i < n - 1; i++) for (let j = 0; j < US2.length - 1; j++) { const q = base + i * US2.length + j; if (side > 0) ii.push(q, q + US2.length, q + 1, q + 1, q + US2.length, q + US2.length + 1); else ii.push(q, q + 1, q + US2.length, q + 1, q + US2.length + 1, q + US2.length); } }
+    { const base = pp.length / 3, NX = 30, NZ = 9; for (let iz = 0; iz <= NZ; iz++) for (let ix = 0; ix <= NX; ix++) { const x = CXI + (ix / NX - 0.5) * 900, s = S2 + 118 + iz * 44, e = iz / NZ, hgt = ground(S2 + 118, clamp(x - CXI, -220, 220)) * (1 - e) + (8 + 74 * fbm(x * 0.005 + 9, s * 0.006, 3, 31)) * sm(0, 0.7, e), f = fbm(x * 0.05, s * 0.05, 2, 4), wood = sm(0.3, 0.55, f) * sm(0, 0.25, e); pp.push(x, hgt, -s); cc.push(lerp(0.9, 0.14, wood), lerp(0.94, 0.21, wood), lerp(1.0, 0.2, wood)); }
+      for (let iz = 0; iz < NZ; iz++) for (let ix = 0; ix < NX; ix++) { const q = base + iz * (NX + 1) + ix; ii.push(q, q + 1, q + NX + 1, q + 1, q + NX + 2, q + NX + 1); } }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); g.setIndex(ii); g.computeVertexNormals(); const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, side: THREE.DoubleSide })); m.frustumCulled = false; scene.add(m); void rowsN; }
   // the footbridge: planks, rails, trestles down into the gully
   for (let s = BR - 19.5, i = 0; s <= BR + 19.5; s += 0.56, i++) B.box(5.5, 0.1, 0.5, cx(s), ground(s, 0) - 0.07, -s, i % 2 ? 0x8f6844 : 0x7b5837, -headAt(s));
   for (let s = BR - 19; s <= BR + 19.1; s += 2.2) for (const sd of [-1, 1]) { const x = cx(s) + sd * 2.68, y = ground(s, 0); B.cyl(0.06, 0.06, 1.05, x, y - 0.05, -s, 0x5e4228, 6); if (s < BR + 18) for (const hh of [0.5, 0.95]) B.box(0.07, 0.08, 2.24, cx(s + 1.1) + sd * 2.68, ground(s + 1.1, 0) + hh, -s - 1.1, 0x8f6844, -headAt(s)); }
@@ -6643,7 +6704,7 @@ function buildCourse() {
   const R = rng(77);
   // ---- obstacle shapes
   const GEO = {};
-  { const B = new Builder(1); B.cyl(0.07, 0.1, 0.7, 0, 0, 0, 0x4a3626, 5); for (let k = 0; k < 3; k++) { const r = 0.85 - k * 0.24, y = 0.4 + k * 0.62; B.cone(r, 1.15, 0, y, 0, 0x1f5030, 8); B.cone(r * 0.85, 0.82, 0, y + 0.36, 0, 0xf2f6fb, 8); } GEO.spruce = B.mesh().geometry; }
+  GEO.spruce = spruceGeo(41, 5, 0.9, 2.5);
   { const B = new Builder(2); B.blob(0.55, 0, 0.5, 0, 0xf5f8fc); B.blob(0.4, 0, 1.22, 0, 0xf5f8fc); B.blob(0.28, 0, 1.78, 0, 0xf5f8fc); const n = new THREE.ConeGeometry(0.05, 0.3, 6); n.rotateX(Math.PI / 2); B.add(n, 0xff7a1a, 0, 1.78, 0.36);
     for (const sx of [-1, 1]) { B.blob(0.035, sx * 0.1, 1.86, 0.25, 0x151515); const g = new THREE.CylinderGeometry(0.02, 0.02, 0.7, 4); g.rotateZ(sx * 1.1); B.add(g, 0x4a3626, sx * 0.62, 1.32, 0); } for (let k = 0; k < 3; k++) B.blob(0.04, 0, 1.0 + k * 0.17, 0.39 - k * 0.02, 0x151515);
     B.cyl(0.2, 0.2, 0.26, 0, 1.98, 0, 0x1c1c22, 9); B.cyl(0.3, 0.3, 0.03, 0, 1.98, 0, 0x1c1c22, 9); B.cyl(0.29, 0.29, 0.1, 0, 1.52, 0, 0xc8372f, 9); GEO.snowman = B.mesh().geometry; }
@@ -7026,7 +7087,7 @@ function step(dt) {
   if (HQ && (play || win || title)) { G.breath -= dt; if (G.breath <= 0) { G.breath = 0.85 + Math.random() * 0.5; for (const [an, f] of [[dog, 0.26], [cat, 0.17]]) { if (!an.root.visible) continue; an.head.getWorldPosition(tmpV); const q = an.root.getWorldQuaternion(new THREE.Quaternion()), fw = new THREE.Vector3(0, 0, 1).applyQuaternion(q); for (let k = 0; k < 3; k++) pAlpha.spawn(tmpV.x + fw.x * f, tmpV.y - 0.02, tmpV.z + fw.z * f, fw.x * 0.5 + (Math.random() - 0.5) * 0.2, 0.25 + Math.random() * 0.2, fw.z * 0.5 - (G.phase === 'sled' && play ? G.v * 0.5 : 0), 0.8, 0.06, 0.38, 1, 1, 1, 0.3, -0.2, 1.2); } } }
   // the afternoon turns to dusk while they cross the ice: low red sun, blue shadows, the fire and the windows take over
   { const dk = G.phase === 'ice' ? sm(ICE0 + 30, S2 - 25, -P.z) : 0; if (Math.abs(dk - G.dusk) > 0.004) { G.dusk = dk;
-      SUN.set(0.5, lerp(0.36, 0.045, dk), -0.62).normalize(); G.sky.material.uniforms.sunPosition.value.copy(SUN);
+      SUN.set(0.5, lerp(0.36, 0.045, dk), -0.62).normalize(); G.sky.material.uniforms.sunPosition.value.copy(SUN); G.cloudU.uLit.value.setRGB(1, lerp(0.99, 0.62, dk), lerp(0.97, 0.42, dk)); G.cloudU.uShade.value.setRGB(lerp(0.6, 0.3, dk), lerp(0.68, 0.3, dk), lerp(0.8, 0.46, dk)); G.glintU.value = 1 - dk * 0.8;
       sun.color.setRGB(1, lerp(0.9, 0.5, dk), lerp(0.77, 0.3, dk)); sun.intensity = lerp(2.6, 0.75, dk); hemi.intensity = lerp(0.55, 0.3, dk); hemi.color.setRGB(lerp(0.77, 0.42, dk), lerp(0.86, 0.47, dk), lerp(1, 0.8, dk));
       scene.environmentIntensity = lerp(0.55, 0.2, dk); scene.fog.color.setRGB(lerp(0.81, 0.4, dk), lerp(0.86, 0.38, dk), lerp(0.93, 0.5, dk)); fogUniforms.uFogColor.value.copy(scene.fog.color);
       G.winMat.color.setRGB(0.25 + 5.5 * dk, 0.18 + 3.4 * dk, 0.08 + 1.1 * dk); G.houseLight.intensity = 40 * dk; fireLight.distance = lerp(22, 40, dk); } }
@@ -7034,6 +7095,7 @@ function step(dt) {
   for (const f of fire.userData.flames) { const q = 0.75 + Math.random() * 0.5; f.scale.set(q, 0.7 + Math.random() * 0.7, q); } fireLight.intensity = (22 + Math.random() * 9) * (1 + 2.2 * Math.max(0, G.dusk));
   if (Math.random() < dt * 22) pAdd.spawn(FX + (Math.random() - 0.5) * 0.5, fire.position.y + 0.8, FZ + (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.8, 1.6 + Math.random() * 2, (Math.random() - 0.5) * 0.8, 1.2, 0.07, 0.02, 6, 2.4, 0.4, 1, -0.6, 0.3);
   if (Math.random() < dt * 9) pAlpha.spawn(FX, fire.position.y + 1.6, FZ, 0.3, 1.2 + Math.random(), 0, 3.2, 0.5, 2.6, 0.62, 0.62, 0.66, 0.3, -0.2, 0.2);
+  for (const q of G.smoke) if (Math.abs(-q.z - prog()) < 170 && Math.random() < dt * 4) pAlpha.spawn(q.x, q.y, q.z, 0.5, 0.9 + Math.random() * 0.6, 0, 4.5, 0.5, 3.2, 0.82, 0.82, 0.86, 0.3, -0.15, 0.2);
   if (G.chimney && Math.random() < dt * 6) pAlpha.spawn(G.chimney.x, G.chimney.y, G.chimney.z, 0.5, 1 + Math.random() * 0.6, 0, 4, 0.6, 3, 0.8, 0.8, 0.84, 0.32, -0.15, 0.2);
   // ---- bones
   let n = 0; const ps = prog();
@@ -7051,7 +7113,7 @@ function step(dt) {
   else { px = P.x; py = 0; pz = P.z; const ck2 = G.crackOn && -P.z < CR1 + 6 ? 1 : 0; G.camK = (G.camK || 0) + (ck2 - (G.camK || 0)) * Math.min(1, dt * 2); const q = G.camK;      // over the breaking ice the camera rises and drops back, so the water closing in behind stays in sight
     camera.position.lerp(tmpV.set(lerp(P.x, CXI, 0.25), 5.2 + tall * 2 + q * 3.2, P.z + 8.2 + tall * 2.5 + q * 5.5), Math.min(1, dt * 5)); camera.position.x += (Math.random() - 0.5) * (sh + q * 0.05); camera.lookAt(lerp(P.x, CXI, 0.15), 0.4, P.z - 6 + q * 3.5); }
   const fov = 62 + (tall ? 8 : 0) + (G.phase === 'sled' && play ? clamp((G.v - 12) * 0.75, 0, 14) + (G.av === 1 ? clamp((40 - (G.s - G.avS)) * 0.25, 0, 7) : 0) : 0); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
-  G.sky.position.copy(camera.position); flakeU.uCam.value.copy(camera.position); flakeU.uSize.value = renderer.domElement.height / 700;
+  G.sky.position.copy(camera.position); G.clouds.position.copy(camera.position); G.cloudU.uTime.value = G.t; flakeU.uCam.value.copy(camera.position); flakeU.uSize.value = renderer.domElement.height / 700;
   sun.target.position.set(px, py, pz - 6); sun.position.copy(sun.target.position).addScaledVector(SUN, 90);
   hud(); if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.opacity = 0; } if (pickT > 0) { pickT -= dt; if (pickT <= 0) $('pick').style.opacity = 0; }
   if (audio.on) { audio.musicRun({ play, soft: win, stage: G.phase === 'ice' ? 1 : 0 }); if (audio.wind) audio.wind.g.gain.setTargetAtTime(play && G.phase === 'sled' ? 0.05 + G.v * 0.012 : 0.06, audio.ctx.currentTime, 0.3); }
