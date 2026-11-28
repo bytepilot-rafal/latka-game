@@ -61,6 +61,7 @@ podręcznej i, jeśli jest nowszy, sama przeładowuje się do nowej wersji — z
 | `src/night.js` | poziom 3 „Nocna wyprawa po szczeniaki”: ogrody, skradanie, szczeniaki (adres z `?level=3`) |
 | `src/raft.js` | poziom 4 „Spływ Narwią”: rzeka, ponton, przeszkody (adres z `?level=4`) |
 | `src/kite.js` | poziom 5 „Latawiec Stasia”: teren, niebo, chmury, lot latawcem (adres z `?level=5`) |
+| `src/sled.js` | poziom 6 „Zima nad Narwią”: zjazd na sankach, ślizganie po lodzie, ognisko (adres z `?level=6`) |
 | `src/real.js` | wspólne elementy naturalnego wyglądu poziomów 3 i 4: niebo, woda, drzewa, ziarnistość terenu, cienie chmur |
 | `src/fur.js` | przełącznik jakości (HQ) i futro Łatki oraz Mili rysowane warstwami |
 | `src/kit.js` | wspólne klocki do budowania scenerii (nowsze poziomy) |

@@ -17,7 +17,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 NAME = "Przygody-zaginionej-Latki"
 OUT = os.path.join(ROOT, "dist", NAME)
 WEB = os.path.join(ROOT, "docs")   # what GitHub Pages serves
-ORDER = ["textures", "kit", "fx", "dog", "cat", "relics", "real", "fur", "sky", "audio", "world", "main", "run", "night", "raft", "kite"]  # dependencies first
+ORDER = ["textures", "kit", "fx", "dog", "cat", "relics", "real", "fur", "sky", "audio", "world", "main", "run", "night", "raft", "kite", "sled"]  # dependencies first
 
 # Runs first on the hosted page: asks the server (bypassing every cache) which build is current and,
 # if this copy is older, reloads under a new address so the browser cannot answer from its cache.
@@ -38,7 +38,7 @@ LOADER = """
     src = src.replace(/from '\\.\\/(\\w+)\\.js'/g, (m, k) => "from '" + urls[k] + "'");
     urls[n] = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
   }
-  import(LEVEL === '5' ? urls.kite : LEVEL === '4' ? urls.raft : LEVEL === '3' ? urls.night : LEVEL === '2' ? urls.run : urls.main).catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });
+  import(LEVEL === '6' ? urls.sled : LEVEL === '5' ? urls.kite : LEVEL === '4' ? urls.raft : LEVEL === '3' ? urls.night : LEVEL === '2' ? urls.run : urls.main).catch((e) => { document.getElementById('loading').textContent = 'Błąd: ' + e.message; });
 </script>
 """
 
