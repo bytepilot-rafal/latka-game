@@ -316,6 +316,10 @@ function hurt(text, x, y, z, wet) {
   if (audio.on) { if (wet) audio.splash(0.5); else audio.crack(); audio.yelp(); setTimeout(() => audio.meow(1.3), 250); }
   $('flash').style.opacity = 1; setTimeout(() => { $('flash').style.opacity = 0; }, 200);
   for (let k = 0; k < 34; k++) pAlpha.spawn(x, y + 0.2, z, (Math.random() - 0.5) * 7, 2 + Math.random() * 4.5, (Math.random() - 0.5) * 7, 0.9, 0.16, 0.5, wet ? 0.75 : 0.96, wet ? 0.88 : 0.98, 1, 0.9, 9, 0.6);
+  if (!wet) {                                                // a wipe-out throws up a billowing cloud of snow, with clods flying out of it
+    for (let k = 0; k < 46; k++) { const an = Math.random() * 6.28, sp = 1.5 + Math.random() * 4.5; pAlpha.spawn(x + Math.cos(an) * 0.4, y + 0.3 + Math.random() * 0.6, z + Math.sin(an) * 0.4, Math.cos(an) * sp, 0.8 + Math.random() * 2.6, Math.sin(an) * sp - G.v * 0.25, 1.3 + Math.random() * 0.9, 0.7, 2.6 + Math.random() * 1.6, 0.97, 0.98, 1, 0.55, 0.6, 1.6); }
+    for (let k = 0; k < 26; k++) pAlpha.spawn(x, y + 0.4, z, (Math.random() - 0.5) * 11, 3 + Math.random() * 6, (Math.random() - 0.5) * 11 - G.v * 0.3, 1.1, 0.22, 0.12, 1, 1, 1, 1, 14, 0.3);
+  }
   if (G.lives <= 0) { G.mode = 'over'; G.endT = 0; if (audio.on) audio.night(); }
 }
 const snowPuff = (x, y, z, n, sp = 3) => { for (let k = 0; k < n; k++) pAlpha.spawn(x + (Math.random() - 0.5) * 0.5, y + 0.1, z + (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * sp, 0.6 + Math.random() * sp * 0.6, (Math.random() - 0.5) * sp, 0.5 + Math.random() * 0.5, 0.14, 0.55, 0.97, 0.98, 1, 0.75, 5, 1.2); };
