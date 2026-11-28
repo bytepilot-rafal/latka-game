@@ -288,7 +288,7 @@ function buildWorld() {
     for (const i of [0, rowsN]) { const pp = [], ii = [], o = i * (J + 1) * 3; for (let j = 0; j <= J; j++) { pp.push(a.pp[o + j * 3], a.pp[o + j * 3 + 1], a.pp[o + j * 3 + 2], b.pp[o + j * 3], b.pp[o + j * 3 + 1], b.pp[o + j * 3 + 2]); if (j < J) ii.push(j * 2, j * 2 + 1, j * 2 + 2, j * 2 + 1, j * 2 + 3, j * 2 + 2); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); g.setIndex(ii); g.computeVertexNormals(); const m = new THREE.Mesh(g, outM); m.frustumCulled = false; scene.add(m); } }      // the faces of the two mouths
   // ---- the avalanche: a long wall of tumbling snow that comes down the left-hand slope at an angle and closes on the run like a gate
   { const g = mergeVertices(new THREE.IcosahedronGeometry(1, 4).deleteAttribute('uv').deleteAttribute('normal')), P3 = g.attributes.position; for (let i = 0; i < P3.count; i++) { const x = P3.getX(i), y = P3.getY(i), z = P3.getZ(i), n = 0.74 + fbm(x * 1.7 + 3 + y, z * 1.7 - y, 3, 11) * 0.6; P3.setXYZ(i, x * n, y * n, z * n); } g.computeVertexNormals();
-    const mat = new THREE.MeshStandardMaterial({ color: 0xf7fafe, roughness: 1 }); G.avL = [];
+    const mat = new THREE.MeshStandardMaterial({ color: 0xf7fafe, roughness: 1 }); G.avL = []; G.avLump = g; G.avRound = new THREE.SphereGeometry(1, 28, 16); mat.side = THREE.DoubleSide;
     for (let i = 0; i < 22; i++) { const m = new THREE.Mesh(g, mat); m.visible = false; m.castShadow = true; scene.add(m); G.avL.push({ m, sx: 5.5 + R() * 3.5, sy: 4.2 + R() * 3, ph: R() * 6.28, off: (R() - 0.5) * 3, spin: 1.6 + R() * 1.6 }); } }
   { const x = CXI + 15, z = -(S2 + 30), y = ground(S2 + 30, 15); G.winMat = new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }); for (const wx of [-3, 1.6]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.9), G.winMat); w.position.set(x + wx, y + 1.8, z + 3.09); scene.add(w); } G.houseLight = new THREE.PointLight(0xffc070, 0, 26, 1.5); G.houseLight.position.set(x - 0.6, y + 2, z + 6); scene.add(G.houseLight); }
   // ---- the ice chute: a glossy skin over the half-pipe
@@ -482,7 +482,7 @@ function reset() {
   Object.assign(P, { x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: Math.PI, fall: 0 }); Object.assign(Mi, { x: 0, z: 0, vx: 0, vz: 0, spin: 0 });
   for (const it of items) it.got = false;
   for (const q of haz) if (q.type === 'thin') { q.load = 0; q.warned = false; q.broken = false; q.m.visible = true; q.hm.visible = false; }
-  Object.assign(G, { av: 0, avS: 0, avV: 16, avFade: 0, avT: 0, pitch: undefined, airCam: 0, flip: 0, combo: 1, style: 0, snowed: 0 }); for (const q of G.avL) q.m.visible = false; for (const q of shots) { q.on = false; q.m.visible = false; } for (const kd of kids) kd.cd = Math.random();
+  Object.assign(G, { av: 0, avS: 0, avV: 16, avFade: 0, avT: 0, pitch: undefined, airCam: 0, flip: 0, combo: 1, style: 0, snowed: 0 }); for (const q of G.avL) { q.m.visible = false; q.m.geometry = G.avLump; } for (const q of shots) { q.on = false; q.m.visible = false; } for (const kd of kids) kd.cd = Math.random();
   Object.assign(G, { crash: null, trick: 0, inShort: false, treeI: 0, crackOn: false, crackS: CR0, crackHold: 0, floeI: 0, floeS: CR0, dusk: -1, breath: 0 }); for (const t of nearTrees) t.done = false; G.birdT = 0; for (const b of birds) b.g.visible = false; for (const d of deer) { d.on = false; d.done = false; d.m.visible = false; } G.iceU.uFront.value = CR0 - 40; hare.visible = false; hare.userData.i = 0; hare.userData.off = 0;
   iceTrail.userData.last = null; iceTrail.userData.k = 0; iceTrail.geometry.attributes.position.array.fill(0); iceTrail.geometry.attributes.position.needsUpdate = true;
   sled.add(dog.root); dog.root.position.set(...SEAT[0]); dog.root.rotation.set(0, 0, 0); sled.add(cat.root); cat.root.position.set(...SEAT[1]); cat.root.rotation.set(0, 0, 0); sled.visible = true;
@@ -510,6 +510,12 @@ function hurt(text, x, y, z, wet) {
     for (let k = 0; k < 26; k++) pAlpha.spawn(x, y + 0.4, z, (Math.random() - 0.5) * 11, 3 + Math.random() * 6, (Math.random() - 0.5) * 11 - G.v * 0.3, 1.1, 0.22, 0.12, 1, 1, 1, 1, 14, 0.3);
   }
   if (G.lives <= 0) { G.mode = 'over'; G.endT = 0; if (audio.on) audio.night(); }
+}
+const MW = 0.5, MSY = 0.85, MDROP = 0.84;                                                             // mound: half-width as a share of the lump's size, its vertical radius, how deep its middle is buried
+function surfAt(s, u) {
+  let y = ground(s, u); if (G.av !== 3) return y; const k = sm(0, 0.75, G.avT); if (k <= 0) return y;
+  for (const q of G.avL) { const w = q.sx * MW, r2 = ((s - q.ts) ** 2 + (u - q.tu) ** 2) / (w * w); if (r2 < 1) y = Math.max(y, q.ty + (q.th - MDROP + MSY * 1.04 * Math.sqrt(1 - r2)) * k); }
+  return y;
 }
 // Both animals are thrown off the sledge, somersault through the air, land in the snow, shake it off and hop back on.
 const SEAT = [[0, 0.31, 0.28], [0, 0.32, -0.42]];
@@ -548,7 +554,8 @@ function stepSled(dt) {
     if (dM > 0 && dS > 0) { const main = dM <= dS, sd = Math.sign(main ? G.u : G.u - c2); G.u = main ? sd * (h - 0.7) : c2 + sd * (LW - 0.6); if (G.uv * sd > 0) { if (G.uv * sd > 3 && ck < 0.3) { G.v *= 0.86; G.shake = Math.max(G.shake, 0.25); if (audio.on) audio.scrape(); } G.uv *= ck > 0.3 ? -0.7 : -0.35; } snowPuff(cx(G.s) + G.u + sd * 0.5, G.y, -G.s, 3, 4); } }
   // ---- up and down: the ground is followed while it holds the sledge; a kicker lets go of it
   let gy = ground(G.s, G.u); const wasAir = G.air; G.vy -= 17.5 * dt; G.y += G.vy * dt;
-  if (G.av === 3) { const k = sm(0, 0.75, G.avT); for (const q of G.avL) { const dd = (G.s - q.ts) ** 2 + (G.u - q.tu) ** 2, rr = (q.sx * 0.3) ** 2; if (dd < rr * 5) gy += q.th * k * Math.exp(-dd / rr); } }      // the mounds the avalanche left on the run
+  gy = surfAt(G.s, G.u);                                                                              // on top of whatever the avalanche has left on the run
+  const onDebris = G.av === 3 && G.s > AV1 + 16 && G.s < AV1 + 62 && !G.hopped && !G.crash; if (onDebris) { G.vy = Math.min(G.vy, 2.6); if (G.y > gy) G.y = G.y - gy < 0.35 ? gy : gy + (G.y - gy) * Math.exp(-dt * 16); }      // soft snow: the sledge sinks back on to it instead of being thrown off every mound
   if (G.s > TUN[0] - 14 && G.s < TUN[1] + 1) { const top = gy + (G.s > TUN[0] ? 3.3 : lerp(11, 3.3, sm(TUN[0] - 14, TUN[0], G.s))); if (G.y > top) { G.y = top; G.vy = Math.min(G.vy, -2); } }      // inside there is a roof; on the way in, anything flying high is eased down under it      // under and just before the snow vault there is no flying: the roof is in the way
   if (G.y <= gy) { if (wasAir) { const d = Math.round(G.s - G.airS);
       if (!G.hopped && !G.crash) { const tw = Math.abs(G.trick), n = Math.round(tw / 6.2832), res = Math.abs(tw - n * 6.2832), fw = Math.abs(G.flip), m = Math.round(fw / 6.2832), res2 = Math.abs(fw - m * 6.2832), off = Math.max(tw > 0.7 ? res : 0, fw > 0.7 ? res2 : 0);      // full turns and somersaults made, and how far from straight she comes down
@@ -591,20 +598,20 @@ function stepSled(dt) {
     if (gap < 3 + Math.max(0, -G.u) * 0.5 && !G.crash && !G.noHit) { G.snowed = 2.2; hurt('buried', X, G.y, Z); G.v *= 0.3; wipeout(); G.av = 2; G.avFade = 1; for (let k = 0; k < 40; k++) pAlpha.spawn(X + (Math.random() - 0.5) * 12, G.y + Math.random() * 3, Z + (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 1 + Math.random() * 3, -4 - Math.random() * 8, 1.6, 1.5, 4.5, 0.97, 0.98, 1, 0.6, 1, 0.6); }      // it rolls over them and is spent
     if (G.s > AV1) {                                                                                     // it overtakes on the left and pours across the run ahead: a field of soft mounds to ride over
       G.av = 3; G.avT = 0; pick(T('spill')); pickT = 2.6; G.shake = 0.8; G.snowed = Math.max(G.snowed, 0.5); if (audio.on) audio.rumble(1.6);
-      G.avL.forEach((q, i) => { q.fs = -q.m.position.z; q.fx = q.m.position.x; q.fy = q.m.position.y; q.ts = AV1 + 24 + (i / G.avL.length) * 28 + Math.random() * 3; q.tu = (Math.random() - 0.5) * 2 * (half(q.ts) - 1.2); q.th = 0.35 + Math.random() * 0.5; });
+      G.avL.forEach((q, i) => { q.fs = -q.m.position.z; q.fx = q.m.position.x; q.fy = q.m.position.y; q.ts = AV1 + 24 + (i / G.avL.length) * 28 + Math.random() * 3; q.tu = (Math.random() - 0.5) * 2 * (half(q.ts) - 1.2); q.th = 0.3 + Math.random() * 0.3; q.ty = ground(q.ts, q.tu); });
       for (let k = 0; k < 60; k++) { const fs = G.s + 12 + Math.random() * 55, fu = (Math.random() - 0.5) * 16; pAlpha.spawn(cx(fs) + fu, ground(fs, fu) + Math.random() * 4, -fs, 4 + Math.random() * 5, 1 + Math.random() * 3, -6 - Math.random() * 8, 1.6 + Math.random(), 1.6, 5 + Math.random() * 3, 0.97, 0.98, 1, 0.5, 0.8, 0.5); } } }
   if (G.av === 3) { G.avT += dt; if (G.avT > 0.5 && !G.air && Math.abs(gy - ground(G.s, G.u)) > 0.08 && Math.random() < dt * 30) snowPuff(X, G.y, Z, 3, 4); }
   if (G.places < 1 && G.s > 620) { G.places = 1; place(T('p2')); }
   if (G.places < 2 && G.s > S1 - 30) { G.places = 2; place(T('p3')); }
   // ---- snow thrown up, the tracks, the wind
-  if (!G.air) { trail.userData.acc = (trail.userData.acc || 0) + G.v * dt; if (trail.userData.acc > 0.7) { trail.userData.acc = 0; trailAdd(); }
+  if (!G.air) { trail.userData.acc = (trail.userData.acc || 0) + G.v * dt; if (trail.userData.acc > 0.7) { trail.userData.acc = 0; if (gy - ground(G.s, G.u) > 0.03) trail.userData.gap = true; trailAdd(); }
     const n = (brake ? 60 : 10) + Math.abs(G.uv) * 9; if (Math.random() < dt * n * Math.min(1, G.v / 8)) pAlpha.spawn(X + (Math.random() - 0.5) * 0.7, G.y + 0.08, Z + 0.6, -G.uv * 0.4 + (Math.random() - 0.5) * 2, 0.8 + Math.random() * 1.8, 1 + Math.random() * 2, 0.6, 0.12, 0.6, 0.97, 0.98, 1, 0.7, 4, 1.2); }
   else trail.userData.gap = true;
   // ---- the sledge itself
   const head = Math.atan(headAt(G.s) + (G.inShort ? (uc(fk, G.s + 1) - uc(fk, G.s - 1)) / 2 : 0) + G.uv / Math.max(G.v, 6)) - G.trick; G.spin = Math.max(0, G.spin - dt * 1.1);
   if (G.crash) crashStep(dt);
   // the sledge lies on the ground under both ends of its runners, so it neither digs in where the slope changes nor hangs in the air; in the chute it banks with the wall
-  const gF = ground(G.s + 0.8, G.u), gB = ground(G.s - 0.7, G.u), lift = G.air ? 0 : Math.max(0, (gF + gB) / 2 - gy) + 0.1 * ck, bank = Math.atan(2 * (0.014 + 0.2 * ck) * G.u * (G.s < S1 - 30 ? 1 : 0)) * (G.air ? 0.3 : 1);
+  const gF = surfAt(G.s + 0.8, G.u), gB = surfAt(G.s - 0.7, G.u), lift = G.air ? 0 : Math.max(0, (gF + gB) / 2 - gy) + 0.1 * ck, bank = Math.atan(2 * (0.014 + 0.2 * ck) * G.u * (G.s < S1 - 30 ? 1 : 0)) * (G.air ? 0.3 : 1);
   G.pitch = (G.pitch === undefined ? Math.atan(sl) : G.pitch) + ((G.air ? clamp(-G.vy / Math.max(G.v, 8), -0.5, 0.6) : Math.atan((gB - gF) / 1.5)) - (G.pitch === undefined ? Math.atan(sl) : G.pitch)) * Math.min(1, dt * 14);
   sled.position.set(X, G.y + 0.03 + lift, Z); sled.rotation.set(G.pitch + (brake && !G.air ? -0.05 : 0) + G.flip, Math.PI - head + G.spin * G.spin * 12.56, -bank - G.uv * (0.035 + 0.03 * ck) + (G.inv > 0 ? Math.sin(G.t * 30) * 0.05 : 0));
   // ---- off the sledge once it has slid to a stop on the ice
@@ -691,7 +698,7 @@ function step(dt) {
   // ---- things that move by themselves
   for (const b of balls) { const h = half(b.s) - 1.2, a = G.t * 0.75 + b.ph; b.u = h * Math.sin(a); const x = cx(b.s) + b.u; b.m.position.set(x, ground(b.s, b.u) + b.r * 0.92, -b.s); b.m.rotation.z -= h * Math.cos(a) * 0.75 * dt / b.r; }
   for (const k of skaters) { const a = G.t * k.w + k.ph, nx = CXI + k.amp * Math.sin(a); k.vx = (nx - k.x) / Math.max(dt, 1e-3); k.x = nx; const dir = Math.cos(a) >= 0 ? 1 : -1; k.m.position.set(k.x, 0.02, k.z + Math.sin(a * 2) * 1.5); k.m.rotation.set(0, dir * Math.PI / 2, -dir * 0.0); k.m.rotation.x = 0.16; k.m.position.y = 0.02 + Math.abs(Math.sin(a * 6)) * 0.03; }
-  if (G.av === 3) { const k = sm(0, 0.75, G.avT), e = k * k * (3 - 2 * k); for (const q of G.avL) { const tx = cx(q.ts) + q.tu, ty = ground(q.ts, q.tu); q.m.visible = true; q.m.position.set(lerp(q.fx, tx, e), lerp(q.fy, ty + q.th - 1.02, e) + Math.sin(e * Math.PI) * 1.5, -lerp(q.fs, q.ts, e)); const w = lerp(q.sx, q.sx * 0.34, e); q.m.scale.set(w, lerp(q.sy, 1.0, e), w); if (e < 1) q.m.rotation.x += dt * 4 * (1 - e); } }
+  if (G.av === 3) { const k = sm(0, 0.75, G.avT), e = k * k * (3 - 2 * k); for (const q of G.avL) { const tx = cx(q.ts) + q.tu, ty = ground(q.ts, q.tu); q.m.visible = true; q.m.position.set(lerp(q.fx, tx, e), lerp(q.fy, ty + q.th - MDROP, e) + Math.sin(e * Math.PI) * 1.5, -lerp(q.fs, q.ts, e)); const w = lerp(q.sx, q.sx * MW, e); q.m.scale.set(w, lerp(q.sy, MSY, e), w); if (e < 0.55) q.m.rotation.x += dt * 4 * (1 - e); else if (q.m.geometry !== G.avRound) { q.m.geometry = G.avRound; q.m.rotation.set(0, q.ph, 0); } } }      // once down they are smooth, rounded mounds: the very shape the sledge rides over
   else if (G.av) { const f = G.av === 1 ? 1 : (G.avFade = Math.max(0, G.avFade - dt * 0.45)), TS = 0.3; G.avIn = Math.max(0, (G.avIn || 0) - dt * 0.55);      // TS: how obliquely the wall meets the run
     G.avL.forEach((q, i) => { q.m.visible = f > 0; if (f <= 0) return; const L = (i - 5) * 6.2 + q.off, sL = G.avS + L, h = half(sL), u = -h - L * TS - 2.5 - G.avIn * G.avIn * 34 + (L < 0 ? Math.min(-L * 0.35, h) : 0), x = cx(sL) + u, gy = ground(sL, u);
       q.m.position.set(x, gy + q.sy * (0.35 * f - (1 - f) * 0.9) + Math.sin(G.t * 3 + q.ph) * 0.4, -sL); q.m.scale.set(q.sx, q.sy * (0.75 + 0.25 * Math.sin(G.t * 2.3 + q.ph)), q.sx); q.m.rotation.set(G.t * q.spin + q.ph, q.ph, -G.t * q.spin * 0.7);
